@@ -118,6 +118,11 @@ export const useGame = create<GameState>((set, get) => ({
 
   completeQuest: (id) => {
     const reward = repo.completeTask(id);
+    // Companion evolves as the user's Level climbs.
+    const pet = get().activePetId;
+    if (pet && reward.leveledUp) {
+      repo.setPetEvolution(pet, repo.evolutionStageForLevel(reward.newLevel));
+    }
     get().refresh();
     return reward;
   },

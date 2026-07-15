@@ -1,8 +1,9 @@
 import React from 'react';
 import { View } from 'react-native';
 import { selectActivePet, useGame } from '@/state/stores';
-import { Body, Card, CoinPill, Heading, Muted, ProgressBar, Screen, StatTile } from '@/components/ui';
+import { Body, Card, CoinPill, Heading, Muted, Pill, ProgressBar, Screen, StatTile } from '@/components/ui';
 import { CompanionView } from '@/components/CompanionView';
+import { WeeklyChart } from '@/components/WeeklyChart';
 import { QuickAdd } from '@/components/QuickAdd';
 import { QuestRow } from '@/components/QuestRow';
 import { companionLine, moodFor } from '@/lib/companion';
@@ -27,6 +28,8 @@ export default function Home() {
 
   const focusToday = repo.totalFocusSecondsToday();
   const doneToday = repo.completedCountToday();
+  const streak = repo.currentStreak();
+  const week = repo.weeklyActivity();
   const mood = pet ? moodFor(pet.health) : null;
 
   return (
@@ -36,7 +39,10 @@ export default function Home() {
           <Muted>Welcome back</Muted>
           <Heading>{profile.display_name}</Heading>
         </View>
-        <CoinPill amount={profile.coins} />
+        <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'center' }}>
+          {streak > 0 ? <Pill label={`🔥 ${streak}`} color={colors.accent} textColor={colors.onAccent} /> : null}
+          <CoinPill amount={profile.coins} />
+        </View>
       </View>
 
       {pet && mood ? (
@@ -71,6 +77,10 @@ export default function Home() {
         <StatTile label="Quests done" value={String(doneToday)} />
         <StatTile label="Open" value={String(openTasks.length)} />
       </View>
+
+      <Card>
+        <WeeklyChart data={week} />
+      </Card>
 
       <Card style={{ gap: spacing.sm }}>
         <Body style={{ fontWeight: '600' }}>Brain dump</Body>

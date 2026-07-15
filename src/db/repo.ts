@@ -337,6 +337,66 @@ export function deleteReminder(id: number): void {
   getDb().runSync('DELETE FROM reminder WHERE id = ?', [id]);
 }
 
+// ─── Streaks & insights ───
+/** Consecutive days (ending today) with at least one completed/focused quest. */
+export function currentStreak(nowMs: number = Date.now()): number {
+  const dates = new Set(
+    getDb().getAllSync<{ date: string }>('SELECT DISTINCT date FROM daily_log').map((r) => r.date),
+  );
+  let streak = 0;
+  const d = new Date(nowMs);
+  while (dates.has(todayLocalISO(d.getTime()))) {
+    streak++;
+    d.setDate(d.getDate() - 1);
+  }
+  return streak;
+}
+
+export interface DayActivity {
+  date: string;
+  label: string;
+  seconds: number;
+}
+
+/** Focus seconds per day for the last 7 days (oldest → today). */
+export function weeklyActivity(nowMs: number = Date.now()): DayActivity[] {
+  const db = getDb();
+  const labels = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+  const out: DayActivity[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(nowMs);
+    d.setDate(d.getDate() - i);
+    const iso = todayLocalISO(d.getTime());
+    const row = db.getFirstSync<{ s: number }>(
+      'SELECT COALESCE(SUM(duration), 0) AS s FROM daily_log WHERE date = ?',
+      [iso],
+    );
+    out.push({ date: iso, label: labels[d.getDay()], seconds: row?.s ?? 0 });
+  }
+  return out;
+}
+
+/** Focus seconds grouped by quest tag (top tags), for the distribution chart. */
+export function tagDistribution(limit = 6): { tag: string; seconds: number }[] {
+  return getDb().getAllSync<{ tag: string; seconds: number }>(
+    `SELECT CASE WHEN t.tag = '' THEN 'Untagged' ELSE t.tag END AS tag,
+            COALESCE(SUM(dl.duration), 0) AS seconds
+       FROM daily_log dl JOIN task t ON t.id = dl.task_id
+      GROUP BY tag HAVING seconds > 0 ORDER BY seconds DESC LIMIT ?`,
+    [limit],
+  );
+}
+
+// ─── Evolution ───
+/** Companion evolution stage (0–5) derived from the user's Level. */
+export function evolutionStageForLevel(level: number): number {
+  return Math.max(0, Math.min(5, Math.floor((level - 1) / 2)));
+}
+
+export function setPetEvolution(petId: number, stage: number): void {
+  getDb().runSync('UPDATE pet SET evolution_stage = ? WHERE id = ?', [Math.max(0, Math.min(5, stage)), petId]);
+}
+
 // ─── Companion shop / adoption ───
 export interface AnimalOwnership extends Animal {
   owned: boolean;
