@@ -1,8 +1,16 @@
 import { create } from 'zustand';
 import * as repo from '../db/repo';
 import type { NewTaskInput } from '../db/repo';
-import type { CompletionReward, FoodWithQty, PetWithAnimal, Task, UserProfile } from '../db/types';
+import type { CompletionReward, FoodWithQty, PetWithAnimal, Reminder, Task, UserProfile } from '../db/types';
+import { cancelReminder, ensureNotificationPermission, scheduleReminder } from '../lib/notifications';
 import { kv, Keys } from './mmkv';
+
+function cancelReminderNotifs(r: Reminder | null) {
+  if (!r?.os_notification_ids) return;
+  try {
+    (JSON.parse(r.os_notification_ids) as string[]).forEach((id) => void cancelReminder(id));
+  } catch {}
+}
 
 // ─── Settings ───
 type ColorSchemePref = 'light' | 'dark' | 'system';
@@ -165,3 +173,38 @@ export function selectActivePet(s: GameState): PetWithAnimal | null {
   if (!s.pets.length) return null;
   return s.pets.find((p) => p.id === s.activePetId) ?? s.pets[0];
 }
+
+// ─── Reminders ───
+interface RemindersState {
+  items: Reminder[];
+  load: () => void;
+  add: (title: string, remindAtMs: number) => Promise<void>;
+  complete: (id: number) => void;
+  remove: (id: number) => void;
+}
+
+export const useReminders = create<RemindersState>((set, get) => ({
+  items: [],
+
+  load: () => set({ items: repo.listUpcomingReminders() }),
+
+  add: async (title, remindAtMs) => {
+    const id = repo.createReminder({ title, remind_at: remindAtMs });
+    get().load();
+    await ensureNotificationPermission();
+    const notifId = await scheduleReminder(title, remindAtMs);
+    if (notifId) repo.setReminderNotifIds(id, [notifId]);
+  },
+
+  complete: (id) => {
+    cancelReminderNotifs(repo.getReminder(id));
+    repo.completeReminder(id);
+    get().load();
+  },
+
+  remove: (id) => {
+    cancelReminderNotifs(repo.getReminder(id));
+    repo.deleteReminder(id);
+    get().load();
+  },
+}));

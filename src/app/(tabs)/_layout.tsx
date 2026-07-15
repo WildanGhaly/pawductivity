@@ -30,6 +30,10 @@ export default function TabsLayout() {
         options={{ title: 'Quests', tabBarIcon: ({ color }) => <TabIcon source={navIcon('todo')} color={color} /> }}
       />
       <Tabs.Screen
+        name="reminders"
+        options={{ title: 'Remind', tabBarIcon: ({ color }) => <TabIcon source={navIcon('calendar')} color={color} /> }}
+      />
+      <Tabs.Screen
         name="shop"
         options={{ title: 'Shop', tabBarIcon: ({ color }) => <TabIcon source={uiIcon('shop')} color={color} /> }}
       />

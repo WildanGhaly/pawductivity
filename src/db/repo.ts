@@ -9,6 +9,8 @@ import type {
   Pet,
   PetWithAnimal,
   QuestKind,
+  Recurrence,
+  Reminder,
   Task,
   UserProfile,
 } from './types';
@@ -297,6 +299,42 @@ export function completedCountToday(): number {
     [todayLocalISO()],
   );
   return row?.n ?? 0;
+}
+
+// ─── Reminders ───
+export interface NewReminderInput {
+  title: string;
+  remind_at: number; // epoch ms
+  recurrence?: Recurrence;
+}
+
+export function createReminder(input: NewReminderInput): number {
+  const r = getDb().runSync('INSERT INTO reminder (title, remind_at, recurrence) VALUES (?, ?, ?)', [
+    input.title.trim(),
+    Math.round(input.remind_at),
+    input.recurrence ?? 'once',
+  ]);
+  return r.lastInsertRowId;
+}
+
+export function setReminderNotifIds(id: number, notifIds: string[]): void {
+  getDb().runSync('UPDATE reminder SET os_notification_ids = ? WHERE id = ?', [JSON.stringify(notifIds), id]);
+}
+
+export function listUpcomingReminders(): Reminder[] {
+  return getDb().getAllSync<Reminder>('SELECT * FROM reminder WHERE is_completed = 0 ORDER BY remind_at ASC');
+}
+
+export function getReminder(id: number): Reminder | null {
+  return getDb().getFirstSync<Reminder>('SELECT * FROM reminder WHERE id = ?', [id]);
+}
+
+export function completeReminder(id: number): void {
+  getDb().runSync('UPDATE reminder SET is_completed = 1 WHERE id = ?', [id]);
+}
+
+export function deleteReminder(id: number): void {
+  getDb().runSync('DELETE FROM reminder WHERE id = ?', [id]);
 }
 
 // ─── Companion shop / adoption ───

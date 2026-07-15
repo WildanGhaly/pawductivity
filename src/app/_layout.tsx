@@ -4,6 +4,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useGame } from '@/state/stores';
+import { setupNotifications } from '@/lib/notifications';
 import { useTheme } from '@/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -20,8 +21,12 @@ export default function RootLayout() {
         // On web this initializes the WASM worker up front so the sync API
         // doesn't race its own async worker startup; on native it's a cheap open.
         const SQLite = await import('expo-sqlite');
-        await SQLite.openDatabaseAsync('pawductivity.db');
+        // Warm the SQLite worker (loads the WASM engine on web) then release the handle,
+        // so the synchronous engine can acquire the OPFS file exclusively. No-op cost on native.
+        const warm = await SQLite.openDatabaseAsync('pawductivity.db');
+        await warm.closeAsync();
         if (!cancelled) init(); // migrate DB, apply lazy health decay, hydrate stores
+        void setupNotifications(); // Android channel + foreground handler (no-op on web)
       } catch (e) {
         console.error('DB init failed', e);
       } finally {
