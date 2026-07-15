@@ -1,46 +1,46 @@
 import { Tabs } from 'expo-router';
-import { Image, type ColorValue } from 'react-native';
+import { Image, View } from 'react-native';
 import { navIcon, uiIcon } from '@/lib/assets';
-import { useTheme } from '@/theme';
 
-function TabIcon({ source, color }: { source: any; color: ColorValue }) {
-  return <Image source={source} style={{ width: 26, height: 26, tintColor: color }} resizeMode="contain" />;
+/**
+ * Bottom navbar exactly like the legacy app_navbar.dart: the full-colour nav icons (NO
+ * tint), icon-only, with the line.png underline on the active tab. Home = paw (the pet
+ * room), Quests = todo, Remind = calendar, Shop = shop, Profile = profile.
+ */
+function TabIcon({ source, focused }: { source: any; focused: boolean }) {
+  return (
+    <View style={{ alignItems: 'center', justifyContent: 'center', width: 54, paddingTop: 8, gap: 4 }}>
+      <Image source={source} style={{ width: 30, height: 30, opacity: focused ? 1 : 0.45 }} resizeMode="contain" />
+      <Image source={navIcon('line')} style={{ width: 22, height: 4, opacity: focused ? 1 : 0 }} resizeMode="contain" />
+    </View>
+  );
 }
 
 export default function TabsLayout() {
-  const { colors } = useTheme();
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textMuted,
+        tabBarShowLabel: false,
         tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
+          backgroundColor: '#fff',
+          borderTopWidth: 0,
+          height: 68,
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
+          shadowColor: '#000',
+          shadowOpacity: 0.08,
+          shadowRadius: 6,
+          shadowOffset: { width: 0, height: -2 },
+          elevation: 8,
         },
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{ title: 'Home', tabBarIcon: ({ color }) => <TabIcon source={navIcon('home')} color={color} /> }}
-      />
-      <Tabs.Screen
-        name="quests"
-        options={{ title: 'Quests', tabBarIcon: ({ color }) => <TabIcon source={navIcon('todo')} color={color} /> }}
-      />
-      <Tabs.Screen
-        name="reminders"
-        options={{ title: 'Remind', tabBarIcon: ({ color }) => <TabIcon source={navIcon('calendar')} color={color} /> }}
-      />
-      <Tabs.Screen
-        name="shop"
-        options={{ title: 'Shop', tabBarIcon: ({ color }) => <TabIcon source={uiIcon('shop')} color={color} /> }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{ title: 'Profile', tabBarIcon: ({ color }) => <TabIcon source={navIcon('profile')} color={color} /> }}
-      />
+      <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: ({ focused }) => <TabIcon source={navIcon('paw')} focused={focused} /> }} />
+      <Tabs.Screen name="quests" options={{ title: 'Quests', tabBarIcon: ({ focused }) => <TabIcon source={navIcon('todo')} focused={focused} /> }} />
+      <Tabs.Screen name="reminders" options={{ title: 'Remind', tabBarIcon: ({ focused }) => <TabIcon source={navIcon('calendar')} focused={focused} /> }} />
+      <Tabs.Screen name="shop" options={{ title: 'Shop', tabBarIcon: ({ focused }) => <TabIcon source={uiIcon('shop')} focused={focused} /> }} />
+      <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: ({ focused }) => <TabIcon source={navIcon('profile')} focused={focused} /> }} />
     </Tabs>
   );
 }

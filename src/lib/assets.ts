@@ -74,6 +74,7 @@ const NAV_ICON: Record<string, any> = {
   calendar: require('../../assets/nav/calender.png'),
   paw: require('../../assets/nav/paw.png'),
   profile: require('../../assets/nav/profil.png'),
+  line: require('../../assets/nav/line.png'),
 };
 
 export function navIcon(key: string): any {
