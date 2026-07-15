@@ -59,6 +59,9 @@ interface GameState {
   buy: (foodId: number) => void;
   feed: (foodId: number) => number;
   renameCompanion: (name: string) => void;
+  adopt: (animalId: number) => number;
+  buyClothes: (clothesId: number) => void;
+  equip: (clothesId: number) => void;
 }
 
 export const useGame = create<GameState>((set, get) => ({
@@ -133,6 +136,26 @@ export const useGame = create<GameState>((set, get) => ({
     const pet = get().activePetId;
     if (!pet) return;
     repo.renamePet(pet, name);
+    get().refresh();
+  },
+
+  adopt: (animalId) => {
+    const id = repo.adoptAnimal(animalId, useEntitlement.getState().isPremium);
+    kv.setNumber(Keys.activePetId, id);
+    set({ activePetId: id });
+    get().refresh();
+    return id;
+  },
+
+  buyClothes: (clothesId) => {
+    repo.buyClothes(clothesId, useEntitlement.getState().isPremium);
+    get().refresh();
+  },
+
+  equip: (clothesId) => {
+    const pet = get().activePetId;
+    if (!pet) throw new Error('No active companion');
+    repo.equipClothes(pet, clothesId);
     get().refresh();
   },
 }));

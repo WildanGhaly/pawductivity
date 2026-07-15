@@ -10,6 +10,7 @@ export const Keys = {
   activePetId: 'companion.activePetId',
   entitlementIsPremium: 'entitlement.isPremium', // cached; source of truth is the IAP SDK (stubbed for MVP)
   lastHealthDecayDate: 'maintenance.lastHealthDecayDate',
+  timerActive: 'timer.active', // JSON: { taskId, startedAt } while a focus session runs
 } as const;
 
 export const kv = {

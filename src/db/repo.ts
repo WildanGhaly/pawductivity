@@ -2,6 +2,7 @@ import { getDb } from './client';
 import { localMidnightsBetween, startOfLocalDay, todayLocalISO } from '../lib/date';
 import type {
   Animal,
+  Clothes,
   CompletionReward,
   Food,
   FoodWithQty,
@@ -296,4 +297,139 @@ export function completedCountToday(): number {
     [todayLocalISO()],
   );
   return row?.n ?? 0;
+}
+
+// ─── Companion shop / adoption ───
+export interface AnimalOwnership extends Animal {
+  owned: boolean;
+  petId: number | null;
+}
+
+export function listAnimalsWithOwnership(): AnimalOwnership[] {
+  const db = getDb();
+  const animals = db.getAllSync<Animal>('SELECT * FROM animal ORDER BY id');
+  const pets = db.getAllSync<{ id: number; animal_id: number }>('SELECT id, animal_id FROM pet');
+  return animals.map((a) => {
+    const p = pets.find((x) => x.animal_id === a.id);
+    return { ...a, owned: !!p, petId: p?.id ?? null };
+  });
+}
+
+/** Adopt a new species. Deducts coins, rejects duplicates/premium-gated. Returns new pet id. */
+export function adoptAnimal(animalId: number, isPremium: boolean): number {
+  const db = getDb();
+  let newPetId = 0;
+  db.withTransactionSync(() => {
+    const a = db.getFirstSync<Animal>('SELECT * FROM animal WHERE id = ?', [animalId]);
+    if (!a) throw new Error('Species not found');
+    if (a.premium && !isPremium) throw new Error('This companion requires Premium');
+    const existing = db.getFirstSync<{ id: number }>('SELECT id FROM pet WHERE animal_id = ?', [animalId]);
+    if (existing) throw new Error(`You already have a ${a.name}`);
+    const coins = db.getFirstSync<{ coins: number }>('SELECT coins FROM user_profile WHERE id = 1')!.coins;
+    if (coins < a.price) throw new Error('Not enough coins');
+    const newCoins = coins - a.price;
+    db.runSync(`UPDATE user_profile SET coins = ?, updated_at = ${NOW} WHERE id = 1`, [newCoins]);
+    const r = db.runSync('INSERT INTO pet (animal_id, name) VALUES (?, ?)', [animalId, a.name]);
+    newPetId = r.lastInsertRowId;
+    db.runSync('INSERT INTO coin_ledger (delta, reason, ref_id, balance_after) VALUES (?, ?, ?, ?)', [
+      -a.price,
+      'purchase_pet',
+      animalId,
+      newCoins,
+    ]);
+  });
+  return newPetId;
+}
+
+// ─── Wardrobe / cosmetics ───
+export interface ClothesState extends Clothes {
+  owned: boolean;
+  equipped: boolean;
+}
+
+export function listClothesWithState(petId: number | null): ClothesState[] {
+  const db = getDb();
+  const all = db.getAllSync<Clothes>('SELECT * FROM clothes ORDER BY id');
+  const owned = new Set(
+    db.getAllSync<{ clothes_id: number }>('SELECT clothes_id FROM clothes_inventory').map((r) => r.clothes_id),
+  );
+  const equipped = new Set(
+    petId
+      ? db.getAllSync<{ clothes_id: number }>('SELECT clothes_id FROM pet_clothes WHERE pet_id = ?', [petId]).map((r) => r.clothes_id)
+      : [],
+  );
+  return all.map((c) => ({ ...c, owned: owned.has(c.id), equipped: equipped.has(c.id) }));
+}
+
+export function buyClothes(clothesId: number, isPremium: boolean): void {
+  const db = getDb();
+  db.withTransactionSync(() => {
+    const c = db.getFirstSync<Clothes>('SELECT * FROM clothes WHERE id = ?', [clothesId]);
+    if (!c) throw new Error('Item not found');
+    if (c.premium && !isPremium) throw new Error('This item requires Premium');
+    const already = db.getFirstSync('SELECT 1 FROM clothes_inventory WHERE clothes_id = ?', [clothesId]);
+    if (already) throw new Error('You already own this');
+    const coins = db.getFirstSync<{ coins: number }>('SELECT coins FROM user_profile WHERE id = 1')!.coins;
+    if (coins < c.price) throw new Error('Not enough coins');
+    const newCoins = coins - c.price;
+    db.runSync(`UPDATE user_profile SET coins = ?, updated_at = ${NOW} WHERE id = 1`, [newCoins]);
+    db.runSync('INSERT INTO clothes_inventory (clothes_id) VALUES (?)', [clothesId]);
+    db.runSync('INSERT INTO coin_ledger (delta, reason, ref_id, balance_after) VALUES (?, ?, ?, ?)', [
+      -c.price,
+      'purchase_clothes',
+      clothesId,
+      newCoins,
+    ]);
+  });
+}
+
+/** Equip an owned garment on a pet (one per slot). Toggling the same item unequips it. */
+export function equipClothes(petId: number, clothesId: number): void {
+  const db = getDb();
+  const c = db.getFirstSync<{ slot: string }>('SELECT slot FROM clothes WHERE id = ?', [clothesId]);
+  if (!c) throw new Error('Item not found');
+  const owned = db.getFirstSync('SELECT 1 FROM clothes_inventory WHERE clothes_id = ?', [clothesId]);
+  if (!owned) throw new Error('You do not own this');
+  const current = db.getFirstSync<{ clothes_id: number }>(
+    'SELECT clothes_id FROM pet_clothes WHERE pet_id = ? AND slot = ?',
+    [petId, c.slot],
+  );
+  if (current?.clothes_id === clothesId) {
+    db.runSync('DELETE FROM pet_clothes WHERE pet_id = ? AND slot = ?', [petId, c.slot]);
+  } else {
+    db.runSync(
+      `INSERT INTO pet_clothes (pet_id, clothes_id, slot) VALUES (?, ?, ?)
+       ON CONFLICT(pet_id, slot) DO UPDATE SET clothes_id = excluded.clothes_id`,
+      [petId, clothesId, c.slot],
+    );
+  }
+}
+
+export function getEquippedClothes(petId: number): Clothes[] {
+  return getDb().getAllSync<Clothes>(
+    'SELECT c.* FROM pet_clothes pc JOIN clothes c ON c.id = pc.clothes_id WHERE pc.pet_id = ?',
+    [petId],
+  );
+}
+
+// ─── Focus session progress ───
+/** Persist accrued focus time (absolute total, capped). Logs the delta to time_log + daily_log. */
+export function setFocusProgress(taskId: number, totalCompletedSeconds: number): void {
+  const db = getDb();
+  db.withTransactionSync(() => {
+    const t = db.getFirstSync<Task>('SELECT * FROM task WHERE id = ?', [taskId]);
+    if (!t || t.completed) return;
+    const capped = Math.min(t.estimated_time, Math.max(0, Math.round(totalCompletedSeconds)));
+    const delta = capped - t.time_completed;
+    if (delta <= 0) return;
+    db.runSync('UPDATE task SET time_completed = ? WHERE id = ?', [capped, taskId]);
+    db.runSync('INSERT INTO time_log (task_id, seconds) VALUES (?, ?)', [taskId, delta]);
+    db.runSync(
+      `INSERT INTO daily_log (task_id, date, time_completed, duration) VALUES (?, ?, ?, ?)
+       ON CONFLICT(task_id, date) DO UPDATE SET
+         time_completed = excluded.time_completed,
+         duration = daily_log.duration + excluded.duration`,
+      [taskId, todayLocalISO(), capped, delta],
+    );
+  });
 }

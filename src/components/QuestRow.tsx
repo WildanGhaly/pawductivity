@@ -1,5 +1,6 @@
 import React from 'react';
 import { Alert, Pressable, View } from 'react-native';
+import { router } from 'expo-router';
 import type { Task } from '@/db/types';
 import { useGame } from '@/state/stores';
 import { formatDuration } from '@/lib/date';
@@ -67,6 +68,21 @@ export function QuestRow({ task }: { task: Task }) {
             ) : null}
           </View>
         </View>
+        <Pressable
+          onPress={() => router.push({ pathname: '/focus/[taskId]', params: { taskId: String(task.id) } })}
+          hitSlop={8}
+          style={({ pressed }) => ({
+            backgroundColor: colors.primary,
+            width: 40,
+            height: 40,
+            borderRadius: radius.pill,
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: pressed ? 0.8 : 1,
+          })}
+        >
+          <Body style={{ color: colors.onPrimary, fontWeight: '700', fontSize: font.size.md }}>▶</Body>
+        </Pressable>
         <Pressable
           onPress={done}
           hitSlop={8}
