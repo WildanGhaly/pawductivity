@@ -28,6 +28,7 @@ export default function FocusSession() {
   const completeQuest = useGame((s) => s.completeQuest);
   const pauseFocus = useGame((s) => s.pauseFocus);
   const pet = useGame(selectActivePet);
+  const equippedClothes = useGame((s) => s.equippedClothes);
 
   const [task, setTask] = useState<Task | null>(() => repo.getTask(id));
   const [baseSeconds, setBaseSeconds] = useState(() => repo.getTask(id)?.time_completed ?? 0);
@@ -196,7 +197,7 @@ export default function FocusSession() {
             color={colors.primary}
             trackColor={colors.cardAlt}
           >
-            {pet ? <CompanionView species={pet.species} stage={pet.evolution_stage} health={pet.health} size={120} /> : null}
+            {pet ? <CompanionView species={pet.species} clothesId={equippedClothes[0]?.id} health={pet.health} size={120} /> : null}
             <Body style={{ fontSize: 56, fontWeight: '800', color: colors.text, fontVariant: ['tabular-nums'], marginTop: -6 }}>
               {mmss(remaining)}
             </Body>

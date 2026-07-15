@@ -52,9 +52,8 @@ export default function Home() {
         <View style={{ alignItems: 'center', gap: spacing.xs, marginTop: spacing.sm }}>
           <CompanionView
             species={pet.species}
-            stage={pet.evolution_stage}
+            clothesId={equippedClothes[0]?.id}
             health={pet.health}
-            clothesKey={equippedClothes[0]?.asset}
             size={240}
           />
           <Heading style={{ fontSize: 24 }}>

@@ -5,7 +5,8 @@
  */
 import type { Species } from '../db/types';
 
-// Pet Lottie by species → [default, stage1..stage5]
+// Pet Lottie by species → [default, clothes1..clothes5]. The numbered files are the pet
+// wearing clothes item N (outfit animated ON the pet), NOT evolution stages.
 const PET_LOTTIE: Record<Species, any[]> = {
   cat: [
     require('../../assets/pet/cat/cat_default.json'),
@@ -33,10 +34,11 @@ const PET_LOTTIE: Record<Species, any[]> = {
   ],
 };
 
-export function petLottieSource(species: Species, stage: number): any {
-  const stages = PET_LOTTIE[species] ?? PET_LOTTIE.cat;
-  const idx = Math.max(0, Math.min(stages.length - 1, stage));
-  return stages[idx];
+/** `clothesId` 0 = no clothes (default animation); 1..5 = pet wearing that clothes item. */
+export function petLottieSource(species: Species, clothesId: number): any {
+  const variants = PET_LOTTIE[species] ?? PET_LOTTIE.cat;
+  const idx = Math.max(0, Math.min(variants.length - 1, clothesId));
+  return variants[idx];
 }
 
 // Food art (legacy Indonesian filenames)
