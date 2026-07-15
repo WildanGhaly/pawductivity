@@ -1,5 +1,3 @@
-import { useColorScheme } from 'react-native';
-import { useSettings } from '../state/stores';
 import { palette, type ColorTokens } from './tokens';
 
 export interface Theme {
@@ -7,12 +5,13 @@ export interface Theme {
   scheme: 'light' | 'dark';
 }
 
-/** Active theme = user preference, falling back to the OS color scheme. */
+/**
+ * The product is a warm, sunny-day meadow. The legacy app is light-only
+ * (scaffoldBackgroundColor: Colors.white), so the app renders light — no dark theme,
+ * which would only muddy the meadow art.
+ */
 export function useTheme(): Theme {
-  const system = useColorScheme();
-  const pref = useSettings((s) => s.colorScheme);
-  const scheme: 'light' | 'dark' = pref === 'system' ? (system === 'dark' ? 'dark' : 'light') : pref;
-  return { colors: palette[scheme], scheme };
+  return { colors: palette.light, scheme: 'light' };
 }
 
 export * from './tokens';

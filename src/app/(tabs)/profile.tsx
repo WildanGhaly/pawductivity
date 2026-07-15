@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, Switch, TextInput, View } from 'react-native';
+import { Switch, TextInput, View } from 'react-native';
 import * as repo from '@/db/repo';
-import { selectActivePet, useEntitlement, useGame, useSettings } from '@/state/stores';
+import { selectActivePet, useEntitlement, useGame } from '@/state/stores';
 import { Body, Button, Card, CoinPill, Heading, Muted, ProgressBar, Screen } from '@/components/ui';
 import { MeadowBackground } from '@/components/MeadowBackground';
 import { font, radius, spacing, useTheme } from '@/theme';
-
-const SCHEMES = ['light', 'dark', 'system'] as const;
 
 export default function Profile() {
   const { colors } = useTheme();
@@ -14,8 +12,6 @@ export default function Profile() {
   const pet = useGame(selectActivePet);
   const refresh = useGame((s) => s.refresh);
   const renameCompanion = useGame((s) => s.renameCompanion);
-  const colorScheme = useSettings((s) => s.colorScheme);
-  const setColorScheme = useSettings((s) => s.setColorScheme);
   const isPremium = useEntitlement((s) => s.isPremium);
   const setPremium = useEntitlement((s) => s.setPremium);
 
@@ -79,32 +75,6 @@ export default function Profile() {
         <View style={{ flexDirection: 'row', gap: spacing.sm }}>
           <TextInput value={petName} onChangeText={setPetName} style={inputStyle} placeholderTextColor={colors.textMuted} />
           <Button label="Save" variant="accent" onPress={() => renameCompanion(petName)} style={{ paddingHorizontal: spacing.lg }} />
-        </View>
-      </Card>
-
-      <Card style={{ gap: spacing.sm }}>
-        <Body style={{ fontWeight: '600' }}>Appearance</Body>
-        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-          {SCHEMES.map((s) => {
-            const active = colorScheme === s;
-            return (
-              <Pressable
-                key={s}
-                onPress={() => setColorScheme(s)}
-                style={{
-                  flex: 1,
-                  paddingVertical: spacing.md,
-                  borderRadius: radius.md,
-                  alignItems: 'center',
-                  backgroundColor: active ? colors.primary : colors.cardAlt,
-                }}
-              >
-                <Body style={{ color: active ? colors.onPrimary : colors.textMuted, fontWeight: '600', textTransform: 'capitalize' }}>
-                  {s}
-                </Body>
-              </Pressable>
-            );
-          })}
         </View>
       </Card>
 
