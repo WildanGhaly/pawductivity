@@ -1,6 +1,21 @@
 # Pawductivity — Rebuild Knowledge Base
 
-> The map you open first. This workspace defines **how Pawductivity should work** so the product owner can review the plan before any new code is written.
+> The map you open first. This workspace holds both the **knowledge base** (`context/` + `.claude/skills/` — how Pawductivity should work) and the **React Native implementation** of the local-first MVP (`src/`).
+
+## Running the app (Android-first)
+
+Local-first Expo app — no backend. `react-native-mmkv` and `lottie-react-native` are native modules (not in Expo Go), so use a **dev build**:
+
+```bash
+npm install
+npx expo run:android      # builds + installs a dev client on an emulator/device
+# then: npx expo start --dev-client
+```
+
+Typecheck: `npx tsc --noEmit` · JS bundle check: `npx expo export --platform android`.
+Stack: Expo SDK 57 · expo-router · expo-sqlite · MMKV + Zustand · lottie-react-native. AI (Brain Dump / dynamic Lottie) is rules-based in the MVP; the LLM layer is optional Phase-2.
+
+---
 
 **Pawductivity** is a gamified, local-first productivity app built around a **virtual pet companion**: you complete tasks (framed as **quests** for your pet), earn **coins**, level up, and keep your companion healthy and growing. The legacy product's own tagline: *"a task tracker and timer app with gamification, featuring virtual pets and accessories to make your productivity journey fun and engaging"* (legacy: Pawductivity-Website/components/footer.tsx:15).
 
@@ -8,7 +23,7 @@
 
 ## What this workspace is
 
-This is a **knowledge base for a ground-up rebuild of Pawductivity**, and we are currently in the **business-process-definition phase** — we are *not* writing app code yet. Each file describes how one subsystem *should* work in the new app, grounded in exactly what the legacy app actually did.
+This is a **knowledge base for a ground-up rebuild of Pawductivity** (in `context/` + `.claude/skills/`) **plus the running React Native app** (in `src/`) that implements the local-first MVP from it. Each knowledge-base file describes how one subsystem *should* work, grounded in exactly what the legacy app actually did; the code follows those specs.
 
 - **Old product** (the source of truth for *what it did*): a Flutter mobile app + Go backend + Next.js marketing site, all under `old/`.
 - **New product** (what these docs specify): **React Native + Expo, 100% local-first** — `expo-sqlite` (relational data), `react-native-mmkv` + **Zustand** (state/settings/ephemeral timer state), and on-device scheduling. Two net-new features — the **Brain Dump** capture and dynamic **Lottie** control — ship **rules-based / FE-only in the MVP**; their **client-side Claude AI layer is an optional Phase-2** enhancement (BYO-key or thin proxy), not required to run. See [`context/03-fe-only-gap-analysis.md`](context/03-fe-only-gap-analysis.md).
