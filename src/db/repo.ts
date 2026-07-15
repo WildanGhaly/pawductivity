@@ -293,7 +293,7 @@ export function totalFocusSecondsToday(): number {
 
 export function completedCountToday(): number {
   const row = getDb().getFirstSync<{ n: number }>(
-    'SELECT COUNT(*) AS n FROM daily_log WHERE date = ?',
+    'SELECT COUNT(task_id) AS n FROM daily_log WHERE date = ?',
     [todayLocalISO()],
   );
   return row?.n ?? 0;

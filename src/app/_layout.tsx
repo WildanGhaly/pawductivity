@@ -13,13 +13,24 @@ export default function RootLayout() {
   const { scheme, colors } = useTheme();
 
   useEffect(() => {
-    try {
-      init(); // open + migrate DB, apply lazy health decay, hydrate stores
-    } catch (e) {
-      console.error('DB init failed', e);
-    } finally {
-      SplashScreen.hideAsync().catch(() => {});
-    }
+    let cancelled = false;
+    (async () => {
+      try {
+        // Warm up the SQLite engine before the synchronous data layer runs.
+        // On web this initializes the WASM worker up front so the sync API
+        // doesn't race its own async worker startup; on native it's a cheap open.
+        const SQLite = await import('expo-sqlite');
+        await SQLite.openDatabaseAsync('pawductivity.db');
+        if (!cancelled) init(); // migrate DB, apply lazy health decay, hydrate stores
+      } catch (e) {
+        console.error('DB init failed', e);
+      } finally {
+        SplashScreen.hideAsync().catch(() => {});
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [init]);
 
   return (

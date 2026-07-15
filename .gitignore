@@ -50,3 +50,7 @@ Thumbs.db
 # Native (additional)
 .kotlin/
 *.pem
+
+# Playwright MCP artifacts + local demo screenshots
+.playwright-mcp/
+pawductivity-*.png
