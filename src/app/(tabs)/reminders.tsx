@@ -129,7 +129,7 @@ export default function Reminders() {
                   onPress={() => complete(r.id)}
                   style={{ backgroundColor: colors.success, width: 36, height: 36, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' }}
                 >
-                  <Body style={{ color: '#fff', fontWeight: '700' }}>✓</Body>
+                  <Body style={{ color: colors.onSuccess, fontWeight: '700' }}>✓</Body>
                 </Pressable>
                 <Pressable
                   onPress={() => remove(r.id)}

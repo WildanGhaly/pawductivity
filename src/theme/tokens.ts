@@ -30,6 +30,7 @@ export const palette = {
     onAccent: '#FFFFFF',
     health: brand.healthYellow,
     success: '#2E9E6B',
+    onSuccess: '#FFFFFF',
     danger: '#D5573B',
     warning: '#E0A93B',
     coin: '#F4B740',
@@ -49,6 +50,9 @@ export const palette = {
     onAccent: '#2A1608',
     health: brand.healthYellow,
     success: '#41B983',
+    // Dark ink so the ✓ glyph clears WCAG 3:1 on the lighter dark-mode success green
+    // (white would be ~2.47:1). Mirrors the dark onPrimary/onAccent inks.
+    onSuccess: '#04241A',
     danger: '#E5715A',
     warning: '#EBB84F',
     coin: '#F4B740',

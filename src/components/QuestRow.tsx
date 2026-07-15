@@ -97,7 +97,7 @@ export function QuestRow({ task }: { task: Task }) {
             opacity: pressed ? 0.8 : 1,
           })}
         >
-          <Body style={{ color: '#fff', fontWeight: '700', fontSize: font.size.lg }}>✓</Body>
+          <Body style={{ color: colors.onSuccess, fontWeight: '700', fontSize: font.size.lg }}>✓</Body>
         </Pressable>
       </View>
     </Pressable>
