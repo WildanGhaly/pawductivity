@@ -20,6 +20,7 @@ export default function Home() {
   const doneToday = useGame((s) => s.doneToday);
   const streak = useGame((s) => s.streak);
   const week = useGame((s) => s.week);
+  const equippedClothes = useGame((s) => s.equippedClothes);
 
   if (!ready || !profile) {
     return (
@@ -46,7 +47,12 @@ export default function Home() {
 
       {pet && mood ? (
         <Card style={{ alignItems: 'center', gap: spacing.sm }}>
-          <CompanionView species={pet.species} stage={pet.evolution_stage} health={pet.health} />
+          <CompanionView
+            species={pet.species}
+            stage={pet.evolution_stage}
+            health={pet.health}
+            clothesKey={equippedClothes[0]?.asset}
+          />
           <Heading>
             {pet.name} {mood.emoji}
           </Heading>

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Alert, Image, Pressable, View } from 'react-native';
-import * as repo from '@/db/repo';
 import { selectActivePet, useEntitlement, useGame } from '@/state/stores';
 import { Body, Button, Card, CoinPill, Heading, Muted, Pill, Screen } from '@/components/ui';
 import { clothesImage, foodImage, petImage } from '@/lib/assets';
@@ -14,7 +13,6 @@ export default function Shop() {
 
   const coins = useGame((s) => s.profile?.coins ?? 0);
   const food = useGame((s) => s.food);
-  const pets = useGame((s) => s.pets); // re-render trigger on adopt/switch
   const activePetId = useGame((s) => s.activePetId);
   const buy = useGame((s) => s.buy);
   const feed = useGame((s) => s.feed);
@@ -24,6 +22,10 @@ export default function Shop() {
   const setActivePet = useGame((s) => s.setActivePet);
   const pet = useGame(selectActivePet);
   const isPremium = useEntitlement((s) => s.isPremium);
+  // Catalogs come from the store (populated in init/refresh) — never a DB read during
+  // render, which the web sqlite sync worker can't handle re-entrantly.
+  const animals = useGame((s) => s.animalCatalog);
+  const clothes = useGame((s) => s.clothesCatalog);
 
   function guard(fn: () => void, title: string) {
     try {
@@ -106,7 +108,7 @@ export default function Shop() {
       {section === 'pets' ? (
         <>
           <Muted>Adopt new companions and switch who’s active.</Muted>
-          {repo.listAnimalsWithOwnership().map((a) => {
+          {animals.map((a) => {
             const active = a.owned && a.petId === activePetId;
             const locked = !!a.premium && !isPremium;
             return (
@@ -141,7 +143,7 @@ export default function Shop() {
       {section === 'wardrobe' ? (
         <>
           <Muted>Buy outfits and dress {pet?.name ?? 'your companion'}.</Muted>
-          {repo.listClothesWithState(activePetId).map((c) => {
+          {clothes.map((c) => {
             const locked = !!c.premium && !isPremium;
             return (
               <Card key={c.id} style={{ flexDirection: 'row', gap: spacing.md, alignItems: 'center' }}>

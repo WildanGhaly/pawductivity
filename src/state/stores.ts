@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import * as repo from '../db/repo';
-import type { DayActivity, NewTaskInput } from '../db/repo';
-import type { CompletionReward, FoodWithQty, PetWithAnimal, Reminder, Task, UserProfile } from '../db/types';
+import type { AnimalOwnership, ClothesState, DayActivity, NewTaskInput } from '../db/repo';
+import type { Clothes, CompletionReward, FoodWithQty, PetWithAnimal, Reminder, Task, UserProfile } from '../db/types';
 import { cancelReminder, ensureNotificationPermission, scheduleReminder } from '../lib/notifications';
 import { kv, Keys } from './mmkv';
 
@@ -61,6 +61,16 @@ function derivedStats() {
   };
 }
 
+/** Catalog + companion-derived reads kept in the store, so the web sqlite sync worker
+ *  is never hit re-entrantly during render (React concurrent/compiler can double-invoke). */
+function catalogs(activePetId: number | null) {
+  return {
+    equippedClothes: activePetId ? repo.getEquippedClothes(activePetId) : [],
+    animalCatalog: repo.listAnimalsWithOwnership(),
+    clothesCatalog: repo.listClothesWithState(activePetId),
+  };
+}
+
 interface GameState {
   ready: boolean;
   profile: UserProfile | null;
@@ -72,6 +82,9 @@ interface GameState {
   doneToday: number;
   streak: number;
   week: DayActivity[];
+  equippedClothes: Clothes[];
+  animalCatalog: AnimalOwnership[];
+  clothesCatalog: ClothesState[];
 
   init: () => void;
   refresh: () => void;
@@ -100,6 +113,9 @@ export const useGame = create<GameState>((set, get) => ({
   doneToday: 0,
   streak: 0,
   week: [],
+  equippedClothes: [],
+  animalCatalog: [],
+  clothesCatalog: [],
 
   init: () => {
     repo.applyHealthDecay(); // lazy catch-up on launch — replaces the server cron
@@ -114,23 +130,26 @@ export const useGame = create<GameState>((set, get) => ({
       activePetId,
       openTasks: repo.listOpenTasks(),
       food: repo.listFoodWithQty(),
+      ...catalogs(activePetId),
       ...derivedStats(),
     });
   },
 
   refresh: () => {
+    const activePetId = get().activePetId;
     set({
       profile: repo.getProfile(),
       pets: repo.listPets(),
       openTasks: repo.listOpenTasks(),
       food: repo.listFoodWithQty(),
+      ...catalogs(activePetId),
       ...derivedStats(),
     });
   },
 
   setActivePet: (id) => {
     kv.setNumber(Keys.activePetId, id);
-    set({ activePetId: id });
+    set({ activePetId: id, ...catalogs(id) });
   },
 
   addQuest: (input) => {

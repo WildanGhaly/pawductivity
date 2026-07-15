@@ -366,18 +366,21 @@ export interface DayActivity {
 
 /** Focus seconds per day for the last 7 days (oldest → today). */
 export function weeklyActivity(nowMs: number = Date.now()): DayActivity[] {
-  const db = getDb();
   const labels = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+  const start = new Date(nowMs);
+  start.setDate(start.getDate() - 6);
+  // One grouped query instead of 7 — fewer web sqlite sync round-trips.
+  const rows = getDb().getAllSync<{ date: string; s: number }>(
+    'SELECT date, COALESCE(SUM(duration), 0) AS s FROM daily_log WHERE date >= ? GROUP BY date',
+    [todayLocalISO(start.getTime())],
+  );
+  const byDate = new Map(rows.map((r) => [r.date, r.s]));
   const out: DayActivity[] = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(nowMs);
     d.setDate(d.getDate() - i);
     const iso = todayLocalISO(d.getTime());
-    const row = db.getFirstSync<{ s: number }>(
-      'SELECT COALESCE(SUM(duration), 0) AS s FROM daily_log WHERE date = ?',
-      [iso],
-    );
-    out.push({ date: iso, label: labels[d.getDay()], seconds: row?.s ?? 0 });
+    out.push({ date: iso, label: labels[d.getDay()], seconds: byDate.get(iso) ?? 0 });
   }
   return out;
 }
@@ -427,13 +430,28 @@ export interface AnimalOwnership extends Animal {
 }
 
 export function listAnimalsWithOwnership(): AnimalOwnership[] {
-  const db = getDb();
-  const animals = db.getAllSync<Animal>('SELECT * FROM animal ORDER BY id');
-  const pets = db.getAllSync<{ id: number; animal_id: number }>('SELECT id, animal_id FROM pet');
-  return animals.map((a) => {
-    const p = pets.find((x) => x.animal_id === a.id);
-    return { ...a, owned: !!p, petId: p?.id ?? null };
-  });
+  let rows: (Animal & { pet_id: number | null })[] = [];
+  try {
+    rows = getDb().getAllSync<Animal & { pet_id: number | null }>(
+      `SELECT a.*, MIN(p.id) AS pet_id
+         FROM animal a LEFT JOIN pet p ON p.animal_id = a.id
+        GROUP BY a.id ORDER BY a.id`,
+    );
+  } catch (e) {
+    console.warn('listAnimalsWithOwnership failed (web sqlite worker)', e);
+    return [];
+  }
+  return rows.map((r) => ({
+    id: r.id,
+    species: r.species,
+    name: r.name,
+    description: r.description,
+    price: r.price,
+    asset: r.asset,
+    premium: r.premium,
+    owned: r.pet_id != null,
+    petId: r.pet_id ?? null,
+  }));
 }
 
 /** Adopt a new species. Deducts coins, rejects duplicates/premium-gated. Returns new pet id. */
@@ -469,17 +487,33 @@ export interface ClothesState extends Clothes {
 }
 
 export function listClothesWithState(petId: number | null): ClothesState[] {
-  const db = getDb();
-  const all = db.getAllSync<Clothes>('SELECT * FROM clothes ORDER BY id');
-  const owned = new Set(
-    db.getAllSync<{ clothes_id: number }>('SELECT clothes_id FROM clothes_inventory').map((r) => r.clothes_id),
-  );
-  const equipped = new Set(
-    petId
-      ? db.getAllSync<{ clothes_id: number }>('SELECT clothes_id FROM pet_clothes WHERE pet_id = ?', [petId]).map((r) => r.clothes_id)
-      : [],
-  );
-  return all.map((c) => ({ ...c, owned: owned.has(c.id), equipped: equipped.has(c.id) }));
+  const pid = Math.trunc(petId ?? -1); // inline (safe integer) — a bound param + non-empty
+  // result can trip the web sqlite sync worker; single LEFT-JOIN like listFoodWithQty.
+  try {
+    const rows = getDb().getAllSync<Clothes & { state: number }>(
+      `SELECT c.*,
+              CASE WHEN pc.clothes_id IS NOT NULL THEN 2
+                   WHEN ci.clothes_id IS NOT NULL THEN 1 ELSE 0 END AS state
+         FROM clothes c
+         LEFT JOIN clothes_inventory ci ON ci.clothes_id = c.id
+         LEFT JOIN pet_clothes pc ON pc.clothes_id = c.id AND pc.pet_id = ${pid}
+        ORDER BY c.id`,
+    );
+    return rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      description: r.description,
+      price: r.price,
+      slot: r.slot,
+      asset: r.asset,
+      premium: r.premium,
+      owned: r.state >= 1,
+      equipped: r.state === 2,
+    }));
+  } catch (e) {
+    console.warn('listClothesWithState failed (web sqlite worker)', e);
+    return [];
+  }
 }
 
 export function buyClothes(clothesId: number, isPremium: boolean): void {
@@ -527,10 +561,14 @@ export function equipClothes(petId: number, clothesId: number): void {
 }
 
 export function getEquippedClothes(petId: number): Clothes[] {
-  return getDb().getAllSync<Clothes>(
-    'SELECT c.* FROM pet_clothes pc JOIN clothes c ON c.id = pc.clothes_id WHERE pc.pet_id = ?',
-    [petId],
-  );
+  try {
+    return getDb().getAllSync<Clothes>(
+      `SELECT c.* FROM pet_clothes pc JOIN clothes c ON c.id = pc.clothes_id WHERE pc.pet_id = ${Math.trunc(petId)}`,
+    );
+  } catch (e) {
+    console.warn('getEquippedClothes failed (web sqlite worker)', e);
+    return [];
+  }
 }
 
 // ─── Focus session progress ───
