@@ -75,18 +75,21 @@ export function Card({ children, style }: { children: React.ReactNode; style?: S
 export function Heading({ children, style }: { children: React.ReactNode; style?: StyleProp<TextStyle> }) {
   const { colors } = useTheme();
   return (
-    <Text style={[{ color: colors.text, fontSize: font.size.xl, fontWeight: '700' }, style]}>{children}</Text>
+    <Text style={[{ color: colors.text, fontSize: font.size.xl, fontFamily: font.family.bold }, style]}>{children}</Text>
   );
 }
 
 export function Muted({ children, style }: { children: React.ReactNode; style?: StyleProp<TextStyle> }) {
   const { colors } = useTheme();
-  return <Text style={[{ color: colors.textMuted, fontSize: font.size.sm }, style]}>{children}</Text>;
+  return <Text style={[{ color: colors.textMuted, fontSize: font.size.sm, fontFamily: font.family.regular }, style]}>{children}</Text>;
 }
 
 export function Body({ children, style }: { children: React.ReactNode; style?: StyleProp<TextStyle> }) {
   const { colors } = useTheme();
-  return <Text style={[{ color: colors.text, fontSize: font.size.md }, style]}>{children}</Text>;
+  // Custom fonts ignore fontWeight, so pick the bold family when a bold weight is requested.
+  const w = (StyleSheet.flatten(style) as TextStyle | undefined)?.fontWeight;
+  const family = w === '600' || w === '700' || w === '800' || w === 'bold' ? font.family.bold : font.family.regular;
+  return <Text style={[{ color: colors.text, fontSize: font.size.md, fontFamily: family }, style]}>{children}</Text>;
 }
 
 export function Button({
@@ -130,7 +133,7 @@ export function Button({
       {loading ? (
         <ActivityIndicator color={fg} />
       ) : (
-        <Text style={{ color: fg, fontWeight: '600', fontSize: font.size.md }}>{label}</Text>
+        <Text style={{ color: fg, fontFamily: font.family.bold, fontSize: font.size.md }}>{label}</Text>
       )}
     </Pressable>
   );
@@ -150,7 +153,7 @@ export function Pill({ label, color, textColor }: { label: string; color?: strin
   const { colors } = useTheme();
   return (
     <View style={{ backgroundColor: color ?? colors.cardAlt, borderRadius: radius.pill, paddingVertical: 4, paddingHorizontal: spacing.md, alignSelf: 'flex-start' }}>
-      <Text style={{ color: textColor ?? colors.textMuted, fontSize: font.size.xs, fontWeight: '600' }}>{label}</Text>
+      <Text style={{ color: textColor ?? colors.textMuted, fontSize: font.size.xs, fontFamily: font.family.bold }}>{label}</Text>
     </View>
   );
 }
@@ -160,7 +163,7 @@ export function CoinPill({ amount }: { amount: number }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.cardAlt, borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: spacing.md }}>
       <Image source={uiIcon('coin')} style={{ width: 18, height: 18 }} resizeMode="contain" />
-      <Text style={{ color: colors.text, fontWeight: '700', fontSize: font.size.md }}>{amount}</Text>
+      <Text style={{ color: colors.text, fontFamily: font.family.bold, fontSize: font.size.md }}>{amount}</Text>
     </View>
   );
 }
@@ -169,8 +172,8 @@ export function StatTile({ label, value }: { label: string; value: string }) {
   const { colors } = useTheme();
   return (
     <View style={{ flex: 1, backgroundColor: colors.cardAlt, borderRadius: radius.md, padding: spacing.md, gap: 2 }}>
-      <Text style={{ color: colors.text, fontSize: font.size.lg, fontWeight: '700' }}>{value}</Text>
-      <Text style={{ color: colors.textMuted, fontSize: font.size.xs }}>{label}</Text>
+      <Text style={{ color: colors.text, fontSize: font.size.lg, fontFamily: font.family.bold }}>{value}</Text>
+      <Text style={{ color: colors.textMuted, fontSize: font.size.xs, fontFamily: font.family.regular }}>{label}</Text>
     </View>
   );
 }

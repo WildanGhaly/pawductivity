@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AppState, Pressable, Text, View } from 'react-native';
 import { Stack } from 'expo-router';
+import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -18,6 +19,10 @@ export default function RootLayout() {
   const [attempt, setAttempt] = useState(0);
   const ready = useGame((s) => s.ready);
   const onboardingComplete = useSettings((s) => s.onboardingComplete);
+  useFonts({
+    Poppins: require('../../assets/Poppins-Regular.ttf'),
+    PoppinsBold: require('../../assets/Poppins-Bold.ttf'),
+  });
 
   useEffect(() => {
     let cancelled = false;

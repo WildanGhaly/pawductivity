@@ -221,8 +221,8 @@ export default function FocusSession() {
             opacity: pressed ? 0.85 : 1,
           })}
         >
-          {running ? <PauseIcon size={18} color={colors.onAccent} /> : <PlayIcon size={18} color={colors.onPrimary} />}
-          <Text style={{ color: running ? colors.onAccent : colors.onPrimary, fontWeight: '700', fontSize: font.size.md }}>
+          {running ? <PauseIcon size={18} /> : <PlayIcon size={18} />}
+          <Text style={{ color: running ? colors.onAccent : colors.onPrimary, fontFamily: font.family.bold, fontSize: font.size.md }}>
             {running ? 'Pause' : baseSeconds > 0 ? 'Resume focusing' : 'Start focusing'}
           </Text>
         </Pressable>

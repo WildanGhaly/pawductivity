@@ -88,4 +88,9 @@ export const font = {
     semibold: '600',
     bold: '700',
   },
+  // The legacy app's typeface (assets/Poppins-*.ttf), loaded in _layout.
+  family: {
+    regular: 'Poppins',
+    bold: 'PoppinsBold',
+  },
 } as const;
