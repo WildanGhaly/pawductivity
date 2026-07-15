@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import * as repo from '../db/repo';
-import type { NewTaskInput } from '../db/repo';
+import type { DayActivity, NewTaskInput } from '../db/repo';
 import type { CompletionReward, FoodWithQty, PetWithAnimal, Reminder, Task, UserProfile } from '../db/types';
 import { cancelReminder, ensureNotificationPermission, scheduleReminder } from '../lib/notifications';
 import { kv, Keys } from './mmkv';
@@ -50,6 +50,17 @@ export const useEntitlement = create<EntitlementState>((set) => ({
 }));
 
 // ─── Core game store (hydrated from SQLite) ───
+/** Derived dashboard stats — kept in the store so they recompute on every mutation
+ *  (impure SQLite reads in render would be memoized/frozen by the React Compiler). */
+function derivedStats() {
+  return {
+    focusToday: repo.totalFocusSecondsToday(),
+    doneToday: repo.completedCountToday(),
+    streak: repo.currentStreak(),
+    week: repo.weeklyActivity(),
+  };
+}
+
 interface GameState {
   ready: boolean;
   profile: UserProfile | null;
@@ -57,6 +68,10 @@ interface GameState {
   activePetId: number | null;
   openTasks: Task[];
   food: FoodWithQty[];
+  focusToday: number;
+  doneToday: number;
+  streak: number;
+  week: DayActivity[];
 
   init: () => void;
   refresh: () => void;
@@ -70,6 +85,7 @@ interface GameState {
   adopt: (animalId: number) => number;
   buyClothes: (clothesId: number) => void;
   equip: (clothesId: number) => void;
+  pauseFocus: (id: number, doneSeconds: number) => void;
 }
 
 export const useGame = create<GameState>((set, get) => ({
@@ -79,6 +95,10 @@ export const useGame = create<GameState>((set, get) => ({
   activePetId: null,
   openTasks: [],
   food: [],
+  focusToday: 0,
+  doneToday: 0,
+  streak: 0,
+  week: [],
 
   init: () => {
     repo.applyHealthDecay(); // lazy catch-up on launch — replaces the server cron
@@ -93,6 +113,7 @@ export const useGame = create<GameState>((set, get) => ({
       activePetId,
       openTasks: repo.listOpenTasks(),
       food: repo.listFoodWithQty(),
+      ...derivedStats(),
     });
   },
 
@@ -102,6 +123,7 @@ export const useGame = create<GameState>((set, get) => ({
       pets: repo.listPets(),
       openTasks: repo.listOpenTasks(),
       food: repo.listFoodWithQty(),
+      ...derivedStats(),
     });
   },
 
@@ -171,6 +193,11 @@ export const useGame = create<GameState>((set, get) => ({
     repo.equipClothes(pet, clothesId);
     get().refresh();
   },
+
+  pauseFocus: (id, doneSeconds) => {
+    repo.setFocusProgress(id, doneSeconds);
+    get().refresh();
+  },
 }));
 
 /** Derived: the currently active companion row (or first, or null). */
@@ -198,7 +225,14 @@ export const useReminders = create<RemindersState>((set, get) => ({
     get().load();
     await ensureNotificationPermission();
     const notifId = await scheduleReminder(title, remindAtMs);
-    if (notifId) repo.setReminderNotifIds(id, [notifId]);
+    if (!notifId) return;
+    // The reminder may have been completed/deleted during the async permission+schedule gap.
+    const row = repo.getReminder(id);
+    if (!row || row.is_completed) {
+      await cancelReminder(notifId);
+      return;
+    }
+    repo.setReminderNotifIds(id, [notifId]);
   },
 
   complete: (id) => {

@@ -181,27 +181,32 @@ export function completeTask(taskId: number): CompletionReward {
       t.estimated_time,
       taskId,
     ]);
-    db.runSync('INSERT INTO time_log (task_id, seconds) VALUES (?, ?)', [taskId, remaining]);
+    // Credit focus seconds only for focus quests; still write a daily_log row so
+    // streaks + completed-count include target/checklist completions too.
+    const focusSecs = t.kind === 'focus' ? remaining : 0;
+    if (focusSecs > 0) {
+      db.runSync('INSERT INTO time_log (task_id, seconds) VALUES (?, ?)', [taskId, focusSecs]);
+    }
     db.runSync(
       `INSERT INTO daily_log (task_id, date, time_completed, duration) VALUES (?, ?, ?, ?)
        ON CONFLICT(task_id, date) DO UPDATE SET
          time_completed = excluded.time_completed,
          duration = daily_log.duration + excluded.duration`,
-      [taskId, today, t.estimated_time, remaining],
+      [taskId, today, t.estimated_time, focusSecs],
     );
 
     const p = db.getFirstSync<UserProfile>('SELECT * FROM user_profile WHERE id = 1')!;
     let { level, current_xp: xp, needed_xp: needed, coins } = p;
     xp += xpEarned;
     let leveledUp = false;
-    let bonus = 0;
     while (xp >= needed) {
       xp -= needed;
       level += 1;
       needed = neededXpFor(level);
       leveledUp = true;
-      bonus += levelUpBonus(t.estimated_time);
     }
+    // Legacy level_up granted the coin bonus once per completion, not per level crossed.
+    const bonus = leveledUp ? levelUpBonus(t.estimated_time) : 0;
     const coinsAfterReward = coins + coinsEarned;
     const coinsFinal = coinsAfterReward + bonus;
 
@@ -295,7 +300,8 @@ export function totalFocusSecondsToday(): number {
 
 export function completedCountToday(): number {
   const row = getDb().getFirstSync<{ n: number }>(
-    'SELECT COUNT(task_id) AS n FROM daily_log WHERE date = ?',
+    `SELECT COUNT(t.id) AS n FROM daily_log dl JOIN task t ON t.id = dl.task_id
+      WHERE dl.date = ? AND t.completed = 1`,
     [todayLocalISO()],
   );
   return row?.n ?? 0;

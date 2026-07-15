@@ -29,6 +29,7 @@ export function CompanionView({
         loop
         speed={mood.speed}
         style={{ width: size, height: size }}
+        webStyle={{ width: size, height: size }}
       />
     </View>
   );

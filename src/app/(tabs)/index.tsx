@@ -8,7 +8,6 @@ import { QuickAdd } from '@/components/QuickAdd';
 import { QuestRow } from '@/components/QuestRow';
 import { companionLine, moodFor } from '@/lib/companion';
 import { formatDuration } from '@/lib/date';
-import * as repo from '@/db/repo';
 import { spacing, useTheme } from '@/theme';
 
 export default function Home() {
@@ -17,6 +16,10 @@ export default function Home() {
   const profile = useGame((s) => s.profile);
   const openTasks = useGame((s) => s.openTasks);
   const pet = useGame(selectActivePet);
+  const focusToday = useGame((s) => s.focusToday);
+  const doneToday = useGame((s) => s.doneToday);
+  const streak = useGame((s) => s.streak);
+  const week = useGame((s) => s.week);
 
   if (!ready || !profile) {
     return (
@@ -26,10 +29,6 @@ export default function Home() {
     );
   }
 
-  const focusToday = repo.totalFocusSecondsToday();
-  const doneToday = repo.completedCountToday();
-  const streak = repo.currentStreak();
-  const week = repo.weeklyActivity();
   const mood = pet ? moodFor(pet.health) : null;
 
   return (

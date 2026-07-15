@@ -47,11 +47,19 @@ const UNIT_MAP: Record<string, string> = {
 };
 
 function parseTarget(text: string): { value: number; unit: string } | null {
+  // '<n>k <unit>' means n*1000 of <unit> (e.g. "10k steps"); optional k-multiplier before a real unit.
   const t = text.match(
-    /(\d+(?:\.\d+)?)\s*(km|k|miles?|mi|pages?|reps?|words?|pushups?|glasses?|steps?|laps?)\b/i,
+    /(\d+(?:\.\d+)?)(k)?\s*(km|miles?|mi|pages?|reps?|words?|pushups?|glasses?|steps?|laps?)\b/i,
   );
-  if (!t) return null;
-  return { value: parseFloat(t[1]), unit: UNIT_MAP[t[2].toLowerCase()] ?? t[2].toLowerCase() };
+  if (t) {
+    const value = parseFloat(t[1]) * (t[2] ? 1000 : 1);
+    const u = t[3].toLowerCase();
+    return { value, unit: UNIT_MAP[u] ?? u };
+  }
+  // bare '<n>k' with no following unit → kilometres
+  const km = text.match(/(\d+(?:\.\d+)?)\s*k\b/i);
+  if (km) return { value: parseFloat(km[1]), unit: 'km' };
+  return null;
 }
 
 const WEEKDAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -95,8 +103,8 @@ function parseDue(text: string, now = new Date()): number | null {
   const target = day ?? new Date(base);
   if (hour !== null) target.setHours(hour, minute, 0, 0);
   else target.setHours(9, 0, 0, 0); // default morning
-  // If it's "today" and already past, push to tomorrow.
-  if (!day && target.getTime() < now.getTime()) target.setDate(target.getDate() + 1);
+  // If the resolved time is already past (incl. "today"/"tonight"/a weekday earlier today), roll to next day.
+  if (target.getTime() < now.getTime()) target.setDate(target.getDate() + 1);
   return target.getTime();
 }
 

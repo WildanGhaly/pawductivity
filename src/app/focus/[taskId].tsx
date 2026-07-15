@@ -21,6 +21,7 @@ export default function FocusSession() {
   const { taskId } = useLocalSearchParams<{ taskId: string }>();
   const id = Number(taskId);
   const completeQuest = useGame((s) => s.completeQuest);
+  const pauseFocus = useGame((s) => s.pauseFocus);
   const pet = useGame(selectActivePet);
 
   const [task, setTask] = useState<Task | null>(() => repo.getTask(id));
@@ -53,7 +54,7 @@ export default function FocusSession() {
 
   // Auto-finish when the countdown reaches zero.
   useEffect(() => {
-    if (!running || !startedAt || !task || finishing.current) return;
+    if (!running || !startedAt || !task || task.completed || finishing.current) return;
     const done = baseSeconds + (Date.now() - startedAt) / 1000;
     if (done >= task.estimated_time) finish();
   });
@@ -86,7 +87,7 @@ export default function FocusSession() {
 
   function flush(): number {
     const done = baseSeconds + (running && startedAt ? (Date.now() - startedAt) / 1000 : 0);
-    repo.setFocusProgress(id, done);
+    pauseFocus(id, done); // persist + refresh the store so Home stats update after a pause
     const capped = Math.min(task!.estimated_time, done);
     setBaseSeconds(capped);
     return capped;
@@ -109,6 +110,10 @@ export default function FocusSession() {
       if (r.leveledUp) msg += `\n\n🎉 Level ${r.newLevel}!  +${r.levelUpBonusCoins} 🪙 bonus`;
       Alert.alert('Focus session complete!', msg, [{ text: 'Nice', onPress: () => router.back() }]);
     } catch (e: any) {
+      // Stop the timer so the auto-finish effect can't re-fire in a loop.
+      setRunning(false);
+      setStartedAt(null);
+      persistActive(null);
       finishing.current = false;
       Alert.alert('Oops', e?.message ?? 'Could not complete');
     }

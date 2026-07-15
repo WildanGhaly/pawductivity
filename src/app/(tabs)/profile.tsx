@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, Switch, TextInput, View } from 'react-native';
 import * as repo from '@/db/repo';
 import { selectActivePet, useEntitlement, useGame, useSettings } from '@/state/stores';
@@ -20,6 +20,15 @@ export default function Profile() {
 
   const [name, setName] = useState(profile?.display_name ?? 'Me');
   const [petName, setPetName] = useState(pet?.name ?? 'My Pet');
+
+  // Keep inputs in sync with the source of truth when the active companion
+  // switches/adopts (id) or is renamed elsewhere (name), and when the profile loads.
+  useEffect(() => {
+    setPetName(pet?.name ?? 'My Pet');
+  }, [pet?.id, pet?.name]);
+  useEffect(() => {
+    setName(profile?.display_name ?? 'Me');
+  }, [profile?.display_name]);
 
   if (!profile) return null;
 
