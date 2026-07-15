@@ -39,7 +39,9 @@ export function Screen({
     <View style={{ flex: 1, padding: spacing.lg, gap: spacing.lg }}>{children}</View>
   );
   return (
-    <SafeAreaView edges={edges} style={{ flex: 1, backgroundColor: background ? 'transparent' : colors.bg }}>
+    // Always paint a solid bg; the optional background node (meadow/room image) sits on top.
+    // Never transparent — a failed background image must fall back to the theme colour, not black.
+    <SafeAreaView edges={edges} style={{ flex: 1, backgroundColor: colors.bg }}>
       {background}
       {body}
     </SafeAreaView>
