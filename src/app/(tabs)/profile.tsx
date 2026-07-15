@@ -3,6 +3,7 @@ import { Pressable, Switch, TextInput, View } from 'react-native';
 import * as repo from '@/db/repo';
 import { selectActivePet, useEntitlement, useGame, useSettings } from '@/state/stores';
 import { Body, Button, Card, CoinPill, Heading, Muted, ProgressBar, Screen } from '@/components/ui';
+import { MeadowBackground } from '@/components/MeadowBackground';
 import { font, radius, spacing, useTheme } from '@/theme';
 
 const SCHEMES = ['light', 'dark', 'system'] as const;
@@ -42,7 +43,7 @@ export default function Profile() {
   };
 
   return (
-    <Screen>
+    <Screen background={<MeadowBackground />}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <Heading>Profile</Heading>
         <CoinPill amount={profile.coins} />

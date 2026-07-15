@@ -2,6 +2,7 @@ import React from 'react';
 import { View } from 'react-native';
 import { useGame } from '@/state/stores';
 import { Body, Card, Heading, Muted, Screen } from '@/components/ui';
+import { MeadowBackground } from '@/components/MeadowBackground';
 import { QuickAdd } from '@/components/QuickAdd';
 import { QuestRow } from '@/components/QuestRow';
 import { spacing } from '@/theme';
@@ -10,7 +11,7 @@ export default function Quests() {
   const openTasks = useGame((s) => s.openTasks);
 
   return (
-    <Screen>
+    <Screen background={<MeadowBackground />}>
       <Heading>Quests</Heading>
 
       <Card style={{ gap: spacing.sm }}>
