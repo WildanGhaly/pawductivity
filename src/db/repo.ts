@@ -403,6 +403,23 @@ export function setPetEvolution(petId: number, stage: number): void {
   getDb().runSync('UPDATE pet SET evolution_stage = ? WHERE id = ?', [Math.max(0, Math.min(5, stage)), petId]);
 }
 
+// ─── Onboarding ───
+/** Set the chosen free starter companion (updates the single seeded pet, or creates one). */
+export function setStarterCompanion(animalId: number, name: string): void {
+  const db = getDb();
+  const cleaned = name.trim() || 'My Pet';
+  const existing = db.getFirstSync<{ id: number }>('SELECT id FROM pet ORDER BY id LIMIT 1');
+  if (existing) {
+    db.runSync('UPDATE pet SET animal_id = ?, name = ?, evolution_stage = 0, health = 100 WHERE id = ?', [
+      animalId,
+      cleaned,
+      existing.id,
+    ]);
+  } else {
+    db.runSync('INSERT INTO pet (animal_id, name) VALUES (?, ?)', [animalId, cleaned]);
+  }
+}
+
 // ─── Companion shop / adoption ───
 export interface AnimalOwnership extends Animal {
   owned: boolean;

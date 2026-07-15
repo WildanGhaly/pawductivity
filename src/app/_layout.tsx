@@ -4,8 +4,9 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { useGame } from '@/state/stores';
+import { useGame, useSettings } from '@/state/stores';
 import { setupNotifications } from '@/lib/notifications';
+import { Onboarding } from '@/components/Onboarding';
 import { useTheme } from '@/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -15,6 +16,8 @@ export default function RootLayout() {
   const { scheme, colors } = useTheme();
   const [initError, setInitError] = useState<Error | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const ready = useGame((s) => s.ready);
+  const onboardingComplete = useSettings((s) => s.onboardingComplete);
 
   useEffect(() => {
     let cancelled = false;
@@ -65,6 +68,11 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
         <Stack.Screen name="(tabs)" />
       </Stack>
+      {ready && !onboardingComplete ? (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+          <Onboarding />
+        </View>
+      ) : null}
     </SafeAreaProvider>
   );
 }

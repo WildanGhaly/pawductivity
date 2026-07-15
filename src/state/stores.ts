@@ -86,6 +86,7 @@ interface GameState {
   buyClothes: (clothesId: number) => void;
   equip: (clothesId: number) => void;
   pauseFocus: (id: number, doneSeconds: number) => void;
+  completeSetup: (animalId: number, petName: string, userName: string) => void;
 }
 
 export const useGame = create<GameState>((set, get) => ({
@@ -196,6 +197,16 @@ export const useGame = create<GameState>((set, get) => ({
 
   pauseFocus: (id, doneSeconds) => {
     repo.setFocusProgress(id, doneSeconds);
+    get().refresh();
+  },
+
+  completeSetup: (animalId, petName, userName) => {
+    repo.setStarterCompanion(animalId, petName);
+    repo.setDisplayName(userName);
+    const pet = repo.getFirstPet();
+    const activePetId = pet?.id ?? null;
+    if (activePetId) kv.setNumber(Keys.activePetId, activePetId);
+    set({ activePetId });
     get().refresh();
   },
 }));
