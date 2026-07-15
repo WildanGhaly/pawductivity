@@ -3,12 +3,10 @@ import { Alert, Image, Pressable, View } from 'react-native';
 import * as repo from '@/db/repo';
 import { selectActivePet, useEntitlement, useGame } from '@/state/stores';
 import { Body, Button, Card, CoinPill, Heading, Muted, Pill, Screen } from '@/components/ui';
-import { clothesImage, foodImage } from '@/lib/assets';
-import type { Species } from '@/db/types';
+import { clothesImage, foodImage, petImage } from '@/lib/assets';
 import { radius, spacing, useTheme } from '@/theme';
 
 type Section = 'food' | 'pets' | 'wardrobe';
-const SPECIES_EMOJI: Record<Species, string> = { dog: '🐕', cat: '🐈', rabbit: '🐰' };
 
 export default function Shop() {
   const { colors } = useTheme();
@@ -113,7 +111,7 @@ export default function Shop() {
             const locked = !!a.premium && !isPremium;
             return (
               <Card key={a.id} style={{ flexDirection: 'row', gap: spacing.md, alignItems: 'center' }}>
-                <Body style={{ fontSize: 34 }}>{SPECIES_EMOJI[a.species]}</Body>
+                <Image source={petImage(a.species)} style={{ width: 46, height: 46 }} resizeMode="contain" />
                 <View style={{ flex: 1, gap: 4 }}>
                   <Body style={{ fontWeight: '600' }}>
                     {a.name} {a.premium ? '⭐' : ''}

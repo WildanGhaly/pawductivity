@@ -64,3 +64,42 @@ const CLOTHES_IMAGE: Record<string, any> = {
 export function clothesImage(key: string): any {
   return CLOTHES_IMAGE[key];
 }
+
+// Bottom-nav tab icons (legacy nav art)
+const NAV_ICON: Record<string, any> = {
+  home: require('../../assets/nav/home.png'),
+  todo: require('../../assets/nav/todo.png'),
+  calendar: require('../../assets/nav/calender.png'),
+  paw: require('../../assets/nav/paw.png'),
+  profile: require('../../assets/nav/profil.png'),
+};
+
+export function navIcon(key: string): any {
+  return NAV_ICON[key];
+}
+
+// Species PNGs for the shop / lists (not the animated Lottie)
+const PET_IMAGE: Record<Species, any> = {
+  cat: require('../../assets/pet/cat.png'),
+  dog: require('../../assets/pet/dog.png'),
+  rabbit: require('../../assets/pet/rabbit.png'),
+};
+
+export function petImage(species: Species): any {
+  return PET_IMAGE[species];
+}
+
+// Misc UI icons
+const UI_ICON: Record<string, any> = {
+  coin: require('../../assets/ui/coin.png'),
+  shop: require('../../assets/ui/shop-icon.png'),
+  wardrobe: require('../../assets/ui/wardrobe.png'),
+  food: require('../../assets/ui/food.png'),
+  potion: require('../../assets/ui/potion.png'),
+  lock: require('../../assets/ui/lock.png'),
+};
+
+export function uiIcon(key: string): any {
+  return UI_ICON[key];
+}
+

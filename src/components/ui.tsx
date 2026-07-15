@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,6 +12,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { uiIcon } from '@/lib/assets';
 import { font, radius, spacing, useTheme } from '@/theme';
 
 export function Screen({
@@ -147,7 +149,7 @@ export function CoinPill({ amount }: { amount: number }) {
   const { colors } = useTheme();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.cardAlt, borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: spacing.md }}>
-      <Text style={{ fontSize: font.size.md }}>🪙</Text>
+      <Image source={uiIcon('coin')} style={{ width: 18, height: 18 }} resizeMode="contain" />
       <Text style={{ color: colors.text, fontWeight: '700', fontSize: font.size.md }}>{amount}</Text>
     </View>
   );

@@ -1,9 +1,10 @@
 import { Tabs } from 'expo-router';
-import { Text } from 'react-native';
+import { Image, type ColorValue } from 'react-native';
+import { navIcon, uiIcon } from '@/lib/assets';
 import { useTheme } from '@/theme';
 
-function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
-  return <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.5 }}>{emoji}</Text>;
+function TabIcon({ source, color }: { source: any; color: ColorValue }) {
+  return <Image source={source} style={{ width: 26, height: 26, tintColor: color }} resizeMode="contain" />;
 }
 
 export default function TabsLayout() {
@@ -22,19 +23,19 @@ export default function TabsLayout() {
     >
       <Tabs.Screen
         name="index"
-        options={{ title: 'Home', tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} /> }}
+        options={{ title: 'Home', tabBarIcon: ({ color }) => <TabIcon source={navIcon('home')} color={color} /> }}
       />
       <Tabs.Screen
         name="quests"
-        options={{ title: 'Quests', tabBarIcon: ({ focused }) => <TabIcon emoji="✅" focused={focused} /> }}
+        options={{ title: 'Quests', tabBarIcon: ({ color }) => <TabIcon source={navIcon('todo')} color={color} /> }}
       />
       <Tabs.Screen
         name="shop"
-        options={{ title: 'Shop', tabBarIcon: ({ focused }) => <TabIcon emoji="🛍️" focused={focused} /> }}
+        options={{ title: 'Shop', tabBarIcon: ({ color }) => <TabIcon source={uiIcon('shop')} color={color} /> }}
       />
       <Tabs.Screen
         name="profile"
-        options={{ title: 'Profile', tabBarIcon: ({ focused }) => <TabIcon emoji="🐾" focused={focused} /> }}
+        options={{ title: 'Profile', tabBarIcon: ({ color }) => <TabIcon source={navIcon('profile')} color={color} /> }}
       />
     </Tabs>
   );
