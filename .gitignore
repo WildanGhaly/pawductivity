@@ -1,0 +1,48 @@
+# ─── Legacy reference (kept locally, NOT part of the new app repo) ───
+old/
+
+# ─── Dependencies ───
+node_modules/
+.pnp
+.pnp.js
+
+# ─── Expo ───
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# ─── Native (Continuous Native Generation — regenerated via `expo prebuild`) ───
+/android
+/ios
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# ─── Metro / build ───
+.metro-health-check*
+*.tsbuildinfo
+
+# ─── Env & secrets ───
+.env
+.env*.local
+.env.*.local
+
+# ─── Logs ───
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.log
+
+# ─── OS ───
+.DS_Store
+Thumbs.db
+
+# ─── Editor / Claude local settings (personal, not shared) ───
+.claude/settings.local.json
+.idea/
+.vscode/*
+!.vscode/extensions.json
