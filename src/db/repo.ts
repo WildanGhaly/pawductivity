@@ -39,6 +39,12 @@ export function setDisplayName(name: string): void {
   );
 }
 
+export function setProfileIndex(index: number): void {
+  getDb().runSync(`UPDATE user_profile SET profile_index = ?, updated_at = ${NOW} WHERE id = 1`, [
+    Math.max(0, Math.min(6, Math.round(index))),
+  ]);
+}
+
 // ─── Catalog / pets ───
 export function listAnimals(): Animal[] {
   return getDb().getAllSync<Animal>('SELECT * FROM animal ORDER BY id');

@@ -3,7 +3,6 @@ import { Platform, Pressable, TextInput, View } from 'react-native';
 import { useGame, useReminders } from '@/state/stores';
 import { showAlert } from '@/lib/alert';
 import { Body, Card, Heading, Muted, Screen } from '@/components/ui';
-import { MeadowBackground } from '@/components/MeadowBackground';
 import { CheckIcon } from '@/components/icons';
 import { font, radius, spacing, useTheme } from '@/theme';
 
@@ -46,7 +45,7 @@ export default function Reminders() {
 
   if (!ready) {
     return (
-      <Screen scroll={false} background={<MeadowBackground />}>
+      <Screen scroll={false}>
         <Muted>Loading…</Muted>
       </Screen>
     );
@@ -73,7 +72,7 @@ export default function Reminders() {
   }
 
   return (
-    <Screen background={<MeadowBackground />}>
+    <Screen>
       <Heading>Reminders</Heading>
 
       <Card style={{ gap: spacing.sm }}>

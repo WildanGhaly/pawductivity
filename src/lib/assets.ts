@@ -96,6 +96,21 @@ export function petImage(species: Species): any {
 export const MEADOW_BG = require('../../assets/background.png');
 export const PET_HOME_BG = require('../../assets/pet/pet_home.png');
 
+// Profile avatars (legacy assets/profile/0..6.png)
+const PROFILE_AVATAR: Record<number, any> = {
+  0: require('../../assets/profile/0.png'),
+  1: require('../../assets/profile/1.png'),
+  2: require('../../assets/profile/2.png'),
+  3: require('../../assets/profile/3.png'),
+  4: require('../../assets/profile/4.png'),
+  5: require('../../assets/profile/5.png'),
+  6: require('../../assets/profile/6.png'),
+};
+export const PROFILE_AVATAR_COUNT = 7;
+export function profileAvatar(index: number): any {
+  return PROFILE_AVATAR[index] ?? PROFILE_AVATAR[0];
+}
+
 // Misc UI icons
 const UI_ICON: Record<string, any> = {
   coin: require('../../assets/ui/coin.png'),

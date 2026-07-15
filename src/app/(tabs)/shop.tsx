@@ -3,7 +3,6 @@ import { Image, Pressable, View } from 'react-native';
 import { selectActivePet, useEntitlement, useGame } from '@/state/stores';
 import { showAlert } from '@/lib/alert';
 import { Body, Button, Card, CoinPill, Heading, Muted, Pill, Screen } from '@/components/ui';
-import { MeadowBackground } from '@/components/MeadowBackground';
 import { clothesImage, foodImage, petImage } from '@/lib/assets';
 import { radius, spacing, useTheme } from '@/theme';
 
@@ -38,7 +37,7 @@ export default function Shop() {
   }
 
   return (
-    <Screen background={<MeadowBackground />}>
+    <Screen>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <Heading>Shop</Heading>
         <CoinPill amount={coins} />
