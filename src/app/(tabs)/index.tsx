@@ -1,123 +1,108 @@
 import React from 'react';
-import { View } from 'react-native';
+import { Image, Text, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { selectActivePet, useGame } from '@/state/stores';
-import { Body, Card, CoinPill, Heading, Muted, Pill, ProgressBar, Screen, StatTile } from '@/components/ui';
+import { Muted, Screen } from '@/components/ui';
 import { CompanionView } from '@/components/CompanionView';
-import { MeadowBackground } from '@/components/MeadowBackground';
-import { WeeklyChart } from '@/components/WeeklyChart';
-import { QuickAdd } from '@/components/QuickAdd';
-import { QuickFocus } from '@/components/QuickFocus';
-import { QuestRow } from '@/components/QuestRow';
-import { companionLine, moodFor } from '@/lib/companion';
-import { formatDuration } from '@/lib/date';
-import { radius, spacing, useTheme } from '@/theme';
+import { RoomBackground } from '@/components/RoomBackground';
+import { uiIcon } from '@/lib/assets';
+import { font, radius, spacing } from '@/theme';
+
+/** White rounded pill with the coin art overlapping on the left (legacy PetNavbar). */
+function CoinBadge({ amount }: { amount: number }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+      <Image source={uiIcon('coin')} style={{ width: 34, height: 34, marginRight: -14, zIndex: 2 }} resizeMode="contain" />
+      <View style={{ backgroundColor: '#fff', borderRadius: radius.pill, paddingVertical: 5, paddingLeft: 20, paddingRight: 14, ...shadow }}>
+        <Text style={{ color: '#1E4B5F', fontSize: font.size.lg, fontFamily: font.family.bold }}>{amount}</Text>
+      </View>
+    </View>
+  );
+}
+
+/** The legacy health bar: white pill with a yellow fill and an orange lightning badge. */
+function HealthBar({ health }: { health: number }) {
+  const width = 200;
+  const fill = Math.max(0, Math.min(1, health / 100)) * width;
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+      <View
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          backgroundColor: '#fff',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginRight: -14,
+          zIndex: 2,
+          ...shadow,
+        }}
+      >
+        <Svg width={20} height={20} viewBox="0 0 24 24">
+          <Path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" fill="#E28A4B" />
+        </Svg>
+      </View>
+      <View style={{ width, height: 26, borderRadius: 13, backgroundColor: '#fff', overflow: 'hidden', justifyContent: 'center', ...shadow }}>
+        <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: fill, backgroundColor: '#FFDA7C', borderRadius: 13 }} />
+      </View>
+    </View>
+  );
+}
+
+const shadow = {
+  shadowColor: '#000',
+  shadowOpacity: 0.18,
+  shadowRadius: 4,
+  shadowOffset: { width: 0, height: 2 },
+  elevation: 3,
+} as const;
+
+const nameShadow = { textShadowColor: 'rgba(0,0,0,0.35)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 } as const;
 
 export default function Home() {
-  const { colors } = useTheme();
   const ready = useGame((s) => s.ready);
   const profile = useGame((s) => s.profile);
-  const openTasks = useGame((s) => s.openTasks);
   const pet = useGame(selectActivePet);
-  const focusToday = useGame((s) => s.focusToday);
-  const doneToday = useGame((s) => s.doneToday);
-  const streak = useGame((s) => s.streak);
-  const week = useGame((s) => s.week);
   const equippedClothes = useGame((s) => s.equippedClothes);
 
   if (!ready || !profile) {
     return (
-      <Screen scroll={false} background={<MeadowBackground />}>
-        <Muted>Loading…</Muted>
+      <Screen scroll={false} background={<RoomBackground />}>
+        <View />
       </Screen>
     );
   }
 
-  const mood = pet ? moodFor(pet.health) : null;
+  const health = pet?.health ?? 0;
 
   return (
-    <Screen background={<MeadowBackground />}>
+    <Screen scroll={false} background={<RoomBackground />} edges={['top']}>
+      {/* Navbar: coins (left) + level (right) */}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <View>
-          <Body style={{ color: colors.text, opacity: 0.7 }}>Welcome back</Body>
-          <Heading style={{ fontSize: 26 }}>{profile.display_name}</Heading>
-        </View>
-        <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'center' }}>
-          {streak > 0 ? <Pill label={`🔥 ${streak}`} color={colors.accent} textColor={colors.onAccent} /> : null}
-          <CoinPill amount={profile.coins} />
+        <CoinBadge amount={profile.coins} />
+        <View style={{ backgroundColor: '#fff', borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: spacing.md, ...shadow }}>
+          <Text style={{ color: '#1E4B5F', fontFamily: font.family.bold, fontSize: font.size.sm }}>Lv {profile.level}</Text>
         </View>
       </View>
 
-      {/* Companion standing in the meadow — no card, just the pet in the field */}
-      {pet && mood ? (
-        <View style={{ alignItems: 'center', gap: spacing.xs, marginTop: spacing.sm }}>
-          <CompanionView
-            species={pet.species}
-            clothesId={equippedClothes[0]?.id}
-            health={pet.health}
-            size={240}
-          />
-          <Heading style={{ fontSize: 24 }}>
-            {pet.name} {mood.emoji}
-          </Heading>
-          <View
-            style={{
-              backgroundColor: 'rgba(255,255,255,0.85)',
-              borderRadius: radius.pill,
-              paddingVertical: 8,
-              paddingHorizontal: spacing.lg,
-              alignItems: 'center',
-              gap: 6,
-              alignSelf: 'stretch',
-              marginHorizontal: spacing.sm,
-            }}
-          >
-            <Body style={{ color: colors.text, fontWeight: '600', textAlign: 'center' }}>
-              {companionLine(pet.health, openTasks.length)}
-            </Body>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
-              <Muted>Health · {mood.label}</Muted>
-              <Muted>{pet.health}/100</Muted>
-            </View>
-            <ProgressBar value={pet.health} max={100} color={colors.health} />
+      {pet ? (
+        <>
+          <View style={{ alignItems: 'center', marginTop: spacing.lg, gap: spacing.sm }}>
+            <Text style={{ color: '#fff', fontSize: 26, fontFamily: font.family.bold, ...nameShadow }}>{pet.name}</Text>
+            <HealthBar health={health} />
           </View>
+
+          {/* Pet standing on the floor */}
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: '14%' }}>
+            <CompanionView species={pet.species} clothesId={equippedClothes[0]?.id} health={health} size={300} />
+          </View>
+        </>
+      ) : (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <Muted style={{ color: '#fff' }}>No companion yet.</Muted>
         </View>
-      ) : null}
-
-      <QuickFocus />
-
-      <Card style={{ gap: spacing.sm }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          <Body style={{ fontWeight: '700' }}>Level {profile.level}</Body>
-          <Muted>
-            {profile.current_xp}/{profile.needed_xp} XP
-          </Muted>
-        </View>
-        <ProgressBar value={profile.current_xp} max={profile.needed_xp} />
-      </Card>
-
-      <View style={{ flexDirection: 'row', gap: spacing.md }}>
-        <StatTile label="Focus today" value={formatDuration(focusToday)} />
-        <StatTile label="Quests done" value={String(doneToday)} />
-        <StatTile label="Open" value={String(openTasks.length)} />
-      </View>
-
-      <Card>
-        <WeeklyChart data={week} />
-      </Card>
-
-      <Card style={{ gap: spacing.sm }}>
-        <Body style={{ fontWeight: '700' }}>Brain dump ✨</Body>
-        <QuickAdd />
-      </Card>
-
-      {openTasks.length > 0 ? (
-        <View style={{ gap: spacing.sm }}>
-          <Body style={{ fontWeight: '700', color: colors.text }}>Today’s quests</Body>
-          {openTasks.slice(0, 4).map((t) => (
-            <QuestRow key={t.id} task={t} />
-          ))}
-        </View>
-      ) : null}
+      )}
     </Screen>
   );
 }
