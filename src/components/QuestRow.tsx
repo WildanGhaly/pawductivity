@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import type { Task } from '@/db/types';
 import { useGame } from '@/state/stores';
 import { showAlert } from '@/lib/alert';
+import { CheckIcon, PlayIcon } from '@/components/icons';
 import { formatDuration } from '@/lib/date';
 import { font, radius, spacing, useTheme } from '@/theme';
 import { Body, Muted, Pill } from './ui';
@@ -82,7 +83,7 @@ export function QuestRow({ task }: { task: Task }) {
             opacity: pressed ? 0.8 : 1,
           })}
         >
-          <Body style={{ color: colors.onPrimary, fontWeight: '700', fontSize: font.size.md }}>▶</Body>
+          <PlayIcon size={15} color={colors.onPrimary} />
         </Pressable>
         <Pressable
           onPress={done}
@@ -97,7 +98,7 @@ export function QuestRow({ task }: { task: Task }) {
             opacity: pressed ? 0.8 : 1,
           })}
         >
-          <Body style={{ color: colors.onSuccess, fontWeight: '700', fontSize: font.size.lg }}>✓</Body>
+          <CheckIcon size={18} color={colors.onSuccess} />
         </Pressable>
       </View>
     </Pressable>

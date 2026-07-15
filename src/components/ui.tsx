@@ -19,10 +19,13 @@ export function Screen({
   children,
   scroll = true,
   edges = ['top'],
+  background,
 }: {
   children: React.ReactNode;
   scroll?: boolean;
   edges?: ('top' | 'bottom' | 'left' | 'right')[];
+  /** Optional full-bleed backdrop (e.g. the meadow) rendered behind the content. */
+  background?: React.ReactNode;
 }) {
   const { colors } = useTheme();
   const body = scroll ? (
@@ -36,7 +39,8 @@ export function Screen({
     <View style={{ flex: 1, padding: spacing.lg, gap: spacing.lg }}>{children}</View>
   );
   return (
-    <SafeAreaView edges={edges} style={{ flex: 1, backgroundColor: colors.bg }}>
+    <SafeAreaView edges={edges} style={{ flex: 1, backgroundColor: background ? 'transparent' : colors.bg }}>
+      {background}
       {body}
     </SafeAreaView>
   );
@@ -53,6 +57,12 @@ export function Card({ children, style }: { children: React.ReactNode; style?: S
           padding: spacing.lg,
           borderWidth: StyleSheet.hairlineWidth,
           borderColor: colors.border,
+          // soft float over the meadow
+          shadowColor: '#0B2530',
+          shadowOpacity: 0.1,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 5 },
+          elevation: 3,
         },
         style,
       ]}

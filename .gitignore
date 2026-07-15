@@ -54,3 +54,7 @@ Thumbs.db
 # Playwright MCP artifacts + local demo screenshots
 .playwright-mcp/
 pawductivity-*.png
+
+# playwright verification artifacts
+.playwright-mcp/
+redesign-*.png

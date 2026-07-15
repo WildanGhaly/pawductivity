@@ -23,7 +23,8 @@ interface SettingsState {
 }
 
 export const useSettings = create<SettingsState>((set) => ({
-  colorScheme: (kv.getString(Keys.colorScheme) as ColorSchemePref) ?? 'system',
+  // Light-first: the app's identity is a sunny-day meadow. Dark stays available in Profile.
+  colorScheme: (kv.getString(Keys.colorScheme) as ColorSchemePref) ?? 'light',
   onboardingComplete: kv.getBool(Keys.onboardingComplete, false),
   setColorScheme: (s) => {
     kv.setString(Keys.colorScheme, s);

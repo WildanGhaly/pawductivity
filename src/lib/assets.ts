@@ -89,6 +89,10 @@ export function petImage(species: Species): any {
   return PET_IMAGE[species];
 }
 
+// Scenery
+export const MEADOW_BG = require('../../assets/background.png');
+export const PET_HOME_BG = require('../../assets/pet/pet_home.png');
+
 // Misc UI icons
 const UI_ICON: Record<string, any> = {
   coin: require('../../assets/ui/coin.png'),

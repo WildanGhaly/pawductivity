@@ -129,6 +129,12 @@ export function createTask(input: NewTaskInput): number {
   return r.lastInsertRowId;
 }
 
+/** One-tap "Focus now": create an ad-hoc focus quest of `minutes` and return its id. */
+export function createQuickFocusTask(minutes: number): number {
+  const m = Math.max(1, Math.round(minutes));
+  return createTask({ name: `${m}-minute focus`, estimated_time: m * 60, kind: 'focus', tag: 'Focus' });
+}
+
 export function listOpenTasks(): Task[] {
   return getDb().getAllSync<Task>(
     'SELECT * FROM task WHERE completed = 0 ORDER BY COALESCE(due_date, creation_date) ASC',
