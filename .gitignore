@@ -46,3 +46,7 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Native (additional)
+.kotlin/
+*.pem
