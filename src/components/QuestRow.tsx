@@ -1,0 +1,88 @@
+import React from 'react';
+import { Alert, Pressable, View } from 'react-native';
+import type { Task } from '@/db/types';
+import { useGame } from '@/state/stores';
+import { formatDuration } from '@/lib/date';
+import { font, radius, spacing, useTheme } from '@/theme';
+import { Body, Muted, Pill } from './ui';
+
+const KIND_EMOJI: Record<string, string> = { target: '🎯', checklist: '☑️', focus: '⏱️' };
+
+export function QuestRow({ task }: { task: Task }) {
+  const { colors } = useTheme();
+  const complete = useGame((s) => s.completeQuest);
+  const remove = useGame((s) => s.removeQuest);
+
+  function done() {
+    try {
+      const r = complete(task.id);
+      let msg = `+${r.coinsEarned} 🪙   +${r.xpEarned} XP`;
+      if (r.leveledUp) msg += `\n\n🎉 Level ${r.newLevel}!  +${r.levelUpBonusCoins} 🪙 bonus`;
+      Alert.alert('Quest complete!', msg);
+    } catch (e: any) {
+      Alert.alert('Oops', e?.message ?? 'Could not complete');
+    }
+  }
+
+  function confirmDelete() {
+    Alert.alert('Delete quest?', `“${task.name}”`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => remove(task.id) },
+    ]);
+  }
+
+  const due = task.due_date ? new Date(task.due_date) : null;
+
+  return (
+    <Pressable onLongPress={confirmDelete} delayLongPress={350}>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.md,
+          backgroundColor: colors.card,
+          borderRadius: radius.md,
+          padding: spacing.md,
+          borderWidth: 0.5,
+          borderColor: colors.border,
+        }}
+      >
+        <View style={{ flex: 1, gap: 4 }}>
+          <Body style={{ fontWeight: '600' }}>
+            {KIND_EMOJI[task.kind] ?? '•'} {task.name}
+          </Body>
+          <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap', alignItems: 'center' }}>
+            {task.tag ? <Pill label={task.tag} /> : null}
+            <Muted>{formatDuration(task.estimated_time)}</Muted>
+            {task.kind === 'target' && task.target_value != null ? (
+              <Muted>
+                · {task.target_current}/{task.target_value} {task.target_unit ?? ''}
+              </Muted>
+            ) : null}
+            {due ? (
+              <Muted>
+                · {due.toLocaleDateString(undefined, { weekday: 'short' })}{' '}
+                {due.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+              </Muted>
+            ) : null}
+          </View>
+        </View>
+        <Pressable
+          onPress={done}
+          hitSlop={8}
+          style={({ pressed }) => ({
+            backgroundColor: colors.success,
+            width: 40,
+            height: 40,
+            borderRadius: radius.pill,
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: pressed ? 0.8 : 1,
+          })}
+        >
+          <Body style={{ color: '#fff', fontWeight: '700', fontSize: font.size.lg }}>✓</Body>
+        </Pressable>
+      </View>
+    </Pressable>
+  );
+}
