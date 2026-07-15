@@ -88,6 +88,7 @@ interface GameState {
 
   init: () => void;
   refresh: () => void;
+  resume: () => void;
   setActivePet: (id: number) => void;
   addQuest: (input: NewTaskInput) => number;
   completeQuest: (id: number) => CompletionReward;
@@ -145,6 +146,16 @@ export const useGame = create<GameState>((set, get) => ({
       ...catalogs(activePetId),
       ...derivedStats(),
     });
+  },
+
+  resume: () => {
+    // Foreground resume (AppState → 'active'): apply any health decay for midnights crossed
+    // while the app was backgrounded, and refresh date-relative dashboard stats. The mount-only
+    // init() effect does not re-run when the app resumes without being killed, so decay and the
+    // "today"/streak figures would otherwise stay stale until the next cold start.
+    if (!get().ready) return;
+    repo.applyHealthDecay();
+    get().refresh();
   },
 
   setActivePet: (id) => {
@@ -237,10 +248,17 @@ export function selectActivePet(s: GameState): PetWithAnimal | null {
 }
 
 // ─── Reminders ───
+export interface AddReminderResult {
+  /** A deliverable OS notification was scheduled. */
+  scheduled: boolean;
+  /** Notification permission is granted. False → the reminder is saved but won't alert. */
+  permission: boolean;
+}
+
 interface RemindersState {
   items: Reminder[];
   load: () => void;
-  add: (title: string, remindAtMs: number) => Promise<void>;
+  add: (title: string, remindAtMs: number) => Promise<AddReminderResult>;
   complete: (id: number) => void;
   remove: (id: number) => void;
 }
@@ -253,16 +271,21 @@ export const useReminders = create<RemindersState>((set, get) => ({
   add: async (title, remindAtMs) => {
     const id = repo.createReminder({ title, remind_at: remindAtMs });
     get().load();
-    await ensureNotificationPermission();
+    // If permission is denied, scheduleNotificationAsync still returns an id on Android/iOS but
+    // the OS silently never delivers it — so don't persist a bogus id, and tell the caller the
+    // reminder won't actually alert (the Reminders screen surfaces this).
+    const granted = await ensureNotificationPermission();
+    if (!granted) return { scheduled: false, permission: false };
     const notifId = await scheduleReminder(title, remindAtMs);
-    if (!notifId) return;
+    if (!notifId) return { scheduled: false, permission: true };
     // The reminder may have been completed/deleted during the async permission+schedule gap.
     const row = repo.getReminder(id);
     if (!row || row.is_completed) {
       await cancelReminder(notifId);
-      return;
+      return { scheduled: false, permission: true };
     }
     repo.setReminderNotifIds(id, [notifId]);
+    return { scheduled: true, permission: true };
   },
 
   complete: (id) => {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { AppState, Pressable, Text, View } from 'react-native';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -42,6 +42,17 @@ export default function RootLayout() {
       cancelled = true;
     };
   }, [init, attempt]);
+
+  // Re-apply health decay + refresh dashboard stats whenever the app returns to the
+  // foreground. Backgrounding without a kill keeps this component mounted, so the init
+  // effect above never re-runs across midnights — this listener is what advances decay
+  // and the "today"/streak figures on resume.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') useGame.getState().resume();
+    });
+    return () => sub.remove();
+  }, []);
 
   if (initError) {
     return (

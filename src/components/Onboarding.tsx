@@ -17,10 +17,13 @@ export function Onboarding() {
   const completeSetup = useGame((s) => s.completeSetup);
   const completeOnboarding = useSettings((s) => s.completeOnboarding);
 
-  const [animals] = useState<Animal[]>(() => repo.listAnimals());
+  // Only free companions are offered as starters — premium ones (e.g. the Rabbit) stay
+  // gated to the Shop, matching repo.adoptAnimal's premium check. Otherwise a first-run
+  // user could obtain a paywalled companion for free.
+  const [animals] = useState<Animal[]>(() => repo.listAnimals().filter((a) => !a.premium));
   const [step, setStep] = useState(0);
   const [selected, setSelected] = useState<number>(() => {
-    const list = repo.listAnimals();
+    const list = repo.listAnimals().filter((a) => !a.premium);
     return list.find((a) => a.species === 'cat')?.id ?? list[0]?.id ?? 1;
   });
   const [petName, setPetName] = useState('');

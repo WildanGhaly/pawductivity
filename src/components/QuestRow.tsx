@@ -1,8 +1,9 @@
 import React from 'react';
-import { Alert, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
 import type { Task } from '@/db/types';
 import { useGame } from '@/state/stores';
+import { showAlert } from '@/lib/alert';
 import { formatDuration } from '@/lib/date';
 import { font, radius, spacing, useTheme } from '@/theme';
 import { Body, Muted, Pill } from './ui';
@@ -19,14 +20,14 @@ export function QuestRow({ task }: { task: Task }) {
       const r = complete(task.id);
       let msg = `+${r.coinsEarned} 🪙   +${r.xpEarned} XP`;
       if (r.leveledUp) msg += `\n\n🎉 Level ${r.newLevel}!  +${r.levelUpBonusCoins} 🪙 bonus`;
-      Alert.alert('Quest complete!', msg);
+      showAlert('Quest complete!', msg);
     } catch (e: any) {
-      Alert.alert('Oops', e?.message ?? 'Could not complete');
+      showAlert('Oops', e?.message ?? 'Could not complete');
     }
   }
 
   function confirmDelete() {
-    Alert.alert('Delete quest?', `“${task.name}”`, [
+    showAlert('Delete quest?', `“${task.name}”`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: () => remove(task.id) },
     ]);

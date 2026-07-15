@@ -1,5 +1,6 @@
 import { getDb } from './client';
 import { localMidnightsBetween, startOfLocalDay, todayLocalISO } from '../lib/date';
+import { applyXpGain, coinsForTask, levelUpBonus, xpForTask } from '../lib/rewards';
 import type {
   Animal,
   Clothes,
@@ -16,13 +17,9 @@ import type {
 } from './types';
 
 // ─── Reward tuning (open decision D12; single source of truth) ───
-// coins = XP = floor(estimated minutes). Change here to re-tune the economy.
-export const coinsForTask = (estimatedSeconds: number) => Math.floor(estimatedSeconds / 60);
-export const xpForTask = (estimatedSeconds: number) => Math.floor(estimatedSeconds / 60);
-// Legacy level-up bonus (level_up proc): floor(task_time / 600) * 3.
-export const levelUpBonus = (estimatedSeconds: number) => Math.floor(estimatedSeconds / 600) * 3;
-// Level-up threshold curve (task.repository.go): needed_xp = 10·L² + 50·L + 100.
-export const neededXpFor = (level: number) => 10 * level * level + 50 * level + 100;
+// The formulas live in ../lib/rewards (pure, unit-tested); re-exported here so existing
+// `repo.*` callers keep working.
+export { coinsForTask, evolutionStageForLevel, levelUpBonus, neededXpFor, xpForTask } from '../lib/rewards';
 
 const NOW = 'unixepoch() * 1000';
 
@@ -196,15 +193,11 @@ export function completeTask(taskId: number): CompletionReward {
     );
 
     const p = db.getFirstSync<UserProfile>('SELECT * FROM user_profile WHERE id = 1')!;
-    let { level, current_xp: xp, needed_xp: needed, coins } = p;
-    xp += xpEarned;
-    let leveledUp = false;
-    while (xp >= needed) {
-      xp -= needed;
-      level += 1;
-      needed = neededXpFor(level);
-      leveledUp = true;
-    }
+    const coins = p.coins;
+    const { level, currentXp: xp, neededXp: needed, leveledUp } = applyXpGain(
+      { level: p.level, currentXp: p.current_xp, neededXp: p.needed_xp },
+      xpEarned,
+    );
     // Legacy level_up granted the coin bonus once per completion, not per level crossed.
     const bonus = leveledUp ? levelUpBonus(t.estimated_time) : 0;
     const coinsAfterReward = coins + coinsEarned;
@@ -397,11 +390,6 @@ export function tagDistribution(limit = 6): { tag: string; seconds: number }[] {
 }
 
 // ─── Evolution ───
-/** Companion evolution stage (0–5) derived from the user's Level. */
-export function evolutionStageForLevel(level: number): number {
-  return Math.max(0, Math.min(5, Math.floor((level - 1) / 2)));
-}
-
 export function setPetEvolution(petId: number, stage: number): void {
   getDb().runSync('UPDATE pet SET evolution_stage = ? WHERE id = ?', [Math.max(0, Math.min(5, stage)), petId]);
 }

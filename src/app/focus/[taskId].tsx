@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as repo from '@/db/repo';
 import { selectActivePet, useGame } from '@/state/stores';
+import { showAlert } from '@/lib/alert';
 import { Keys, storage } from '@/state/mmkv';
 import { Body, Button, Card, Heading, Muted, Screen } from '@/components/ui';
 import { CompanionView } from '@/components/CompanionView';
@@ -30,6 +31,34 @@ export default function FocusSession() {
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [, setTick] = useState(0);
   const finishing = useRef(false);
+
+  // Mirrors of live state for the unmount cleanup (which captures its closure once).
+  const runningRef = useRef(running);
+  const startedAtRef = useRef(startedAt);
+  const baseRef = useRef(baseSeconds);
+  useEffect(() => {
+    runningRef.current = running;
+  }, [running]);
+  useEffect(() => {
+    startedAtRef.current = startedAt;
+  }, [startedAt]);
+  useEffect(() => {
+    baseRef.current = baseSeconds;
+  }, [baseSeconds]);
+
+  // Leaving the screen (incl. Android hardware-back / swipe-back, which bypass the in-app
+  // "‹ Back" handler) pauses the session: flush real focused time and clear the MMKV bookmark.
+  // Without this, the stale bookmark's startedAt would count wall-clock time the user wasn't
+  // focusing and over-credit (even auto-complete) the quest on the next open.
+  useEffect(() => {
+    return () => {
+      if (runningRef.current && startedAtRef.current && !finishing.current) {
+        const done = baseRef.current + (Date.now() - startedAtRef.current) / 1000;
+        useGame.getState().pauseFocus(id, done);
+        storage.remove(Keys.timerActive);
+      }
+    };
+  }, [id]);
 
   // Resume a still-running session (e.g. after app was backgrounded/killed).
   useEffect(() => {
@@ -108,14 +137,14 @@ export default function FocusSession() {
       const r = completeQuest(id);
       let msg = `+${r.coinsEarned} 🪙   +${r.xpEarned} XP`;
       if (r.leveledUp) msg += `\n\n🎉 Level ${r.newLevel}!  +${r.levelUpBonusCoins} 🪙 bonus`;
-      Alert.alert('Focus session complete!', msg, [{ text: 'Nice', onPress: () => router.back() }]);
+      showAlert('Focus session complete!', msg, [{ text: 'Nice', onPress: () => router.back() }]);
     } catch (e: any) {
       // Stop the timer so the auto-finish effect can't re-fire in a loop.
       setRunning(false);
       setStartedAt(null);
       persistActive(null);
       finishing.current = false;
-      Alert.alert('Oops', e?.message ?? 'Could not complete');
+      showAlert('Oops', e?.message ?? 'Could not complete');
     }
   }
 

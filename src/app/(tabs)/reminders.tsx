@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Pressable, TextInput, View } from 'react-native';
+import { Pressable, TextInput, View } from 'react-native';
 import { useGame, useReminders } from '@/state/stores';
+import { showAlert } from '@/lib/alert';
 import { Body, Card, Heading, Muted, Screen } from '@/components/ui';
 import { font, radius, spacing, useTheme } from '@/theme';
 
@@ -49,13 +50,19 @@ export default function Reminders() {
     );
   }
 
-  function onPreset(at: number) {
+  async function onPreset(at: number) {
     if (!title.trim()) {
-      Alert.alert('Add a reminder', 'Type what to remember first.');
+      showAlert('Add a reminder', 'Type what to remember first.');
       return;
     }
-    add(title.trim(), at);
+    const res = await add(title.trim(), at);
     setTitle('');
+    if (!res.permission) {
+      showAlert(
+        'Reminder saved',
+        'Notifications are off, so this won’t alert you. Enable notifications for Pawductivity in your system settings to get reminders.',
+      );
+    }
   }
 
   return (

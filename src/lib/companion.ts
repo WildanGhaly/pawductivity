@@ -13,9 +13,11 @@ export interface MoodInfo {
 }
 
 export function moodFor(health: number): MoodInfo {
-  if (health >= 80) return { mood: 'happy', label: 'Happy', emoji: '😸', speed: 1.15 };
+  // Species-neutral emotion faces — the companion may be a Dog, Cat, or Rabbit,
+  // so avoid cat-specific glyphs (😸/😿) that look wrong on the other species.
+  if (health >= 80) return { mood: 'happy', label: 'Happy', emoji: '😄', speed: 1.15 };
   if (health >= 50) return { mood: 'content', label: 'Content', emoji: '🙂', speed: 1.0 };
-  if (health >= 20) return { mood: 'sad', label: 'A bit down', emoji: '😿', speed: 0.7 };
+  if (health >= 20) return { mood: 'sad', label: 'A bit down', emoji: '😔', speed: 0.7 };
   return { mood: 'sick', label: 'Needs care', emoji: '🤒', speed: 0.5 };
 }
 

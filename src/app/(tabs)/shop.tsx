@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Alert, Image, Pressable, View } from 'react-native';
+import { Image, Pressable, View } from 'react-native';
 import { selectActivePet, useEntitlement, useGame } from '@/state/stores';
+import { showAlert } from '@/lib/alert';
 import { Body, Button, Card, CoinPill, Heading, Muted, Pill, Screen } from '@/components/ui';
 import { clothesImage, foodImage, petImage } from '@/lib/assets';
 import { radius, spacing, useTheme } from '@/theme';
@@ -31,7 +32,7 @@ export default function Shop() {
     try {
       fn();
     } catch (e: any) {
-      Alert.alert(title, e?.message ?? 'Action failed');
+      showAlert(title, e?.message ?? 'Action failed');
     }
   }
 
@@ -93,7 +94,7 @@ export default function Shop() {
                     onPress={() =>
                       guard(() => {
                         const h = feed(f.id);
-                        Alert.alert('Yum! 🍽️', `${pet?.name ?? 'Your companion'} is now at ${h}/100 health.`);
+                        showAlert('Yum! 🍽️', `${pet?.name ?? 'Your companion'} is now at ${h}/100 health.`);
                       }, 'Cannot feed')
                     }
                     style={{ paddingVertical: 8 }}

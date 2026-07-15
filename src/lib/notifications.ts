@@ -25,7 +25,9 @@ export async function setupNotifications(): Promise<void> {
       await Notifications.setNotificationChannelAsync('reminders', {
         name: 'Reminders',
         importance: Notifications.AndroidImportance.HIGH,
-        sound: 'default',
+        // Omit `sound` → the channel uses the system default. Passing the string
+        // 'default' makes expo-notifications look for a bundled raw resource named
+        // "default" and log "Custom sound 'default' not found".
       });
     }
   } catch {}

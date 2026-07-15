@@ -12,8 +12,10 @@ npx expo run:android      # builds + installs a dev client on an emulator/device
 # then: npx expo start --dev-client
 ```
 
-Typecheck: `npx tsc --noEmit` · JS bundle check: `npx expo export --platform android`.
+Typecheck: `npx tsc --noEmit` · JS bundle check: `npx expo export --platform android` · Unit tests: `npm test` (Jest — pure logic: reward/level math, Brain Dump parser, date/streak helpers, companion mood).
 Stack: Expo SDK 57 · expo-router · expo-sqlite · MMKV + Zustand · lottie-react-native. AI (Brain Dump / dynamic Lottie) is rules-based in the MVP; the LLM layer is optional Phase-2.
+
+> **Web preview caveat:** the app also runs under `react-native-web` for quick previews, but `expo-sqlite`'s **web** sync-worker mis-serializes some multi-JOIN reads (a SharedArrayBuffer limitation), so the Companions/Wardrobe catalogs degrade to empty **on web only**. All data features work on the Android target, where SQLite runs in-process.
 
 ---
 
