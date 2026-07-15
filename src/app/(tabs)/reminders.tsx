@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import { Platform, Pressable, TextInput, View } from 'react-native';
 import { useGame, useReminders } from '@/state/stores';
 import { showAlert } from '@/lib/alert';
 import { Body, Card, Heading, Muted, Screen } from '@/components/ui';
@@ -51,13 +51,18 @@ export default function Reminders() {
   }
 
   async function onPreset(at: number) {
-    if (!title.trim()) {
+    const text = title.trim();
+    if (!text) {
       showAlert('Add a reminder', 'Type what to remember first.');
       return;
     }
-    const res = await add(title.trim(), at);
+    // Clear synchronously BEFORE the async add(): a rapid second tap then hits the empty-title
+    // guard instead of inserting a duplicate reminder + duplicate OS notification.
     setTitle('');
-    if (!res.permission) {
+    const res = await add(text, at);
+    // Only warn on native, where reminders actually deliver. On web ensureNotificationPermission()
+    // is always false, so this would fire a blocking, non-actionable alert on every add.
+    if (!res.permission && Platform.OS !== 'web') {
       showAlert(
         'Reminder saved',
         'Notifications are off, so this won’t alert you. Enable notifications for Pawductivity in your system settings to get reminders.',
