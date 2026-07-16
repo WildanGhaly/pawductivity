@@ -9,8 +9,6 @@ import { formatDuration } from '@/lib/date';
 import { font, radius, spacing, useTheme } from '@/theme';
 import { Body, Muted, Pill } from './ui';
 
-const KIND_EMOJI: Record<string, string> = { target: '🎯', checklist: '☑️', focus: '⏱️' };
-
 export function QuestRow({ task }: { task: Task }) {
   const { colors } = useTheme();
   const complete = useGame((s) => s.completeQuest);
@@ -51,9 +49,7 @@ export function QuestRow({ task }: { task: Task }) {
         }}
       >
         <View style={{ flex: 1, gap: 4 }}>
-          <Body style={{ fontWeight: '600' }}>
-            {KIND_EMOJI[task.kind] ?? '•'} {task.name}
-          </Body>
+          <Body style={{ fontWeight: '700' }}>{task.name}</Body>
           <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap', alignItems: 'center' }}>
             {task.tag ? <Pill label={task.tag} /> : null}
             <Muted>{formatDuration(task.estimated_time)}</Muted>

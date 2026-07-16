@@ -8,7 +8,6 @@ import { notifySuccess, tapLight, tapMedium } from '@/lib/haptics';
 import { Keys, storage } from '@/state/mmkv';
 import { Body, Button, Heading, Muted, Screen } from '@/components/ui';
 import { CompanionView } from '@/components/CompanionView';
-import { ProgressRing } from '@/components/ProgressRing';
 import { BackIcon, PauseIcon, PlayIcon } from '@/components/icons';
 import { MeadowBackground } from '@/components/MeadowBackground';
 import type { CompletionReward, Task } from '@/db/types';
@@ -172,60 +171,65 @@ export default function FocusSession() {
     }
   }
 
-  const ringSize = 300;
+  const dark = '#2D2F41'; // legacy timer text colour
+  const circleShadow = {
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  } as const;
 
   return (
     <Screen scroll={false} edges={['top', 'bottom']} background={<MeadowBackground />}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-        <Pressable onPress={() => (running ? pause() : router.back())} hitSlop={12} style={{ paddingVertical: 8, paddingRight: spacing.sm }}>
-          <BackIcon size={20} color={colors.text} />
+      {/* back button (white circle, legacy) */}
+      <View style={{ flexDirection: 'row' }}>
+        <Pressable
+          onPress={() => (running ? pause() : router.back())}
+          hitSlop={12}
+          style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', ...circleShadow }}
+        >
+          <BackIcon size={18} />
         </Pressable>
-        <Muted style={{ color: colors.text, opacity: 0.7 }}>Focus Session</Muted>
       </View>
 
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.lg }}>
-        <View style={{ alignItems: 'center', gap: 4 }}>
-          <Heading style={{ textAlign: 'center' }}>{task.name}</Heading>
-          {task.tag ? <Muted>{task.tag}</Muted> : null}
-        </View>
+      {/* task name */}
+      <View style={{ alignItems: 'center', gap: 2, marginTop: spacing.xs }}>
+        <Heading style={{ textAlign: 'center', color: dark }}>{task.name}</Heading>
+        {task.tag ? <Muted>{task.tag}</Muted> : null}
+      </View>
 
+      {/* big countdown text */}
+      <View style={{ alignItems: 'center', gap: 2, marginTop: spacing.md }}>
+        <Text style={{ fontSize: 60, fontFamily: font.family.bold, color: dark, fontVariant: ['tabular-nums'] }}>{mmss(remaining)}</Text>
+        <Muted>
+          {mmss(totalDone)} / {mmss(task.estimated_time)} focused
+        </Muted>
+      </View>
+
+      {/* big pet standing on the meadow */}
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: spacing.lg }}>
         <Animated.View style={{ transform: [{ scale: pulse }] }}>
-          <ProgressRing
-            progress={progress}
-            size={ringSize}
-            strokeWidth={16}
-            color={colors.primary}
-            trackColor={colors.cardAlt}
-          >
-            {pet ? <CompanionView species={pet.species} clothesId={equippedClothes[0]?.id} health={pet.health} size={120} /> : null}
-            <Body style={{ fontSize: 56, fontWeight: '800', color: colors.text, fontVariant: ['tabular-nums'], marginTop: -6 }}>
-              {mmss(remaining)}
-            </Body>
-            <Muted style={{ fontSize: 13 }}>
-              {mmss(totalDone)} / {mmss(task.estimated_time)}
-            </Muted>
-          </ProgressRing>
+          {pet ? <CompanionView species={pet.species} clothesId={equippedClothes[0]?.id} health={pet.health} size={210} /> : null}
         </Animated.View>
       </View>
 
-      <View style={{ gap: spacing.sm }}>
+      {/* round play/pause + finish */}
+      <View style={{ alignItems: 'center', gap: spacing.sm }}>
         <Pressable
           onPress={running ? pause : start}
           style={({ pressed }) => ({
+            width: 78,
+            height: 78,
+            borderRadius: 39,
             backgroundColor: running ? colors.accent : colors.primary,
-            borderRadius: radius.md,
-            paddingVertical: spacing.md + 2,
-            flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: spacing.sm,
             opacity: pressed ? 0.85 : 1,
+            ...circleShadow,
           })}
         >
-          {running ? <PauseIcon size={18} /> : <PlayIcon size={18} />}
-          <Text style={{ color: running ? colors.onAccent : colors.onPrimary, fontFamily: font.family.bold, fontSize: font.size.md }}>
-            {running ? 'Pause' : baseSeconds > 0 ? 'Resume focusing' : 'Start focusing'}
-          </Text>
+          {running ? <PauseIcon size={30} /> : <PlayIcon size={30} />}
         </Pressable>
         <Button label="Finish & claim reward" variant="ghost" onPress={finish} />
       </View>

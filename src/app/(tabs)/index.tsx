@@ -93,9 +93,9 @@ export default function Home() {
             <HealthBar health={health} />
           </View>
 
-          {/* Pet standing on the floor */}
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: '14%' }}>
-            <CompanionView species={pet.species} clothesId={equippedClothes[0]?.id} health={health} size={300} />
+          {/* Pet standing on the floor (the hero — big, like the legacy) */}
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: '8%' }}>
+            <CompanionView species={pet.species} clothesId={equippedClothes[0]?.id} health={health} size={340} />
           </View>
         </>
       ) : (

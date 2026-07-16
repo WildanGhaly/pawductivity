@@ -3,7 +3,17 @@ import { Image, Pressable, View } from 'react-native';
 import { selectActivePet, useEntitlement, useGame } from '@/state/stores';
 import { showAlert } from '@/lib/alert';
 import { Body, Button, Card, CoinPill, Heading, Muted, Pill, Screen } from '@/components/ui';
-import { clothesImage, foodImage, petImage } from '@/lib/assets';
+import { clothesImage, foodImage, petImage, uiIcon } from '@/lib/assets';
+
+/** Inline price: the real coin asset + amount (no 🪙 emoji). */
+function Price({ amount }: { amount: number }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+      <Image source={uiIcon('coin')} style={{ width: 14, height: 14 }} resizeMode="contain" />
+      <Muted>{amount}</Muted>
+    </View>
+  );
+}
 import { radius, spacing, useTheme } from '@/theme';
 
 type Section = 'food' | 'pets' | 'wardrobe';
@@ -75,11 +85,9 @@ export default function Shop() {
               <Card key={f.id} style={{ flexDirection: 'row', gap: spacing.md, alignItems: 'center' }}>
                 <Image source={foodImage(f.asset)} style={{ width: 46, height: 46 }} resizeMode="contain" />
                 <View style={{ flex: 1, gap: 4 }}>
-                  <Body style={{ fontWeight: '600' }}>
-                    {f.name} {f.premium ? '⭐' : ''}
-                  </Body>
+                  <Body style={{ fontWeight: '700' }}>{f.name}</Body>
                   <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <Muted>{f.price} 🪙</Muted>
+                    <Price amount={f.price} />
                     <Muted>· +{f.heal} health</Muted>
                     {f.quantity > 0 ? <Pill label={`owned x${f.quantity}`} /> : null}
                     {locked ? <Pill label="Premium" /> : null}
@@ -116,11 +124,9 @@ export default function Shop() {
               <Card key={a.id} style={{ flexDirection: 'row', gap: spacing.md, alignItems: 'center' }}>
                 <Image source={petImage(a.species)} style={{ width: 46, height: 46 }} resizeMode="contain" />
                 <View style={{ flex: 1, gap: 4 }}>
-                  <Body style={{ fontWeight: '600' }}>
-                    {a.name} {a.premium ? '⭐' : ''}
-                  </Body>
+                  <Body style={{ fontWeight: '700' }}>{a.name}</Body>
                   <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <Muted>{a.owned ? 'Owned' : `${a.price} 🪙`}</Muted>
+                    {a.owned ? <Muted>Owned</Muted> : <Price amount={a.price} />}
                     {locked && !a.owned ? <Pill label="Premium" /> : null}
                   </View>
                 </View>
@@ -150,11 +156,9 @@ export default function Shop() {
               <Card key={c.id} style={{ flexDirection: 'row', gap: spacing.md, alignItems: 'center' }}>
                 <Image source={clothesImage(c.asset)} style={{ width: 46, height: 46 }} resizeMode="contain" />
                 <View style={{ flex: 1, gap: 4 }}>
-                  <Body style={{ fontWeight: '600' }}>
-                    {c.name} {c.premium ? '⭐' : ''}
-                  </Body>
+                  <Body style={{ fontWeight: '700' }}>{c.name}</Body>
                   <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <Muted>{c.owned ? 'Owned' : `${c.price} 🪙`}</Muted>
+                    {c.owned ? <Muted>Owned</Muted> : <Price amount={c.price} />}
                     {locked && !c.owned ? <Pill label="Premium" /> : null}
                   </View>
                 </View>
