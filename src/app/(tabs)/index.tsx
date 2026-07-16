@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, Pressable, Text, View } from 'react-native';
+import { Image, Pressable, Text, useWindowDimensions, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 import { selectActivePet, useGame } from '@/state/stores';
@@ -63,6 +63,10 @@ const nameShadow = { textShadowColor: 'rgba(0,0,0,0.35)', textShadowOffset: { wi
 
 export default function Home() {
   const router = useRouter();
+  const { width, height } = useWindowDimensions();
+  // The legacy pet fills ~half the screen (pet_list.dart: height = screenHeight * 0.5,
+  // BoxFit.contain). Size the companion off the viewport, not a fixed px, so it reads big.
+  const petSize = Math.min(width * 0.92, height * 0.5);
   const ready = useGame((s) => s.ready);
   const profile = useGame((s) => s.profile);
   const pet = useGame(selectActivePet);
@@ -96,8 +100,8 @@ export default function Home() {
           </View>
 
           {/* Pet standing on the floor (the hero — big, like the legacy) */}
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: '8%' }}>
-            <CompanionView species={pet.species} clothesId={equippedClothes[0]?.id} health={health} size={340} />
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: '4%' }}>
+            <CompanionView species={pet.species} clothesId={equippedClothes[0]?.id} health={health} size={petSize} />
           </View>
         </>
       ) : (
