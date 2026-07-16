@@ -64,9 +64,11 @@ const nameShadow = { textShadowColor: 'rgba(0,0,0,0.35)', textShadowOffset: { wi
 export default function Home() {
   const router = useRouter();
   const { width, height } = useWindowDimensions();
-  // The legacy pet fills ~half the screen (pet_list.dart: height = screenHeight * 0.5,
-  // BoxFit.contain). Size the companion off the viewport, not a fixed px, so it reads big.
-  const petSize = Math.min(width * 0.92, height * 0.5);
+  // The pet Lottie has a lot of transparent canvas padding, so the *visible* pet is only
+  // ~60% of its box. Oversize the box well past the screen so that padding overflows
+  // off-screen and the pet fills the room — and its head rises into what was dead wall
+  // space above it, killing the empty gap under the health bar.
+  const petSize = Math.min(width * 1.6, height * 0.78);
   const ready = useGame((s) => s.ready);
   const profile = useGame((s) => s.profile);
   const pet = useGame(selectActivePet);
@@ -99,8 +101,9 @@ export default function Home() {
             <HealthBar health={health} />
           </View>
 
-          {/* Pet standing on the floor (the hero — big, like the legacy) */}
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: '4%' }}>
+          {/* Pet standing on the floor (the hero — big, like the legacy). The oversized
+              Lottie box overflows its column, so clip it to the screen. */}
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end', overflow: 'hidden', marginBottom: '-2%' }}>
             <CompanionView species={pet.species} clothesId={equippedClothes[0]?.id} health={health} size={petSize} />
           </View>
         </>
