@@ -8,10 +8,13 @@ import { navIcon, uiIcon } from '@/lib/assets';
  * room), Quests = todo, Remind = calendar, Shop = shop, Profile = profile.
  */
 function TabIcon({ source, focused }: { source: any; focused: boolean }) {
+  // Legacy app_navbar.dart draws every icon at full colour/opacity — the active tab is
+  // distinguished only by the line.png underline. (A dimmed inactive icon just looked
+  // washed-out and unreadable on the white bar.)
   return (
     <View style={{ alignItems: 'center', justifyContent: 'center', width: 54, paddingTop: 8, gap: 4 }}>
-      <Image source={source} style={{ width: 30, height: 30, opacity: focused ? 1 : 0.45 }} resizeMode="contain" />
-      <Image source={navIcon('line')} style={{ width: 22, height: 4, opacity: focused ? 1 : 0 }} resizeMode="contain" />
+      <Image source={source} style={{ width: 32, height: 32 }} resizeMode="contain" />
+      <Image source={navIcon('line')} style={{ width: 24, height: 4, opacity: focused ? 1 : 0 }} resizeMode="contain" />
     </View>
   );
 }
