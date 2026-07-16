@@ -163,13 +163,13 @@ export default function Shop() {
                   </View>
                 </View>
                 {!c.owned ? (
-                  <Button label="Buy" variant="ghost" onPress={() => guard(() => buyClothes(c.id), 'Cannot buy')} style={{ paddingVertical: 8, width: 90 }} />
+                  <Button label="Buy" variant="ghost" onPress={() => guard(() => buyClothes(c.id), 'Cannot buy')} style={{ paddingVertical: 8, paddingHorizontal: spacing.sm, width: 112 }} />
                 ) : (
                   <Button
                     label={c.equipped ? 'Equipped ✓' : 'Equip'}
                     variant={c.equipped ? 'primary' : 'accent'}
                     onPress={() => guard(() => equip(c.id), 'Cannot equip')}
-                    style={{ paddingVertical: 8, width: 90 }}
+                    style={{ paddingVertical: 8, paddingHorizontal: spacing.sm, width: 112 }}
                   />
                 )}
               </Card>

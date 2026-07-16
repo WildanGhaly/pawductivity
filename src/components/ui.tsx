@@ -135,7 +135,7 @@ export function Button({
       {loading ? (
         <ActivityIndicator color={fg} />
       ) : (
-        <Text style={{ color: fg, fontFamily: font.family.bold, fontSize: font.size.md }}>{label}</Text>
+        <Text numberOfLines={1} style={{ color: fg, fontFamily: font.family.bold, fontSize: font.size.md }}>{label}</Text>
       )}
     </Pressable>
   );
