@@ -1,5 +1,6 @@
 import React from 'react';
-import { Image, Text, View } from 'react-native';
+import { Image, Pressable, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 import { selectActivePet, useGame } from '@/state/stores';
 import { Muted, Screen } from '@/components/ui';
@@ -61,6 +62,7 @@ const shadow = {
 const nameShadow = { textShadowColor: 'rgba(0,0,0,0.35)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 } as const;
 
 export default function Home() {
+  const router = useRouter();
   const ready = useGame((s) => s.ready);
   const profile = useGame((s) => s.profile);
   const pet = useGame(selectActivePet);
@@ -78,12 +80,12 @@ export default function Home() {
 
   return (
     <Screen scroll={false} background={<RoomBackground />} edges={['top']}>
-      {/* Navbar: coins (left) + level (right) */}
+      {/* Legacy PetNavbar: coins (left) + shop button (right) */}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <CoinBadge amount={profile.coins} />
-        <View style={{ backgroundColor: '#fff', borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: spacing.md, ...shadow }}>
-          <Text style={{ color: '#1E4B5F', fontFamily: font.family.bold, fontSize: font.size.sm }}>Lv {profile.level}</Text>
-        </View>
+        <Pressable onPress={() => router.navigate('/shop')} hitSlop={10} style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
+          <Image source={uiIcon('shop')} style={{ width: 48, height: 48 }} resizeMode="contain" />
+        </Pressable>
       </View>
 
       {pet ? (
