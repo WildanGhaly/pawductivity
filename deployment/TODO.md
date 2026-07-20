@@ -23,15 +23,13 @@ this likely doesn't apply — confirm in Chunk A.
 ## Chunk A — Recon & decisions  ⏱️ ~15 min · 🧑 · no app needed
 The whole plan branches on these. Do this first.
 
-- [ ] Log into [Play Console](https://play.google.com/console). Account exists? **Personal or Organization?**
-- [ ] Does the old listing `com.production.pawductivity` still exist, and do you have access?
-- [ ] If yes → Setup → **App signing**: is it enrolled in **Play App Signing**?
-- [ ] If yes → note the **last published `versionCode`** (your next upload must be higher).
-- [ ] **Decide:** reuse `com.production.pawductivity` (keeps ratings/installs) or a **new package**.
+- [x] **Package name decided → `com.pawductivity.app`.** The legacy `com.production.pawductivity`
+      is permanently taken (Play rejected it; Google never releases published package names), so
+      this is a **fresh listing** — no inherited ratings/installs, no old keystore to reuse.
+- [ ] Create the app in Play Console with that exact package (must match `app.json`).
+- [ ] Confirm account type: **Personal or Organization?** → decides whether the 12-tester /
+      14-day gate below applies to you.
 - [ ] If no account yet → create one ($25 one-time) and start **identity verification** (can take days).
-
-> Reuse is only possible if it's on Play App Signing **or** you still hold the original signing key.
-> Otherwise: new package.
 
 ## Chunk B — Paperwork  ⏱️ ~2–3 h (splittable) · 🧑 · **no app needed**
 All the copy/answers are already written — this is mostly pasting.

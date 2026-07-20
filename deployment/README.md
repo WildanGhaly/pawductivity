@@ -6,23 +6,31 @@ The complete, sequenced todo list to ship Pawductivity to Google Play, with each
 - 🧑 **You, in the console** — only you can do it (account, forms, uploads); the content to use is prepared.
 - ⛔ **Blocked on the app** — needs the rebuilt app + a build (AAB) or real screenshots first.
 
-> **Reality check:** the repo is a bare slate right now (assets only). Everything account-,
-> copy-, policy-, and config-shaped is done below. Anything needing a build (AAB upload, real
-> screenshots, final IAP smoke test) waits until the app is rebuilt.
+> **Reality check:** the repo now holds a **buildable Expo shell** (placeholder UI) plus the asset
+> pack — enough to produce a real AAB and validate signing/upload/review while the actual app is
+> rebuilt. Everything account-, copy-, policy-, and config-shaped is prepared below. Only the
+> *final* release bits (real screenshots, IAP smoke test) genuinely wait on the finished app.
 
 ---
 
-## 0. One decision that branches everything — package name  🧑
+## 0. Package name — ✅ DECIDED: `com.pawductivity.app`
 
-The legacy app shipped as **`com.production.pawductivity`**. Decide:
+The legacy `com.production.pawductivity` is **permanently unavailable** — Play Console rejected it
+with *"This package name is already in use"*, and Google never releases a package name that has
+been published, even after an app is deleted or unpublished. It stays with the old developer
+account.
 
-- **Reuse it** (update the *existing* Play listing) — **only possible if you still control the original
-  upload/signing key OR the app was enrolled in Play App Signing.** New builds must have a
-  `versionCode` higher than the last published one. Keeps ratings/installs/history.
-- **New package** (e.g. `com.pawductivity.app`) — a fresh listing. Do this if the old signing key is
-  lost or you want a clean start. You lose the old listing's history.
+So Pawductivity ships as a **brand-new listing** under **`com.pawductivity.app`**
+(set in `app.json` → `android.package` and `ios.bundleIdentifier`).
 
-Everything below works for either; where it matters, it's flagged. **Pick this first.**
+Consequences to plan around:
+- **No inherited ratings, reviews, or install count** — starting from zero.
+- **Nothing to reuse from the old signing key** — we generate a fresh upload key (§5).
+- **The 12-tester / 14-day closed-testing gate applies** if this is a new *personal* developer
+  account (see [`TODO.md`](TODO.md)). Start that clock early.
+
+⚠️ The package name is **permanent** once the app is created in Play Console, and it must match
+`app.json` exactly or uploads are rejected.
 
 ---
 
@@ -30,10 +38,10 @@ Everything below works for either; where it matters, it's flagged. **Pick this f
 
 | # | Todo | Status | Notes |
 |---|---|---|---|
-| 1.1 | Google Play Developer account ($25 one-time) | 🧑 (likely already have — legacy shipped) | play.google.com/console |
+| 1.1 | Google Play Developer account ($25 one-time) | 🧑 | play.google.com/console — note personal vs organization (affects the 14-day testing gate) |
 | 1.2 | Payments/merchant profile (required for paid IAP) | 🧑 | Needed for the premium subscription. Play Console → Setup → Payments profile |
-| 1.3 | Create the app (or open the existing listing) | 🧑 | Name **Pawductivity**, language en-US, app (not game — or "game" if you prefer the games category), free |
-| 1.4 | App package name | 🧑 (see §0) | `com.production.pawductivity` or new |
+| 1.3 | Create the app in Play Console | 🧑 | Name **Pawductivity**, package `com.pawductivity.app`, en-US, **App** (not Game), **Free** |
+| 1.4 | App package name | ✅ decided (§0) | `com.pawductivity.app` — fresh listing |
 
 ## 2. Store listing (Main store listing)  ✅ content ready → 🧑 paste
 
@@ -85,12 +93,12 @@ Everything below works for either; where it matters, it's flagged. **Pick this f
 | 6.3 | (Optional) coin packs as consumables | ✅ noted / 🧑 decide | §5 — economy `[DECIDE]` |
 | 6.4 | License/IAP testers | 🧑 | Play Console → Setup → License testing |
 
-## 7. Build → test → release  ⛔ until the app exists
+## 7. Build → test → release  🟡 the shell builds now; final release waits on the real app
 
 | # | Todo | Status |
 |---|---|---|
-| 7.1 | Build a signed **AAB** (`eas build -p android --profile production`) | ⛔ |
-| 7.2 | Upload to **Internal testing** track; smoke test on a device | ⛔ |
+| 7.1 | Build a signed **AAB** (`eas build -p android --profile production`) | 🧑 ready now |
+| 7.2 | Upload to **Internal testing** track; smoke test on a device | 🧑 ready now |
 | 7.3 | Verify IAP purchase/restore against a test account | ⛔ |
 | 7.4 | Promote → Closed → Open testing (optional) | ⛔ |
 | 7.5 | Production release (staged rollout %) | ⛔ |
@@ -99,10 +107,11 @@ Everything below works for either; where it matters, it's flagged. **Pick this f
 
 ## Suggested order
 
-1. §0 package decision → §1 account/app shell.
-2. In parallel while the app is being rebuilt: §2 listing text, §3 all policy forms (host the
-   privacy policy), §4 build config, §5 signing choice, §6 IAP product creation.
-3. When the app is buildable: §7 build the AAB, internal-test, verify IAP, then roll out.
+1. ~~§0 package decision~~ ✅ → §1 create the account + app under `com.pawductivity.app`.
+2. §7.1–7.2 **early**: build the shell's AAB and get it into internal/closed testing — that starts
+   the 12-tester / 14-day clock while the real app is still being written.
+3. In parallel: §2 listing text, §3 all policy forms (host the privacy policy), §5 signing, §6 IAP.
+4. When the real app lands: real screenshots, IAP smoke test, then production rollout.
 
 ## Files in this folder
 
