@@ -18,7 +18,9 @@
         "foregroundImage": "./assets/icon/logo-paw.png",
         "backgroundColor": "#0C4C60"
       },
-      "blockedPermissions": ["com.google.android.gms.permission.AD_ID"],
+      "blockedPermissions": [
+        "com.google.android.gms.permission.AD_ID"
+      ],
       "predictiveBackGestureEnabled": false
     },
     "ios": {
@@ -27,6 +29,11 @@
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "27ed1726-88ab-4e84-a688-6db47d483424"
+      }
     }
   }
 }
