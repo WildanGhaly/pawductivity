@@ -26,7 +26,7 @@ pack; copy the referenced files into the app's `assets/` at rebuild time.
       "backgroundColor": "#0C4C60"
     },
     "android": {
-      "package": "com.production.pawductivity", // ← or your new package (deployment/README §0)
+      "package": "com.pawductivity.app",
       "versionCode": 1,                          // ← integer; MUST increase every upload
       "adaptiveIcon": {
         "foregroundImage": "./assets/branding/logo-paw.png",
@@ -46,9 +46,8 @@ pack; copy the referenced files into the app's `assets/` at rebuild time.
 }
 ```
 
-> If you reuse `com.production.pawductivity` on the **existing** listing, `versionCode` must be
-> **higher than the last published build** — check the old release's versionCode in Play Console
-> and set this above it.
+> Fresh listing under `com.pawductivity.app`, so `versionCode` starts at **1**. EAS
+> `autoIncrement` (§3) bumps it on every subsequent upload — you don't manage it by hand.
 
 ## 2. Permissions — what each is for (Play will ask)
 
@@ -134,11 +133,11 @@ keytool -genkeypair -v \
   signing key, **you can never update the app again.** This is the single highest-stakes item in
   the whole deployment.
 
-### Reusing the legacy app?
-- If the old `com.production.pawductivity` was enrolled in **Play App Signing**, you can generate a
-  fresh upload key and keep updating the listing.
-- If it was **not** enrolled and the original signing key is lost → you **cannot** update it; ship
-  under a new package name (README §0).
+### The legacy app is not reusable
+`com.production.pawductivity` is permanently taken — Play Console rejected it, and Google never
+releases a package name that has been published. Pawductivity ships as a fresh listing under
+`com.pawductivity.app` with a brand-new upload key, so there is no old keystore to recover and
+nothing to match. See README §0.
 
 ## 5. In-app products — Premium subscription
 

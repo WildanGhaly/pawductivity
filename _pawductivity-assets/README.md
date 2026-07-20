@@ -113,7 +113,7 @@ Poppins is the product typeface (all weights, everywhere).
 
 ## Branding
 `logo-paw.png` (app logo) · `logo-glow.png` · `pie-logo.png` · `splash-icon.png` ·
-`app-icon.png` · `favicon.png`. App package id: `com.production.pawductivity`.
+`app-icon.png` · `favicon.png`. App package id: `com.pawductivity.app`.
 
 ---
 
