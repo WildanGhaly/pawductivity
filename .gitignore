@@ -31,6 +31,12 @@ expo-env.d.ts
 .env*.local
 .env.*.local
 
+# ─── Google Play publishing credentials — NEVER commit ───
+# The service-account JSON can publish releases to your Play listing.
+*service-account*.json
+play-store-credentials.json
+google-play-key.json
+
 # ─── Logs ───
 npm-debug.*
 yarn-debug.*

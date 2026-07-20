@@ -20,7 +20,11 @@
   },
   "submit": {
     "production": {
-      "android": { "track": "internal" }
+      "android": {
+        "serviceAccountKeyPath": "./play-service-account.json",
+        "track": "internal",
+        "releaseStatus": "draft"
+      }
     }
   }
 }
