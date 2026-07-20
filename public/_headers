@@ -1,6 +1,0 @@
-# Cross-origin isolation so the web build's expo-sqlite WASM worker can use
-# SharedArrayBuffer. Netlify / Cloudflare Pages read this _headers file.
-# (Metro's dev server sets these via metro.config.js; static hosts need this.)
-/*
-  Cross-Origin-Opener-Policy: same-origin
-  Cross-Origin-Embedder-Policy: require-corp
