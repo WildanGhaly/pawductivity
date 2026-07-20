@@ -1,0 +1,112 @@
+# Pawductivity — Google Play deployment runbook
+
+The complete, sequenced todo list to ship Pawductivity to Google Play, with each item marked:
+
+- ✅ **Prepared here** — the artifact/answer is written in this `deployment/` folder; paste/use it.
+- 🧑 **You, in the console** — only you can do it (account, forms, uploads); the content to use is prepared.
+- ⛔ **Blocked on the app** — needs the rebuilt app + a build (AAB) or real screenshots first.
+
+> **Reality check:** the repo is a bare slate right now (assets only). Everything account-,
+> copy-, policy-, and config-shaped is done below. Anything needing a build (AAB upload, real
+> screenshots, final IAP smoke test) waits until the app is rebuilt.
+
+---
+
+## 0. One decision that branches everything — package name  🧑
+
+The legacy app shipped as **`com.production.pawductivity`**. Decide:
+
+- **Reuse it** (update the *existing* Play listing) — **only possible if you still control the original
+  upload/signing key OR the app was enrolled in Play App Signing.** New builds must have a
+  `versionCode` higher than the last published one. Keeps ratings/installs/history.
+- **New package** (e.g. `com.pawductivity.app`) — a fresh listing. Do this if the old signing key is
+  lost or you want a clean start. You lose the old listing's history.
+
+Everything below works for either; where it matters, it's flagged. **Pick this first.**
+
+---
+
+## 1. Account & app shell  🧑
+
+| # | Todo | Status | Notes |
+|---|---|---|---|
+| 1.1 | Google Play Developer account ($25 one-time) | 🧑 (likely already have — legacy shipped) | play.google.com/console |
+| 1.2 | Payments/merchant profile (required for paid IAP) | 🧑 | Needed for the premium subscription. Play Console → Setup → Payments profile |
+| 1.3 | Create the app (or open the existing listing) | 🧑 | Name **Pawductivity**, language en-US, app (not game — or "game" if you prefer the games category), free |
+| 1.4 | App package name | 🧑 (see §0) | `com.production.pawductivity` or new |
+
+## 2. Store listing (Main store listing)  ✅ content ready → 🧑 paste
+
+| # | Todo | Status | Where |
+|---|---|---|---|
+| 2.1 | App name (≤30), short desc (≤80), full desc (≤4000) | ✅ | [`store-listing.md`](store-listing.md) |
+| 2.2 | App category + tags + contact details | ✅ | [`store-listing.md`](store-listing.md) |
+| 2.3 | App icon 512×512 PNG | ✅ spec / 🧑 export | from `logo-paw.png` — see `store-listing.md` §Graphics |
+| 2.4 | Feature graphic 1024×500 PNG | 🧑 (design) | template/spec in `store-listing.md` §Graphics |
+| 2.5 | Phone screenshots (2–8, 16:9 or 9:16) | ⛔ | capture from the rebuilt app; shot list in `store-listing.md` |
+| 2.6 | (Optional) short promo video | 🧑 | not required |
+
+## 3. Policy & declarations (App content)  ✅ answers ready → 🧑 submit
+
+| # | Todo | Status | Where |
+|---|---|---|---|
+| 3.1 | **Privacy policy** (public URL required) | ✅ text / 🧑 host | [`privacy-policy.md`](privacy-policy.md) — host it, paste the URL |
+| 3.2 | **Data safety** form | ✅ answers | [`play-console-forms.md`](play-console-forms.md) §1 |
+| 3.3 | **Content rating** (IARC questionnaire) | ✅ answers | [`play-console-forms.md`](play-console-forms.md) §2 |
+| 3.4 | Target audience & content (age groups) | ✅ answers | [`play-console-forms.md`](play-console-forms.md) §3 |
+| 3.5 | Ads declaration (contains ads?) | ✅ **No ads** | §3 |
+| 3.6 | News / COVID / financial / health declarations | ✅ **all N/A** | §3 |
+| 3.7 | Government-app / financial-features declarations | ✅ **No** | §3 |
+| 3.8 | Data deletion / account deletion URL | ✅ **N/A (no accounts)** — state it | §1 |
+
+## 4. Android build config  ✅ templates ready
+
+| # | Todo | Status | Where |
+|---|---|---|---|
+| 4.1 | `app.json`/`app.config` Android block (package, versionCode/Name, adaptive icon, splash) | ✅ template | [`build-signing-iap.md`](build-signing-iap.md) §1 |
+| 4.2 | Declared permissions (+ justifications) | ✅ list | §2 (POST_NOTIFICATIONS, exact-alarm, boot, wake-lock, billing) |
+| 4.3 | `eas.json` build profiles | ✅ template | §3 |
+| 4.4 | Target/compile SDK meets Play's current minimum | ✅ note | Expo SDK 5x default satisfies it; confirm at build time |
+
+## 5. Signing  ✅ steps ready → 🧑 execute
+
+| # | Todo | Status | Where |
+|---|---|---|---|
+| 5.1 | Choose signing: **EAS-managed keystore** (recommended) or manual `keytool` | ✅ both documented | [`build-signing-iap.md`](build-signing-iap.md) §4 |
+| 5.2 | Enroll in **Play App Signing** | 🧑 | Play Console → Setup → App signing (default for new apps) |
+| 5.3 | Back up the upload key / EAS credentials off-machine | 🧑 ⚠️ | lose it = can't update the app |
+
+## 6. In-app products (Monetize)  ✅ setup steps ready → 🧑 create
+
+| # | Todo | Status | Where |
+|---|---|---|---|
+| 6.1 | Subscription `pawductivity_premium` + base plans (1mo/6mo/1yr) | ✅ steps | [`build-signing-iap.md`](build-signing-iap.md) §5 |
+| 6.2 | Set prices per region | 🧑 | Play Console (not in the app) |
+| 6.3 | (Optional) coin packs as consumables | ✅ noted / 🧑 decide | §5 — economy `[DECIDE]` |
+| 6.4 | License/IAP testers | 🧑 | Play Console → Setup → License testing |
+
+## 7. Build → test → release  ⛔ until the app exists
+
+| # | Todo | Status |
+|---|---|---|
+| 7.1 | Build a signed **AAB** (`eas build -p android --profile production`) | ⛔ |
+| 7.2 | Upload to **Internal testing** track; smoke test on a device | ⛔ |
+| 7.3 | Verify IAP purchase/restore against a test account | ⛔ |
+| 7.4 | Promote → Closed → Open testing (optional) | ⛔ |
+| 7.5 | Production release (staged rollout %) | ⛔ |
+
+---
+
+## Suggested order
+
+1. §0 package decision → §1 account/app shell.
+2. In parallel while the app is being rebuilt: §2 listing text, §3 all policy forms (host the
+   privacy policy), §4 build config, §5 signing choice, §6 IAP product creation.
+3. When the app is buildable: §7 build the AAB, internal-test, verify IAP, then roll out.
+
+## Files in this folder
+
+- [`store-listing.md`](store-listing.md) — name, descriptions, category, graphics spec + screenshot list.
+- [`privacy-policy.md`](privacy-policy.md) — ready-to-host privacy policy.
+- [`play-console-forms.md`](play-console-forms.md) — Data Safety, Content Rating, App Content answers.
+- [`build-signing-iap.md`](build-signing-iap.md) — Android config, permissions, signing, EAS, IAP.
