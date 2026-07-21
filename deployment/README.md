@@ -115,6 +115,7 @@ Consequences to plan around:
 
 ## Files in this folder
 
+- [`COPY-PASTE.md`](COPY-PASTE.md) — **the fill-in sheet.** Every Play Console field → value to paste, screen by screen. Start here when filling forms.
 - [`store-listing.md`](store-listing.md) — name, descriptions, category, graphics spec + screenshot list.
 - [`privacy-policy.md`](privacy-policy.md) — ready-to-host privacy policy.
 - [`play-console-forms.md`](play-console-forms.md) — Data Safety, Content Rating, App Content answers.
