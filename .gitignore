@@ -37,6 +37,11 @@ expo-env.d.ts
 play-store-credentials.json
 google-play-key.json
 
+# ─── EAS / signing credentials — NEVER commit ───
+# credentials.json holds raw keystore + key passwords; the keystore signs your releases.
+credentials.json
+*.keystore
+
 # ─── Logs ───
 npm-debug.*
 yarn-debug.*
