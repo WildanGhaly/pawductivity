@@ -5,6 +5,7 @@ import { Txt } from '../components/ui';
 import { TabBar, TabKey } from '../components/TabBar';
 import { Toast } from '../components/Toast';
 import { HomeTab } from './HomeTab';
+import { PetTab } from './PetTab';
 import { useStore } from '../store/store';
 
 // Home is real. Quests/Pet/Calendar are placeholders until their PRs land.
@@ -27,6 +28,8 @@ export function MainScreen() {
     <View style={styles.root}>
       {tab === 'home' ? (
         <HomeTab onTab={setTab} />
+      ) : tab === 'pet' ? (
+        <PetTab />
       ) : (
         <View style={styles.body}>
           <Txt weight={800} size={22} color={colors.tealInk}>{PLACEHOLDER[tab]}</Txt>
