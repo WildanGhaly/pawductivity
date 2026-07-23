@@ -1,33 +1,26 @@
 import { StatusBar } from 'expo-status-bar';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { useFonts } from 'expo-font';
+import { View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { NavigationContainer } from '@react-navigation/native';
+import { RootNavigator } from './src/navigation/RootNavigator';
+import { fonts } from './src/assets/registry';
+import { colors } from './src/theme/tokens';
 
-const LOGO = require('./assets/icon/logo-paw.png');
-
-/**
- * Placeholder shell. Exists so the project produces a real, installable AAB — enough to
- * validate signing, the package name, and the Play review/testing pipeline while the actual
- * app is rebuilt. Replace this with the real app entry point.
- */
 export default function App() {
+  const [loaded] = useFonts(fonts);
+
+  if (!loaded) {
+    // Keep the frame teal so the transition into the splash gradient is seamless.
+    return <View style={{ flex: 1, backgroundColor: colors.teal }} />;
+  }
+
   return (
-    <View style={styles.container}>
+    <SafeAreaProvider>
       <StatusBar style="light" />
-      <Image source={LOGO} style={styles.logo} resizeMode="contain" />
-      <Text style={styles.title}>Pawductivity</Text>
-      <Text style={styles.subtitle}>Coming soon</Text>
-    </View>
+      <NavigationContainer>
+        <RootNavigator />
+      </NavigationContainer>
+    </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#0C4C60',
-    gap: 12,
-  },
-  logo: { width: 140, height: 140 },
-  title: { color: '#FFFFFF', fontSize: 28, fontWeight: '700' },
-  subtitle: { color: '#E28A4B', fontSize: 16 },
-});

@@ -62,10 +62,9 @@ Thumbs.db
 .kotlin/
 *.pem
 
-# Playwright MCP artifacts + local demo screenshots
+# Playwright MCP artifacts + local verification screenshots (never committed)
 .playwright-mcp/
 pawductivity-*.png
-
-# playwright verification artifacts
-.playwright-mcp/
 redesign-*.png
+proto-*.png
+app-*.png
