@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { colors } from '../theme/tokens';
 import { Txt } from '../components/ui';
 import { TabBar, TabKey } from '../components/TabBar';
+import { Toast } from '../components/Toast';
+import { HomeTab } from './HomeTab';
+import { useStore } from '../store/store';
 
-// PR1 shell: the tab framework runs; real tab content is filled in later PRs
-// (Home/Pet in PR3, Quests in PR4, Calendar in PR7).
-const LABELS: Record<TabKey, string> = {
+// Home is real. Quests/Pet/Calendar are placeholders until their PRs land.
+const PLACEHOLDER: Record<TabKey, string> = {
   home: 'Home',
   quests: 'Quests',
   pet: 'Pet',
@@ -14,18 +16,25 @@ const LABELS: Record<TabKey, string> = {
 };
 
 export function MainScreen() {
-  const [tab, setTab] = useState<TabKey>('home');
+  const state = useStore((s) => s.state);
+  const tab = useStore((s) => s.state?.tab ?? 'home');
+  const setTab = useStore((s) => s.setTab);
+  const showToast = useStore((s) => s.showToast);
+
+  if (!state) return <View style={styles.root} />;
+
   return (
     <View style={styles.root}>
-      <View style={styles.body}>
-        <Txt weight={800} size={22} color={colors.tealInk}>
-          {LABELS[tab]}
-        </Txt>
-        <Txt color={colors.muted} style={{ marginTop: 6 }}>
-          Coming together, one PR at a time.
-        </Txt>
-      </View>
-      <TabBar active={tab} onTab={setTab} onCapture={() => {}} />
+      {tab === 'home' ? (
+        <HomeTab onTab={setTab} />
+      ) : (
+        <View style={styles.body}>
+          <Txt weight={800} size={22} color={colors.tealInk}>{PLACEHOLDER[tab]}</Txt>
+          <Txt color={colors.muted} style={{ marginTop: 6 }}>Coming together, one PR at a time.</Txt>
+        </View>
+      )}
+      <TabBar active={tab} onTab={setTab} onCapture={() => showToast('Quick add coming soon')} />
+      <Toast />
     </View>
   );
 }

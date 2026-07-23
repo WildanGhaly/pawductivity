@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { View } from 'react-native';
@@ -6,9 +7,14 @@ import { NavigationContainer } from '@react-navigation/native';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { fonts } from './src/assets/registry';
 import { colors } from './src/theme/tokens';
+import { useStore } from './src/store/store';
 
 export default function App() {
   const [loaded] = useFonts(fonts);
+
+  useEffect(() => {
+    useStore.getState().hydrate();
+  }, []);
 
   if (!loaded) {
     // Keep the frame teal so the transition into the splash gradient is seamless.

@@ -6,8 +6,8 @@ PRs into `main`. Verify on Expo-web (Playwright) + pawductivity_x64 AVD.
 
 ## PR slices (delivery units)
 - [x] PR1 Foundation: deps (nav, sqlite, svg, lottie, fonts), theme tokens, Poppins fonts, asset registry, icon set (react-native-svg port of ICONS), nav shell, SPEC.md, splash screen. DONE + verified on web: splash renders 1:1, custom tab bar 1:1, 0 console errors, tsc clean.
-- [ ] PR2 Data layer: SQLite schema + migrations + seed catalogs + repositories + zustand store mirroring freshState. Gate: store hydrates from DB, survives reload.
-- [ ] PR3 Onboarding + Home + Pet core loop (idle coins, feed, equip, stages).
+- [x] PR2 Data layer: domain types/catalogs/state/mechanics + expo-sqlite(native)/localStorage(web) persistence + zustand store with debounced write-through. DONE + verified: store hydrates, collect-coins mutation persists, survives reload.
+- [~] PR3 Onboarding + Home (DONE, verified 1:1 + persistence) ; Pet core loop (feed/equip/stages) still pending. Bundled onto feat/data-layer with PR2.
 - [ ] PR4 Quests + capture (quick add + brain dump parser) + daily goal + today plan.
 - [ ] PR5 Focus timer (standard + pomodoro) + reward overlay + confetti + soundscape UI.
 - [ ] PR6 Shop (food/pets/clothes) + Premium paywall.
@@ -19,9 +19,12 @@ PRs into `main`. Verify on Expo-web (Playwright) + pawductivity_x64 AVD.
 ## Progress log (one line per milestone)
 - Phase 0 done: prototype fully analyzed; SPEC.md + this log written; catalogs/data-model/mechanics captured.
 - PR1 foundation done: Expo deps installed; theme tokens, asset registry, SVG icon set, Poppins fonts, 3D Btn/Card/CoinPill/Chip, custom TabBar, splash screen, root native-stack nav. Verified running on Expo-web (localhost:8080) via Playwright: splash + main shell render 1:1, tsc --noEmit clean, 0 console errors. Branch feat/app-foundation.
+- Data layer + onboarding + home done (branch feat/data-layer, stacked on foundation): domain (types/catalogs/state/mechanics), persistence adapter (expo-sqlite native / localStorage web, D6), zustand store with immer + debounced write-through + achievement granting, PetView native/web split (D7), Toast, QuestRow. Onboarding 3-step flow + real Home wired to store. Verified on web via Playwright: onboarding steps 0/1/2 render 1:1 (real dog+cat art), Home 1:1 with the prototype, collect-coins mutation persists (200 -> 217), survives full reload (skips onboarding, shows persisted 217). tsc clean, 0 console errors. Decisions D5/D6/D7 logged.
+- Additional decision D5: because incremental auto-merge is blocked by the intermittent network outage, work is built on stacked feature branches and delivered when the network recovers; branches/commits are the durable state.
 
 ## Decisions: see docs/SPEC.md Decisions log.
 
 ## Parked items
 - Referral verification backend (needs server). UI stubbed + local placeholder.
 - Cloud sync backend (simulated locally in prototype; kept simulated).
+- PR #8 (foundation) merge into main: opened successfully (github.com/WildanGhaly/pawductivity/pull/8) but squash-merge blocked by an intermittent network/DNS outage (github.com fails to resolve sporadically). Branch feat/app-foundation is pushed and safe. NEXT ACTION for user (or retry when network stable): `gh pr merge 8 --squash --delete-branch`. Subsequent work is stacked on feat/app-foundation and delivered as its own PRs; retarget to main after #8 merges.
