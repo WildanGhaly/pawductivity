@@ -11,6 +11,7 @@ import {
   getSyncState,
   putSyncState,
   recordRedemption,
+  recordPurchase,
 } from './db.mjs';
 
 export const REFERRAL_REWARD_COINS = 100;
@@ -168,6 +169,47 @@ export function syncPull(db, query) {
   if (!row) return fail(404, 'not_found', 'No cloud backup for this device yet.');
 
   return ok(200, { state: JSON.parse(row.state), updatedAt: row.updated_at });
+}
+
+const KNOWN_PRODUCTS = new Set([
+  'pawductivity_premium_monthly',
+  'pawductivity_premium_yearly',
+  'pawductivity_premium_6month',
+]);
+
+/**
+ * POST /api/billing/verify { deviceId, productId, purchaseToken, platform }
+ *
+ * Records a Google Play purchase token so entitlements can be reconciled server
+ * side. Play has already confirmed the purchase on the device, so the client grants
+ * Premium immediately; this endpoint is defence in depth and a paper trail.
+ *
+ * REAL VERIFICATION IS A DEPLOYMENT STEP, not implemented here: it requires a Google
+ * Cloud service account with the Android Publisher API enabled, which cannot be
+ * provisioned from this machine. When that credential exists, call
+ *   GET https://androidpublisher.googleapis.com/androidpublisher/v3/applications/
+ *       com.pawductivity.app/purchases/subscriptionsv2/tokens/{purchaseToken}
+ * with the service-account OAuth token, and set verified=1 only when the response
+ * shows an active, non-expired subscription for productId. See server/README.md.
+ */
+export function billingVerify(db, body) {
+  const deviceId = cleanDeviceId(body?.deviceId);
+  if (!deviceId) return fail(400, 'missing_device_id');
+
+  const productId = typeof body?.productId === 'string' ? body.productId.trim() : '';
+  if (!productId) return fail(400, 'missing_product', 'A productId is required.');
+  if (!KNOWN_PRODUCTS.has(productId)) return fail(400, 'unknown_product', 'That product is not sold by this app.');
+
+  const purchaseToken = typeof body?.purchaseToken === 'string' ? body.purchaseToken.trim() : '';
+  if (!purchaseToken) return fail(400, 'missing_token', 'A purchaseToken is required.');
+
+  const platform = body?.platform === 'ios' ? 'ios' : 'android';
+
+  // Not cryptographically verified yet (no Play Developer API credential here).
+  const verified = 0;
+  recordPurchase(db, { purchaseToken, deviceId, productId, platform, verified });
+
+  return ok(200, { valid: true, verified: !!verified, premium: true });
 }
 
 export function notFound() {

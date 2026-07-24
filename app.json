@@ -13,6 +13,9 @@
         "foregroundImage": "./assets/icon/logo-paw.png",
         "backgroundColor": "#0C4C60"
       },
+      "permissions": [
+        "com.android.vending.BILLING"
+      ],
       "blockedPermissions": [
         "com.google.android.gms.permission.AD_ID"
       ],

@@ -36,6 +36,15 @@ CREATE TABLE IF NOT EXISTS sync_state (
   updated_at    TEXT NOT NULL,
   updated_at_ms INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS purchases (
+  purchase_token TEXT PRIMARY KEY,
+  device_id      TEXT NOT NULL,
+  product_id     TEXT NOT NULL,
+  platform       TEXT NOT NULL,
+  verified       INTEGER NOT NULL DEFAULT 0,
+  created_at     TEXT NOT NULL
+);
 `;
 
 /**
@@ -168,4 +177,30 @@ export function putSyncState(db, { deviceId, state, updatedAt, updatedAtMs }) {
        updated_at = excluded.updated_at,
        updated_at_ms = excluded.updated_at_ms`
   ).run(deviceId, state, updatedAt, updatedAtMs);
+}
+
+/* ------------------------------------------------------------------ */
+/* purchase queries                                                    */
+/* ------------------------------------------------------------------ */
+
+export function findPurchase(db, purchaseToken) {
+  return (
+    db
+      .prepare('SELECT purchase_token, device_id, product_id, platform, verified, created_at FROM purchases WHERE purchase_token = ?')
+      .get(purchaseToken) ?? null
+  );
+}
+
+/** Record a purchase token idempotently. Re-recording the same token is a no-op. */
+export function recordPurchase(
+  db,
+  { purchaseToken, deviceId, productId, platform, verified = 0 },
+  now = new Date().toISOString()
+) {
+  db.prepare(
+    `INSERT INTO purchases (purchase_token, device_id, product_id, platform, verified, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)
+     ON CONFLICT(purchase_token) DO UPDATE SET
+       verified = MAX(purchases.verified, excluded.verified)`
+  ).run(purchaseToken, deviceId, productId, platform, verified ? 1 : 0, now);
 }

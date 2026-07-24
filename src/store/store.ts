@@ -3,9 +3,10 @@ import { produce } from 'immer';
 import { AppState, Species } from '../domain/types';
 import { freshState, newDeviceId } from '../domain/state';
 import { api, referralErrorText } from '../api/client';
+import { purchasePlan, hasPremiumEntitlement } from '../billing/billing';
 import { persistence } from '../db/persistence';
 import { FOODS, CLOTHES, SPECIES, JOURNEY } from '../domain/catalogs';
-import { idlePending, petStage, achMet } from '../domain/mechanics';
+import { idlePending, petStage, achMet, moodOf, stageName } from '../domain/mechanics';
 import { ACHIEVEMENTS } from '../domain/catalogs';
 
 // A transient toast message consumers can subscribe to.
@@ -52,7 +53,8 @@ interface StoreShape {
   addQuests: (list: { name: string; est: number; tag: any; repeat?: boolean }[]) => void;
   setGoal: (min: number) => void;
   togglePlan: (id: number) => void;
-  bankFocus: (qid: number | null, workDoneSec: number, pomodoro: boolean) => { coins: number; bonus: number; mins: number };
+  completeFocus: (qid: number | null, pomodoro: boolean) => { coins: number; bonus: number; mins: number } | null;
+  leaveFocus: (qid: number | null, doneAbsolute: number, started: boolean) => void;
   toggleSetting: (k: 'notif' | 'sound') => void;
   setName: (name: string) => void;
   setAvatar: (i: number) => void;
@@ -69,7 +71,13 @@ interface StoreShape {
   redeemReferral: (code: string) => Promise<void>;
   fetchReferralCode: () => Promise<string | null>;
   runSync: () => Promise<void>;
-  buyPremium: () => void;
+
+  updateCloud: (partial: Partial<AppState['cloud']>) => void;
+
+  // Google Play billing
+  purchasePremium: (sku: string, offerToken?: string) => Promise<void>;
+  restorePremium: () => Promise<void>;
+  buyPremium: () => void; // dev-only local unlock fallback
 }
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -103,21 +111,53 @@ export const useStore = create<StoreShape>((set, get) => {
 
     hydrate: async () => {
       const loaded = await persistence.load();
-      // Installs saved before the referral/sync backend existed have no deviceId.
-      if (loaded && !loaded.deviceId) {
-        loaded.deviceId = newDeviceId();
-        persistence.save(loaded);
+      // Backfill any fields a state saved by an older build is missing, so schema
+      // growth never leaves a slice undefined (which would crash a screen that spreads
+      // it, e.g. HomeTab's weekly chart). Loaded values always win over the defaults.
+      if (loaded) {
+        const def = freshState();
+        const migrated: AppState = {
+          ...def,
+          ...loaded,
+          profile: { ...def.profile, ...(loaded.profile || {}) },
+          pet: { ...def.pet, ...(loaded.pet || {}) },
+          streak: { ...def.streak, ...(loaded.streak || {}) },
+          settings: { ...def.settings, ...(loaded.settings || {}) },
+          cloud: { ...def.cloud, ...(loaded.cloud || {}) },
+          insights: { ...def.insights, ...(loaded.insights || {}) },
+          today: { ...def.today, ...(loaded.today || {}) },
+          lifetime: { ...def.lifetime, ...(loaded.lifetime || {}) },
+          quests: Array.isArray(loaded.quests) ? loaded.quests : def.quests,
+          reminders: Array.isArray(loaded.reminders) ? loaded.reminders : def.reminders,
+          plan: Array.isArray(loaded.plan) ? loaded.plan : [],
+          achievements: Array.isArray(loaded.achievements) ? loaded.achievements : [],
+          completedDays: Array.isArray(loaded.completedDays) ? loaded.completedDays : def.completedDays,
+          deviceId: loaded.deviceId || newDeviceId(),
+        };
+        persistence.save(migrated);
+        set({ state: migrated, hydrated: true });
+        return;
       }
-      set({ state: loaded, hydrated: true });
+      set({ state: null, hydrated: true });
     },
 
     showToast: (text, coin) => set({ toast: { id: toastSeq++, text, coin } }),
     // Push onto the stack. 'reward' is terminal: it follows a finished focus session,
     // so it replaces the stack rather than sitting on top of the spent Focus screen.
+    // If the target is already open, bring it to the front (truncate above it) rather
+    // than pushing a duplicate, so mutual upsells like Premium <-> Insights cannot grow
+    // the stack without bound.
     openOverlay: (name, param) =>
-      set((store) => ({
-        overlays: name === 'reward' ? [{ name, param }] : [...store.overlays, { name, param }],
-      })),
+      set((store) => {
+        if (name === 'reward') return { overlays: [{ name, param }] };
+        const existing = store.overlays.findIndex((o) => o.name === name);
+        if (existing >= 0) {
+          const trimmed = store.overlays.slice(0, existing + 1);
+          trimmed[existing] = { name, param };
+          return { overlays: trimmed };
+        }
+        return { overlays: [...store.overlays, { name, param }] };
+      }),
     // Pop back to the parent overlay (or to the tab when the stack empties).
     closeOverlay: () => set((store) => ({ overlays: store.overlays.slice(0, -1) })),
     closeAllOverlays: () => set({ overlays: [] }),
@@ -160,12 +200,13 @@ export const useStore = create<StoreShape>((set, get) => {
       if ((s.pet.food[foodId] || 0) <= 0) { get().showToast('You have none of that treat'); return; }
       const f = FOODS.find((x) => x.id === foodId);
       if (!f) return;
+      const gained = Math.min(f.heal, 100 - s.pet.health);
       mutate((d) => {
         d.pet.food[foodId] = (d.pet.food[foodId] || 0) - 1;
         d.pet.health = Math.min(100, d.pet.health + f.heal);
         d.insights.mealsFed += 1;
       });
-      get().showToast(`${s.pet.name} enjoyed the ${f.name.toLowerCase()} (+${f.heal})`);
+      get().showToast(`${s.pet.name} enjoyed the ${f.name.toLowerCase()} (+${gained})`);
     },
 
     equip: (clothesId) => {
@@ -185,6 +226,14 @@ export const useStore = create<StoreShape>((set, get) => {
         d.pet.stage = petStage(d.pet);
       });
       get().showToast(`Built ${m.name} for ${s.pet.name}`, false);
+      // Celebrate a stage-up or the completed home, matching the prototype.
+      const after = petStage(get().state!.pet);
+      if (after > before) {
+        setTimeout(() => get().showToast(`${s.pet.name} grew to ${stageName(after)}`), 650);
+      }
+      if (m.final) {
+        setTimeout(() => get().showToast(`${s.pet.name}'s dream home is complete!`), 700);
+      }
     },
 
     buyFood: (id) => {
@@ -202,8 +251,9 @@ export const useStore = create<StoreShape>((set, get) => {
       if (s.pet.ownedClothes.includes(id)) { get().equip(id); return; }
       if (c.premium && !s.profile.premium) { get().showToast('That outfit is a Premium item'); return; }
       if (s.profile.coins < c.price) { get().showToast('Not enough coins yet'); return; }
-      mutate((d) => { d.profile.coins -= c.price; d.pet.ownedClothes.push(id); d.pet.clothesId = id; });
-      get().showToast(`Bought ${c.name}`, true);
+      // Prototype adds to the wardrobe without auto-equipping; the user wears it from the Pet tab.
+      mutate((d) => { d.profile.coins -= c.price; d.pet.ownedClothes.push(id); });
+      get().showToast(`Bought ${c.name}. Wear it from the wardrobe.`, true);
     },
 
     buyPet: (id) => {
@@ -211,7 +261,8 @@ export const useStore = create<StoreShape>((set, get) => {
       const sp = SPECIES.find((x) => x.id === id); if (!sp) return;
       if (sp.premium && !s.profile.premium) { get().showToast('That companion is Premium'); return; }
       if (s.profile.coins < sp.price) { get().showToast('Not enough coins yet'); return; }
-      mutate((d) => { d.profile.coins -= sp.price; d.pet.species = sp.key; d.pet.clothesId = 0; });
+      // A fresh companion arrives at full health, like the prototype.
+      mutate((d) => { d.profile.coins -= sp.price; d.pet.species = sp.key; d.pet.clothesId = 0; d.pet.health = 100; });
       get().showToast(`Welcome, a new ${sp.name}!`, true);
     },
 
@@ -236,42 +287,82 @@ export const useStore = create<StoreShape>((set, get) => {
 
     setGoal: (min) => mutate((d) => { d.today.goalMin = min; }),
 
-    togglePlan: (id) => mutate((d) => {
-      const i = d.plan.indexOf(id);
-      if (i >= 0) d.plan.splice(i, 1);
-      else if (d.plan.length < 3) d.plan.push(id);
-    }),
-
-    bankFocus: (qid, workDoneSec, pomodoro) => {
+    togglePlan: (id) => {
       const s = get().state;
-      const mins = Math.floor(workDoneSec / 60);
-      let coins = mins;
-      let bonus = 0;
-      if (s) {
-        const moodBonus = s.pet.health >= 80 ? 0.25 : s.pet.health >= 40 ? 0.1 : 0;
-        bonus = Math.floor(coins * moodBonus);
+      if (s && !s.plan.includes(id) && s.plan.length >= 3) {
+        get().showToast('Three is plenty for one day');
+        return;
       }
       mutate((d) => {
-        if (qid != null) {
-          const q = d.quests.find((x) => x.id === qid);
-          if (q) q.done = Math.min(q.est, q.done + workDoneSec);
+        const i = d.plan.indexOf(id);
+        if (i >= 0) d.plan.splice(i, 1);
+        else d.plan.push(id);
+      });
+    },
+
+    // Completing a focus session, matching the prototype completeFocus exactly:
+    // coins == xp == whole minutes of the quest ESTIMATE, plus the mood bonus in both,
+    // a level-up loop, a pet-health nourish, and removal from today's plan. Returns the
+    // reward breakdown, or null when the quest was already done (no double reward).
+    completeFocus: (qid, pomodoro) => {
+      const s = get().state;
+      if (!s) return null;
+      const q = qid != null ? s.quests.find((x) => x.id === qid) : undefined;
+      const est = q ? q.est : 1500;
+      const already = q ? q.done >= q.est : false;
+
+      if (already) {
+        mutate((d) => { const dq = d.quests.find((x) => x.id === qid); if (dq) dq.done = dq.est; });
+        return null;
+      }
+
+      const base = Math.floor(est / 60);
+      const bonus = Math.round(base * moodOf(s.pet.health).bonus); // bonus from CURRENT health
+      const gain = base + bonus;
+      const mins = Math.round(est / 60);
+
+      mutate((d) => {
+        if (q) { const dq = d.quests.find((x) => x.id === qid); if (dq) dq.done = dq.est; }
+        d.profile.xp += gain;
+        d.profile.coins += gain;
+        while (d.profile.xp >= d.profile.needed) {
+          d.profile.xp -= d.profile.needed;
+          d.profile.needed = 10 * d.profile.level * d.profile.level + 50 * d.profile.level + 100;
+          d.profile.level += 1;
         }
-        d.profile.coins += coins + bonus;
-        d.profile.xp += coins;
         d.today.min += mins;
         d.today.sessions += 1;
         d.lifetime.sessions += 1;
         d.lifetime.minutes += mins;
-        d.insights.coinsLifetime += coins + bonus;
+        d.pet.health = Math.min(100, d.pet.health + Math.min(12, 4 + Math.round(mins / 6)));
+        d.insights.coinsLifetime += gain;
+        if (qid != null) d.plan = d.plan.filter((id) => id !== qid);
+        if (pomodoro && !d.achievements.includes('pomodoro')) d.achievements.push('pomodoro');
       });
-      // Finishing a Pomodoro cycle is an event badge (no numeric progress), so it is
-      // granted here rather than by the achievement checker, and announced once.
-      if (pomodoro && s && !s.achievements.includes('pomodoro')) {
-        mutate((d) => { d.achievements.push('pomodoro'); });
+
+      if (pomodoro && !s.achievements.includes('pomodoro')) {
         const a = ACHIEVEMENTS.find((x) => x.id === 'pomodoro');
-        setTimeout(() => get().showToast(`Badge unlocked: ${a ? a.name : 'Tomato timer'}`, true), 600);
+        setTimeout(() => get().showToast(`Badge unlocked: ${a ? a.name : 'Tomato timer'}`, true), 700);
       }
-      return { coins, bonus, mins };
+      return { coins: base, bonus, mins };
+    },
+
+    // Leaving an in-progress session: bank the partial work into the quest, and apply
+    // the gentle health stake if real work was done but the quest is not finished.
+    leaveFocus: (qid, doneAbsolute, started) => {
+      const s = get().state;
+      if (!s || qid == null) return;
+      const q = s.quests.find((x) => x.id === qid);
+      if (!q) return;
+      const wasDone = q.done >= q.est;
+      mutate((d) => {
+        const dq = d.quests.find((x) => x.id === qid);
+        if (dq) dq.done = Math.min(dq.est, Math.max(dq.done, doneAbsolute));
+      });
+      if (started && !wasDone) {
+        mutate((d) => { d.pet.health = Math.max(0, d.pet.health - 4); });
+        setTimeout(() => get().showToast(`${s.pet.name} was waiting. Come back soon.`), 200);
+      }
     },
 
     toggleSetting: (k) => mutate((d) => { d.settings[k] = !d.settings[k]; }),
@@ -316,6 +407,9 @@ export const useStore = create<StoreShape>((set, get) => {
       return res.ok ? (res as any).code as string : null;
     },
 
+    // Persist cloud sign-in state and sync preferences so they survive reopening.
+    updateCloud: (partial) => mutate((d) => { Object.assign(d.cloud, partial); }),
+
     // Cloud backup. Push local state; if the server holds something newer, adopt it.
     runSync: async () => {
       const s = get().state; if (!s) return;
@@ -343,8 +437,37 @@ export const useStore = create<StoreShape>((set, get) => {
       get().showToast(offline ? 'You are offline. Backup will wait.' : 'Backup failed');
     },
 
-    // Real billing is out of scope; locally flip premium so premium content is explorable.
-    buyPremium: () => { get().setPremium(true); get().showToast('Premium unlocked', true); },
+    // Real Google Play subscription purchase. Play confirms on device; we grant on
+    // that confirmation and record the token with the backend (best effort) for
+    // server-side reconciliation. Cosmetic premium, so we do not revoke if the
+    // backend is unreachable.
+    purchasePremium: async (sku, offerToken) => {
+      const outcome = await purchasePlan(sku, offerToken);
+      if (outcome.status === 'purchased') {
+        get().setPremium(true);
+        get().showToast('Premium unlocked', true);
+        const s = get().state;
+        if (s && outcome.purchaseToken) {
+          api.verifyPurchase(s.deviceId, sku, outcome.purchaseToken).catch(() => {});
+        }
+      } else if (outcome.status === 'unavailable') {
+        get().showToast('In-app purchases are not available in this build');
+      } else if (outcome.status === 'error') {
+        get().showToast(outcome.message || 'Purchase failed');
+      }
+      // 'cancelled' is silent
+    },
+
+    // Re-checks Play for an active subscription (e.g. after reinstalling).
+    restorePremium: async () => {
+      const has = await hasPremiumEntitlement();
+      if (has) { get().setPremium(true); get().showToast('Premium restored', true); }
+      else get().showToast('No active subscription found');
+    },
+
+    // Dev-only: flip premium locally so premium content is explorable without billing
+    // (used from the paywall only when billing is unavailable, e.g. in Expo Go).
+    buyPremium: () => { get().setPremium(true); get().showToast('Premium unlocked (dev)', true); },
   };
 });
 
@@ -361,7 +484,14 @@ function grantAchievements(
   });
   if (newly.length) {
     set({ state: produce(s, (d) => { d.achievements.push(...newly); }) });
-    get().showToast(`Badge unlocked: ${ACHIEVEMENTS.find((a) => a.id === newly[0])!.name}`, true);
+    // Announce every badge unlocked by this change, not just the first. Stagger the
+    // toasts so a burst of unlocks does not overwrite itself instantly.
+    newly.forEach((id, i) => {
+      const a = ACHIEVEMENTS.find((x) => x.id === id);
+      if (!a) return;
+      if (i === 0) get().showToast(`Badge unlocked: ${a.name}`, true);
+      else setTimeout(() => get().showToast(`Badge unlocked: ${a.name}`, true), i * 900);
+    });
   }
 }
 

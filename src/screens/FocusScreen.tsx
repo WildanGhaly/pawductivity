@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, Pressable, Dimensions } from 'react-native';
+import { View, StyleSheet, Pressable, Dimensions, BackHandler } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle } from 'react-native-svg';
@@ -30,7 +30,8 @@ const TEXT_SHADOW = {
 export function FocusScreen({ param }: { param?: { questId?: number } }) {
   const insets = useSafeAreaInsets();
   const s = useStore((st) => st.state)!;
-  const bankFocus = useStore((st) => st.bankFocus);
+  const completeFocus = useStore((st) => st.completeFocus);
+  const leaveFocusAction = useStore((st) => st.leaveFocus);
   const openOverlay = useStore((st) => st.openOverlay);
   const closeOverlay = useStore((st) => st.closeOverlay);
   const showToast = useStore((st) => st.showToast);
@@ -127,19 +128,51 @@ export function FocusScreen({ param }: { param?: { questId?: number } }) {
     setRemaining(POMO_BREAK);
   };
 
+  // Work done so far this session (completed phases + progress in the current work phase).
+  const sessionWork = () => {
+    const t = tRef.current;
+    const partial = t.phase === 'work' ? Math.max(0, t.phaseLen - t.remaining) : 0;
+    return t.workDone + partial;
+  };
+
   const complete = () => {
     const t = tRef.current;
     t.running = false;
     stopInterval();
     setRunning(false);
-    const workedSec = Math.max(0, sessionTarget);
-    if (workedSec <= 0) {
+    const r = completeFocus(bankQid, t.mode === 'pomodoro');
+    if (r) {
+      openOverlay('reward', { coins: r.coins, bonus: r.bonus, mins: r.mins, questName });
+    } else {
       closeOverlay();
-      return;
     }
-    const r = bankFocus(bankQid, workedSec, t.mode === 'pomodoro');
-    openOverlay('reward', { coins: r.coins, bonus: r.bonus, mins: r.mins, questName });
   };
+
+  // Leaving mid-session: bank the partial work and apply the gentle health stake.
+  const onLeave = () => {
+    const t = tRef.current;
+    if (t.running) {
+      t.remaining = curRemaining();
+      t.running = false;
+      stopInterval();
+      setRunning(false);
+    }
+    const work = sessionWork();
+    leaveFocusAction(bankQid, startDone + work, work > 0);
+    closeOverlay();
+  };
+
+  // Android hardware back must bank progress too, taking precedence over the generic
+  // overlay back handler. A ref keeps the latest onLeave without re-registering.
+  const onLeaveRef = useRef(onLeave);
+  onLeaveRef.current = onLeave;
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      onLeaveRef.current();
+      return true;
+    });
+    return () => sub.remove();
+  }, []);
 
   const onPhaseEnd = () => {
     const t = tRef.current;
@@ -273,7 +306,7 @@ export function FocusScreen({ param }: { param?: { questId?: number } }) {
     <LinearGradient colors={['#15718C', '#0C4C60']} style={styles.root}>
       {/* top bar: back, mode toggle, sound */}
       <View style={[styles.top, { paddingTop: Math.max(30, insets.top + 16) }]}>
-        <Pressable style={styles.iconbtn} onPress={closeOverlay}>
+        <Pressable style={styles.iconbtn} onPress={onLeave}>
           <Icon name="chevL" size={18} color={colors.teal} strokeWidth={2.5} />
         </Pressable>
         <View style={styles.mode}>
