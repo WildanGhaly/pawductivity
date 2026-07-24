@@ -35,7 +35,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "doctor": "expo-doctor",
+    "doctor": "npx --yes expo-doctor",
     "build:check": "expo export --platform android --output-dir dist",
     "test:server": "npm --prefix server test",
     "preflight": "npm run typecheck && npm run doctor && npm run test:server && npm run build:check"
