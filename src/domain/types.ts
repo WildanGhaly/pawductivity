@@ -132,6 +132,9 @@ export interface AppState {
   achievements: string[];
   nextId: number;
   nextRem: number;
+  // Stable per-install id. Only ever sent to the referral/sync backend, which is
+  // the one networked feature; everything else stays on the device.
+  deviceId: string;
   // runtime-only, not persisted as domain data
   onboarded: boolean;
   tab: 'home' | 'quests' | 'pet' | 'cal';

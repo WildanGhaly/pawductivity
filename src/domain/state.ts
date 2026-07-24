@@ -1,5 +1,12 @@
 import { AppState } from './types';
 
+// Stable per-install identifier for the referral/sync backend. Random, not derived
+// from any device or personal identifier.
+export function newDeviceId(): string {
+  const r = () => Math.random().toString(36).slice(2, 10);
+  return `dev_${r()}${r()}`;
+}
+
 // Ported from the prototype freshState(). This is the post-onboarding starting
 // state, including seeded demo quests/reminders/insights so the app feels alive.
 export function freshState(): AppState {
@@ -74,6 +81,7 @@ export function freshState(): AppState {
     ],
     nextId: 6,
     nextRem: 6,
+    deviceId: newDeviceId(),
     onboarded: true,
     tab: 'home',
   };

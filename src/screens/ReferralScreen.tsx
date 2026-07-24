@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -16,7 +16,16 @@ import { useStore } from '../store/store';
 export function ReferralScreen() {
   const showToast = useStore((st) => st.showToast);
   const redeemReferral = useStore((st) => st.redeemReferral);
+  const fetchReferralCode = useStore((st) => st.fetchReferralCode);
   const [code, setCode] = useState('');
+  // The invite code is issued by the server so it is unique per device. Until it
+  // answers (or when offline) we show a placeholder rather than a fake code.
+  const [myCode, setMyCode] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    fetchReferralCode().then((c) => { if (alive) setMyCode(c); });
+    return () => { alive = false; };
+  }, [fetchReferralCode]);
 
   const share = () => showToast('Share sheet opened', true);
   const redeem = () => redeemReferral(code);
@@ -40,7 +49,7 @@ export function ReferralScreen() {
           </Txt>
           <View style={styles.refcode}>
             <Txt weight={800} size={18} color={colors.white} style={styles.refcodeText}>
-              PAW-7K4Q
+              {myCode ?? 'Connect to get your code'}
             </Txt>
           </View>
           <Pressable onPress={share} style={styles.shareShade}>
