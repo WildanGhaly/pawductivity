@@ -6,11 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon/logo-paw.png",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/icon/logo-paw.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0C4C60"
-    },
     "android": {
       "package": "com.pawductivity.app",
       "versionCode": 1,
@@ -38,7 +33,16 @@
     "plugins": [
       "expo-sqlite",
       "expo-font",
-      "expo-audio"
+      "expo-audio",
+      "expo-asset",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/icon/logo-paw.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#0C4C60"
+        }
+      ]
     ]
   }
 }
