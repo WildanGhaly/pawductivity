@@ -23,8 +23,7 @@ export function HomeTab({ onTab }: { onTab: (t: TabKey) => void }) {
   const insets = useSafeAreaInsets();
   const s = useStore((st) => st.state)!;
   const collectIdle = useStore((st) => st.collectIdle);
-  const showToast = useStore((st) => st.showToast);
-  const soon = (m = 'Coming soon') => showToast(m);
+  const openOverlay = useStore((st) => st.openOverlay);
 
   const p = s.profile;
   const mood = moodOf(s.pet.health);
@@ -49,7 +48,7 @@ export function HomeTab({ onTab }: { onTab: (t: TabKey) => void }) {
     <ScrollView style={styles.root} contentContainerStyle={{ paddingBottom: NAV_H + insets.bottom + 20 }} showsVerticalScrollIndicator={false}>
       {/* top bar */}
       <View style={[styles.topbar, { paddingTop: Math.max(20, insets.top + 12) }]}>
-        <Pressable onPress={() => soon('Profile coming soon')} style={styles.avatar}>
+        <Pressable onPress={() => openOverlay('profile')} style={styles.avatar}>
           <Image source={avatars[p.avatar] || img.catThumb} style={styles.avatarImg} />
         </Pressable>
         <View style={{ flex: 1 }}>
@@ -61,7 +60,7 @@ export function HomeTab({ onTab }: { onTab: (t: TabKey) => void }) {
 
       <View style={styles.pad}>
         {/* capture entry */}
-        <Pressable style={styles.capture} onPress={() => soon('Quick add coming soon')}>
+        <Pressable style={styles.capture} onPress={() => openOverlay('capture')}>
           <View style={styles.ceIc}><Icon name="note" size={22} color="#fff" /></View>
           <View style={{ flex: 1 }}>
             <Txt weight={800} size={15} color="#fff">What do you want to get done?</Txt>
@@ -116,14 +115,14 @@ export function HomeTab({ onTab }: { onTab: (t: TabKey) => void }) {
             <Txt weight={800} size={13} color={colors.tealInk} style={{ minWidth: 52, textAlign: 'right' }}>{s.pet.health}/100</Txt>
           </View>
           <View style={styles.carerow}>
-            <CareBtn icon={img.apple} label="Feed" onPress={() => soon('Feed sheet coming soon')} />
+            <CareBtn icon={img.apple} label="Feed" onPress={() => onTab('pet')} />
             <CareBtn icon={img.wardrobe} label="Dress" onPress={() => onTab('pet')} />
-            <CareBtn icon={img.shop} label="Shop" onPress={() => soon('Shop coming soon')} />
+            <CareBtn icon={img.shop} label="Shop" onPress={() => openOverlay('shop')} />
           </View>
         </Card>
 
         {/* journey strip */}
-        <Pressable style={styles.jstrip} onPress={() => soon("Pixel's journey coming soon")}>
+        <Pressable style={styles.jstrip} onPress={() => openOverlay('journey')}>
           <View style={styles.jstripIc}><Icon name={(nm?.ic as any) || 'crown'} size={16} color="#8580B0" /></View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Txt weight={800} size={13} color={colors.tealInk} numberOfLines={1}>
@@ -137,7 +136,7 @@ export function HomeTab({ onTab }: { onTab: (t: TabKey) => void }) {
         </Pressable>
 
         {/* goal card */}
-        <Card style={styles.goalcard} onPress={() => soon('Daily goal coming soon')}>
+        <Card style={styles.goalcard} onPress={() => openOverlay('goal')}>
           <View style={styles.goalRingWrap}>
             <Svg width={88} height={88}>
               <Circle cx={44} cy={44} r={ringR} fill="none" stroke="#EFE7D6" strokeWidth={8} />
@@ -164,7 +163,7 @@ export function HomeTab({ onTab }: { onTab: (t: TabKey) => void }) {
         {/* your week */}
         <View style={styles.shead}>
           <Txt weight={700} size={16} color={colors.tealInk}>Your week</Txt>
-          <Txt weight={700} size={12.5} color={colors.orange} onPress={() => soon('Insights coming soon')}>{p.premium ? 'Full dashboard' : 'See more'}</Txt>
+          <Txt weight={700} size={12.5} color={colors.orange} onPress={() => openOverlay('insights')}>{p.premium ? 'Full dashboard' : 'See more'}</Txt>
         </View>
         <Card style={{ padding: 16 }}>
           <View style={styles.spread}>
@@ -191,10 +190,10 @@ export function HomeTab({ onTab }: { onTab: (t: TabKey) => void }) {
         {/* today's focus */}
         <View style={styles.shead}>
           <Txt weight={700} size={16} color={colors.tealInk}>Today's focus</Txt>
-          <Txt weight={700} size={12.5} color={colors.orange} onPress={() => soon('Plan coming soon')}>Plan</Txt>
+          <Txt weight={700} size={12.5} color={colors.orange} onPress={() => openOverlay('plan')}>Plan</Txt>
         </View>
         {today.length ? (
-          today.map((q, i) => <QuestRow key={q.id} quest={q} startHere={i === 0} onStart={() => soon('Focus timer coming soon')} />)
+          today.map((q, i) => <QuestRow key={q.id} quest={q} startHere={i === 0} onStart={(id) => openOverlay('focus', { questId: id })} />)
         ) : (
           <Card style={{ padding: 22, alignItems: 'center' }}>
             <Icon name="checkCircle" size={30} color={colors.good} />

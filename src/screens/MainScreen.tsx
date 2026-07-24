@@ -1,26 +1,20 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { colors } from '../theme/tokens';
-import { Txt } from '../components/ui';
-import { TabBar, TabKey } from '../components/TabBar';
+import { TabBar } from '../components/TabBar';
 import { Toast } from '../components/Toast';
+import { OverlayHost } from '../components/OverlayHost';
 import { HomeTab } from './HomeTab';
 import { PetTab } from './PetTab';
+import { QuestsTab } from './QuestsTab';
+import { CalendarTab } from './CalendarTab';
 import { useStore } from '../store/store';
-
-// Home is real. Quests/Pet/Calendar are placeholders until their PRs land.
-const PLACEHOLDER: Record<TabKey, string> = {
-  home: 'Home',
-  quests: 'Quests',
-  pet: 'Pet',
-  cal: 'Calendar',
-};
 
 export function MainScreen() {
   const state = useStore((s) => s.state);
   const tab = useStore((s) => s.state?.tab ?? 'home');
   const setTab = useStore((s) => s.setTab);
-  const showToast = useStore((s) => s.showToast);
+  const openOverlay = useStore((s) => s.openOverlay);
 
   if (!state) return <View style={styles.root} />;
 
@@ -30,13 +24,13 @@ export function MainScreen() {
         <HomeTab onTab={setTab} />
       ) : tab === 'pet' ? (
         <PetTab />
+      ) : tab === 'quests' ? (
+        <QuestsTab onTab={setTab} />
       ) : (
-        <View style={styles.body}>
-          <Txt weight={800} size={22} color={colors.tealInk}>{PLACEHOLDER[tab]}</Txt>
-          <Txt color={colors.muted} style={{ marginTop: 6 }}>Coming together, one PR at a time.</Txt>
-        </View>
+        <CalendarTab />
       )}
-      <TabBar active={tab} onTab={setTab} onCapture={() => showToast('Quick add coming soon')} />
+      <TabBar active={tab} onTab={setTab} onCapture={() => openOverlay('capture')} />
+      <OverlayHost />
       <Toast />
     </View>
   );
@@ -44,5 +38,4 @@ export function MainScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.cream },
-  body: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 });

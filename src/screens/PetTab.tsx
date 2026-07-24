@@ -22,6 +22,7 @@ export function PetTab() {
   const equip = useStore((st) => st.equip);
   const feed = useStore((st) => st.feed);
   const showToast = useStore((st) => st.showToast);
+  const openOverlay = useStore((st) => st.openOverlay);
   const [feedOpen, setFeedOpen] = useState(false);
 
   const pet = s.pet;
@@ -48,7 +49,7 @@ export function PetTab() {
       <ScrollView contentContainerStyle={{ paddingBottom: NAV_H + insets.bottom + 20 }} showsVerticalScrollIndicator={false}>
         {/* top bar */}
         <View style={[styles.topbar, { paddingTop: Math.max(20, insets.top + 12) }]}>
-          <Pressable onPress={() => showToast('Profile coming soon')}>
+          <Pressable onPress={() => openOverlay('profile')}>
             <Image source={avatars[s.profile.avatar] || img.catThumb} style={styles.avatarImg} />
           </Pressable>
           <View style={{ flex: 1 }}>
@@ -84,7 +85,7 @@ export function PetTab() {
           {/* home / journey card */}
           <View style={styles.shead}>
             <Txt weight={700} size={16} color={colors.tealInk}>{pet.name}'s home</Txt>
-            <Txt weight={700} size={12.5} color={colors.orange} onPress={() => showToast("Pixel's journey coming soon")}>Journey</Txt>
+            <Txt weight={700} size={12.5} color={colors.orange} onPress={() => openOverlay('journey')}>Journey</Txt>
           </View>
           <Card style={{ padding: 16 }}>
             <View style={styles.spread}>
@@ -128,8 +129,8 @@ export function PetTab() {
             </View>
             <View style={styles.carerow}>
               <CareBtn icon={img.apple} label="Feed" onPress={openFeed} />
-              <CareBtn icon={img.wardrobe} label="Wardrobe" onPress={() => showToast('Shop coming soon')} />
-              <CareBtn icon={img.petIcon} label="Adopt" onPress={() => showToast('Shop coming soon')} />
+              <CareBtn icon={img.wardrobe} label="Wardrobe" onPress={() => openOverlay('shop', { tab: 'clothes' })} />
+              <CareBtn icon={img.petIcon} label="Adopt" onPress={() => openOverlay('shop', { tab: 'pets' })} />
             </View>
           </Card>
 
@@ -167,7 +168,7 @@ export function PetTab() {
           {/* wardrobe */}
           <View style={styles.shead}>
             <Txt weight={700} size={16} color={colors.tealInk}>Wardrobe</Txt>
-            <Txt weight={700} size={12.5} color={colors.orange} onPress={() => showToast('Shop coming soon')}>Get more</Txt>
+            <Txt weight={700} size={12.5} color={colors.orange} onPress={() => openOverlay('shop', { tab: 'clothes' })}>Get more</Txt>
           </View>
           <View style={styles.grid}>
             <Pressable style={styles.shopcard} onPress={() => equip(0)}>
@@ -188,7 +189,7 @@ export function PetTab() {
                 </Pressable>
               );
             }) : (
-              <Pressable style={[styles.shopcard, { justifyContent: 'center', minHeight: 150 }]} onPress={() => showToast('Shop coming soon')}>
+              <Pressable style={[styles.shopcard, { justifyContent: 'center', minHeight: 150 }]} onPress={() => openOverlay('shop', { tab: 'clothes' })}>
                 <Icon name="shirt" size={30} color={colors.line2} />
                 <Txt weight={700} size={13.5} color={colors.tealInk} style={{ marginTop: 6 }}>No outfits yet</Txt>
                 <Txt weight={600} size={11} color={colors.muted}>Buy some in the shop</Txt>
@@ -224,7 +225,7 @@ export function PetTab() {
         )}
         <View style={styles.dactions}>
           <Btn title="Close" variant="ghost" block style={{ flex: 1 }} onPress={() => setFeedOpen(false)} />
-          <Btn title="Buy food" block style={{ flex: 1 }} onPress={() => { setFeedOpen(false); showToast('Shop coming soon'); }} />
+          <Btn title="Buy food" block style={{ flex: 1 }} onPress={() => { setFeedOpen(false); openOverlay('shop', { tab: 'food' }); }} />
         </View>
       </BottomSheet>
     </View>
