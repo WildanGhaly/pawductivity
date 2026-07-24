@@ -34,6 +34,23 @@ $env:PORT=5001; node src/index.mjs    # PowerShell
 The SQLite file is created on first run at `server/data/pawductivity.db`. The `data/` directory
 is created automatically and is gitignored.
 
+## Reaching it from the app
+
+The app only ever points at `127.0.0.1` (loopback) in development, never at a private LAN
+address. To let an Android emulator or a USB-attached device reach this service, forward the
+port over adb, the same way Metro is forwarded:
+
+```bash
+adb reverse tcp:4000 tcp:4000
+```
+
+Loopback is used deliberately. A hardcoded private address such as `10.0.2.2` is a real,
+routable address on a physical handset, so on a corporate LAN or VPN it could resolve to
+somebody else's machine. Loopback cannot leave the device.
+
+In a release build the app talks to this service **only** when `EXPO_PUBLIC_API_URL` is set.
+With it unset there is no base URL compiled in and the client makes no network calls at all.
+
 ## Test it
 
 ```bash
