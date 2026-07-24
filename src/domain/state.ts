@@ -9,23 +9,24 @@ export function newDeviceId(): string {
 
 const zeros = (n: number) => new Array(n).fill(0);
 
-// The genuine starting state for a brand new user: no history, no seeded quests or
-// reminders, no fake insights, no pre-unlocked badges. A fresh companion, a small
-// welcome of 200 coins and two starter treats so the core loop is discoverable, and
-// everything else empty. (The prototype seeded demo data to look alive; a real app
-// must not.) This is also the default template used to backfill an older saved state.
+// The genuine starting state for a brand new user: zero of everything earned. No
+// history, quests, reminders, insights, badges, coins or food. The only non-zero is
+// the freshly adopted companion's health, which starts full and happy (a brand new pet
+// is not hungry, and with no coins or food a low-health pet would be an unrecoverable
+// dead end). Everything is earned by focusing. This is also the default template used
+// to backfill an older saved state.
 export function freshState(): AppState {
   return {
-    profile: { name: 'Friend', avatar: 0, level: 1, xp: 0, needed: 160, coins: 200, premium: false },
+    profile: { name: 'Friend', avatar: 0, level: 1, xp: 0, needed: 160, coins: 0, premium: false },
     pet: {
       species: 'cat', // overwritten by onboarding
       name: 'Pixel', // overwritten by onboarding
-      health: 70, // settling in: room to reach Happy by feeding
+      health: 100, // a freshly adopted pet is healthy and happy
       stage: 1,
       clothesId: 0,
       home: [],
       lastCollect: Date.now(), // nothing to collect yet
-      food: { 1: 1, 2: 1 }, // one apple, one chicken to try feeding
+      food: {}, // no treats yet; earn coins by focusing, then buy food
       ownedClothes: [],
     },
     streak: { current: 0, longest: 0 },

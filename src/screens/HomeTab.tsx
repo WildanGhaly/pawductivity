@@ -171,10 +171,12 @@ export function HomeTab({ onTab }: { onTab: (t: TabKey) => void }) {
               <Txt weight={700} size={12} color={colors.muted}>Focus this week</Txt>
               <Txt weight={800} size={22} color={colors.tealInk} style={{ marginTop: 2 }}>{fmt(wkTotal * 60)}</Txt>
             </View>
-            <View style={styles.wktag}>
-              <Icon name="clock" size={13} color={colors.orange} />
-              <Txt weight={700} size={11} color={colors.muted}>Best in the {s.insights.bestFocus.toLowerCase()}</Txt>
-            </View>
+            {wkTotal > 0 && (
+              <View style={styles.wktag}>
+                <Icon name="clock" size={13} color={colors.orange} />
+                <Txt weight={700} size={11} color={colors.muted}>Best in the {s.insights.bestFocus.toLowerCase()}</Txt>
+              </View>
+            )}
           </View>
           <View style={styles.wkbars}>
             {weekly.map((m, i) => (

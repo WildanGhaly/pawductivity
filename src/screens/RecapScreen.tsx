@@ -25,7 +25,11 @@ function recapRange(): string {
   return `${mo[start.getMonth()]} ${start.getDate()} to ${mo[end.getMonth()]} ${end.getDate()}`;
 }
 
-function recapVerdict(delta: number, petName: string): { t: string; s: string } {
+function recapVerdict(delta: number, petName: string, hasData: boolean): { t: string; s: string } {
+  // A brand new user (no focus this week or last) has not built a habit to be
+  // "steady" about, so the delta===0 verdict below would misread zero activity as
+  // a maintained streak on a card the app invites them to share.
+  if (!hasData) return { t: 'Your first week starts now', s: `Finish one focus session and ${petName}'s recap fills in from here.` };
   if (delta >= 25) return { t: 'Your strongest week in a while', s: 'You showed up more than usual. That is how habits stick.' };
   if (delta > 0) return { t: 'Better than last week', s: 'Small gains add up. Keep the same rhythm.' };
   if (delta === 0) return { t: 'Steady as ever', s: 'Consistency beats intensity. This is a good place to be.' };
@@ -47,7 +51,7 @@ export function RecapScreen() {
   const bestIdx = ins.weekly.indexOf(Math.max(...ins.weekly, 0));
   const bestDay = hasData && bestIdx >= 0 ? DAY_FULL[bestIdx] : '-';
   const delta = Math.round(((total - ins.lastWeekTotal) / Math.max(1, ins.lastWeekTotal)) * 100);
-  const v = recapVerdict(delta, petName);
+  const v = recapVerdict(delta, petName, hasData);
   const topCat = ins.categories[0]; // may be undefined for a fresh user
   const avg = ins.avgLen;
 
@@ -58,7 +62,9 @@ export function RecapScreen() {
   const moreSessions = Math.max(1, Math.ceil(gap / Math.max(1, avg)));
   const nextWhy = total >= weekGoal
     ? `You already cleared your ${fmt(weekGoal * 60)} weekly goal, so this is ten percent on top of what you actually did.`
-    : `That is your ${s.today.goalMin}m daily goal across seven days. You finished ${fmt(gap * 60)} short, roughly ${moreSessions} more sessions at your usual ${avg}m.`;
+    : total === 0
+    ? `That is your ${s.today.goalMin}m daily goal across seven days. Finish one session and ${petName} starts earning.`
+    : `That is your ${s.today.goalMin}m daily goal across seven days. You finished ${fmt(gap * 60)} short, roughly ${moreSessions} more session${moreSessions === 1 ? '' : 's'} at your usual ${avg}m.`;
 
   const summary = `My Pawductivity week (${recapRange()}): ${fmt(total * 60)} focused across ${ins.weekFocusDays} day${ins.weekFocusDays === 1 ? '' : 's'}, ${money(ins.weekCoins)} coins earned. ${petName} is ${stageName(stg)}.`;
   const share = async () => {
@@ -110,7 +116,7 @@ export function RecapScreen() {
           {ins.weekly.map((m, i) => (
             <View key={i} style={styles.rcbarcol}>
               <View style={styles.rctrack}>
-                <View style={[styles.rcbar, i === bestIdx && styles.rcbarBest, { height: `${Math.max(6, Math.round((m / max) * 100))}%` }]} />
+                <View style={[styles.rcbar, hasData && i === bestIdx && styles.rcbarBest, { height: `${Math.max(6, Math.round((m / max) * 100))}%` }]} />
               </View>
               <Txt weight={700} size={10} color="#9FCBDD">{DOW2[i]}</Txt>
             </View>

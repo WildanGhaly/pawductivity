@@ -53,7 +53,7 @@ yarn-error.*
 Thumbs.db
 
 # ─── Editor / Claude local settings (personal, not shared) ───
-.claude/settings.local.json
+.claude/
 .idea/
 .vscode/*
 !.vscode/extensions.json
@@ -68,3 +68,4 @@ pawductivity-*.png
 redesign-*.png
 proto-*.png
 app-*.png
+z-*.png

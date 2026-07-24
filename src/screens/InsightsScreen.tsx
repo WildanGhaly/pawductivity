@@ -123,7 +123,9 @@ export function InsightsScreen() {
       <Card style={{ paddingTop: 14, paddingBottom: 10, paddingHorizontal: 14 }}>
         <AreaChart vals={ins.trend} />
         <Txt weight={600} size={12} color={colors.muted} style={{ textAlign: 'center', marginTop: 6 }}>
-          Trending {trend >= 0 ? 'up' : 'down'} over the last two months.
+          {ins.trend.some((v) => v > 0)
+            ? `Trending ${trend >= 0 ? 'up' : 'down'} over the last two months.`
+            : 'No focus logged yet. Your two-month trend builds as you go.'}
         </Txt>
       </Card>
 
