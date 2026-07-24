@@ -7,6 +7,7 @@ import { Icon } from '../components/Icon';
 import { OverlayScreen } from '../components/OverlayScreen';
 import { useStore } from '../store/store';
 import { fmt, money } from '../domain/mechanics';
+import { ACHIEVEMENTS } from '../domain/catalogs';
 
 type Range = 'week' | 'month' | 'year';
 
@@ -99,6 +100,9 @@ export function InsightsScreen() {
         <VBars items={primary.items} best={pbest} max={pmax} tall />
       </Card>
 
+      {/* The deep dashboard is a Premium payoff; free users see a preview then this gate. */}
+      {s.profile.premium ? (
+      <>
       {/* 8-week trend */}
       <View style={styles.shead}>
         <Txt weight={700} size={16} color={colors.tealInk}>8-week trend</Txt>
@@ -178,7 +182,7 @@ export function InsightsScreen() {
         <AtCard icon="clock" v={fmt(s.lifetime.minutes * 60)} l="Focused" />
         <AtCard icon="target" v={`${ins.longest}m`} l="Longest" />
         <AtCard icon="sparkle" v={money(ins.coinsLifetime)} l="Coins earned" />
-        <AtCard icon="trophy" v={`${s.achievements.length}`} l="Badges" />
+        <AtCard icon="trophy" v={`${s.achievements.length}/${ACHIEVEMENTS.length}`} l="Badges" />
         <AtCard icon="flame" v={`${ins.bestStreak}`} l="Best streak" />
       </View>
 
@@ -190,14 +194,14 @@ export function InsightsScreen() {
         onPress={() => showToast('Focus report exported (demo)')}
         style={{ marginTop: 18 }}
       />
-
-      {!s.profile.premium && (
-        <Card style={styles.upsell} onPress={() => { closeOverlay(); openOverlay('premium'); }}>
+      </>
+      ) : (
+        <Card style={styles.upsell} onPress={() => openOverlay('premium')}>
           <View style={styles.upsellBadge}><Icon name="crown" size={22} color={colors.orange} /></View>
           <View style={{ flex: 1 }}>
             <Txt weight={800} size={14} color={colors.tealInk}>Unlock your full dashboard</Txt>
             <Txt weight={600} size={11.5} color={colors.muted} style={{ marginTop: 2, lineHeight: 16 }}>
-              Range filters, heatmaps, pet stats and CSV export with Premium.
+              The 8-week trend, best hours, category mix, session lengths, consistency and all-time totals are Premium.
             </Txt>
           </View>
           <Icon name="chevR" size={16} color={colors.muted} />

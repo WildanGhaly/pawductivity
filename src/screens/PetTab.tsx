@@ -62,7 +62,7 @@ export function PetTab() {
         {/* room */}
         <View style={{ paddingHorizontal: 16 }}>
           <Pressable onPress={pending > 0 ? collectIdle : undefined}>
-            <ImageBackground source={img.room1} style={styles.room} imageStyle={{ borderRadius: 22 }}>
+            <ImageBackground source={s.settings.room === 1 ? img.room2 : img.room1} style={styles.room} imageStyle={{ borderRadius: 22 }}>
               <View style={styles.moodtag}>
                 <View style={[styles.mooddot, { backgroundColor: moodColors[mood.k] }]} />
                 <Txt weight={700} size={12} color={colors.tealInk}>{mood.t}</Txt>

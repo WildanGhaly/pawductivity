@@ -101,6 +101,7 @@ export function CalendarTab() {
   const addReminder = useStore((st) => st.addReminder);
   const toggleReminderDone = useStore((st) => st.toggleReminderDone);
   const showToast = useStore((st) => st.showToast);
+  const openOverlay = useStore((st) => st.openOverlay);
 
   const now = new Date();
   const [cal, setCal] = useState({ y: now.getFullYear(), m: now.getMonth() });
@@ -179,7 +180,7 @@ export function CalendarTab() {
       <ScrollView contentContainerStyle={{ paddingBottom: NAV_H + insets.bottom + 20 }} showsVerticalScrollIndicator={false}>
         {/* top bar */}
         <View style={[styles.topbar, { paddingTop: Math.max(20, insets.top + 12) }]}>
-          <Pressable onPress={() => showToast('Profile coming soon')}>
+          <Pressable onPress={() => openOverlay('profile')}>
             <Image source={avatars[s.profile.avatar] || img.catThumb} style={styles.avatarImg} />
           </Pressable>
           <View style={{ flex: 1 }}>

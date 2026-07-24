@@ -445,3 +445,56 @@ describe('persistence', () => {
     await second.close();
   });
 });
+
+describe('POST /api/billing/verify', () => {
+  const TOKEN = () => `tok-${newDevice('billing')}`;
+
+  test('records a valid purchase and reports premium', async () => {
+    const { status, body } = await post('/api/billing/verify', {
+      deviceId: newDevice('buyer'),
+      productId: 'pawductivity_premium_yearly',
+      purchaseToken: TOKEN(),
+      platform: 'android',
+    });
+    assert.equal(status, 200);
+    assert.equal(body.ok, true);
+    assert.equal(body.valid, true);
+    assert.equal(body.premium, true);
+    // Honest: not cryptographically verified without a Play Developer API credential.
+    assert.equal(body.verified, false);
+  });
+
+  test('is idempotent for the same purchase token', async () => {
+    const payload = {
+      deviceId: newDevice('buyer'),
+      productId: 'pawductivity_premium_monthly',
+      purchaseToken: TOKEN(),
+      platform: 'android',
+    };
+    const first = await post('/api/billing/verify', payload);
+    const second = await post('/api/billing/verify', payload);
+    assert.equal(first.status, 200);
+    assert.equal(second.status, 200);
+    assert.equal(second.body.ok, true);
+  });
+
+  test('rejects an unknown product', async () => {
+    const { status, body } = await post('/api/billing/verify', {
+      deviceId: newDevice('buyer'),
+      productId: 'not_a_real_product',
+      purchaseToken: TOKEN(),
+      platform: 'android',
+    });
+    assert.equal(status, 400);
+    assert.equal(body.error, 'unknown_product');
+  });
+
+  test('requires a deviceId, productId and token', async () => {
+    const a = await post('/api/billing/verify', { productId: 'pawductivity_premium_yearly', purchaseToken: 't' });
+    assert.equal(a.body.error, 'missing_device_id');
+    const b = await post('/api/billing/verify', { deviceId: newDevice('x'), purchaseToken: 't' });
+    assert.equal(b.body.error, 'missing_product');
+    const c = await post('/api/billing/verify', { deviceId: newDevice('x'), productId: 'pawductivity_premium_yearly' });
+    assert.equal(c.body.error, 'missing_token');
+  });
+});

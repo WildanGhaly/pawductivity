@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 import { DEFAULT_DB_PATH, closeDb, openDb } from './db.mjs';
 import {
+  billingVerify,
   fail,
   health,
   notFound,
@@ -150,7 +151,10 @@ export function createHandler(db) {
         return;
       }
 
-      if (method === 'POST' && (path === '/api/referral/claim' || path === '/api/sync/push')) {
+      if (
+        method === 'POST' &&
+        (path === '/api/referral/claim' || path === '/api/sync/push' || path === '/api/billing/verify')
+      ) {
         let payload;
         try {
           payload = parseJson(await readBody(req));
@@ -172,7 +176,11 @@ export function createHandler(db) {
         }
 
         const { status, body } =
-          path === '/api/referral/claim' ? referralClaim(db, payload) : syncPush(db, payload);
+          path === '/api/referral/claim'
+            ? referralClaim(db, payload)
+            : path === '/api/billing/verify'
+              ? billingVerify(db, payload)
+              : syncPush(db, payload);
         sendJson(res, status, body);
         return;
       }

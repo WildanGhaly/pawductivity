@@ -33,14 +33,15 @@ const KIND: Record<SyncKind, { icoBg: string; icoColor: string; dot: string }> =
 export function SyncScreen() {
   const s = useStore((st) => st.state)!;
   const runSync = useStore((st) => st.runSync);
+  const updateCloud = useStore((st) => st.updateCloud);
   const showToast = useStore((st) => st.showToast);
 
   const c = s.cloud;
-  // Sign-in and the two sync preferences are optimistic local state: there is no
-  // network and no dedicated store action for them, so the UI stays instant here.
-  const [signedIn, setSignedIn] = useState<boolean>(c.signedIn);
-  const [auto, setAuto] = useState<boolean>(c.auto);
-  const [wifiOnly, setWifiOnly] = useState<boolean>(c.wifiOnly);
+  // Sign-in and the two sync preferences are persisted in the store so they survive
+  // reopening the app and the Profile screen reflects the real status.
+  const signedIn = c.signedIn;
+  const auto = c.auto;
+  const wifiOnly = c.wifiOnly;
 
   const syncing = c.status === 'syncing';
 
@@ -56,21 +57,21 @@ export function SyncScreen() {
   const kind = KIND[status.k];
 
   const signIn = () => {
-    setSignedIn(true);
+    updateCloud({ signedIn: true, email: c.email || 'you@gmail.com' });
     showToast('Signed in. Backing up.');
     runSync();
   };
   const signOut = () => {
-    setSignedIn(false);
+    updateCloud({ signedIn: false, email: null, status: 'idle' });
     showToast('Signed out. Your data stays on this device.');
   };
 
   const toggleAuto = () => {
     const next = !auto;
-    setAuto(next);
+    updateCloud({ auto: next });
     if (next && c.pending > 0) runSync();
   };
-  const toggleWifi = () => setWifiOnly((v) => !v);
+  const toggleWifi = () => updateCloud({ wifiOnly: !wifiOnly });
 
   return (
     <OverlayScreen title="Backup and sync">

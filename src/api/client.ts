@@ -102,6 +102,15 @@ export const api = {
     request<{ state: unknown; updatedAt: string | number }>(
       `/api/sync/pull?deviceId=${encodeURIComponent(deviceId)}`,
     ),
+
+  // Records and (in a real deployment) verifies a Google Play purchase token against
+  // the Play Developer API. When the backend is unreachable the caller trusts Play,
+  // which has already confirmed the purchase on device.
+  verifyPurchase: (deviceId: string, productId: string, purchaseToken: string) =>
+    request<{ valid: boolean; premium: boolean }>('/api/billing/verify', {
+      method: 'POST',
+      body: JSON.stringify({ deviceId, productId, purchaseToken, platform: 'android' }),
+    }),
 };
 
 // Human-readable text for the machine error codes the backend returns.

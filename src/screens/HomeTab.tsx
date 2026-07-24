@@ -9,7 +9,7 @@ import { PetView } from '../components/PetView';
 import { QuestRow } from '../components/QuestRow';
 import { img, avatars } from '../assets/registry';
 import { useStore } from '../store/store';
-import { moodOf, bonusPct, idlePending, nextMilestone, homePct, isDone, fmt, moodRate } from '../domain/mechanics';
+import { moodOf, bonusPct, idlePending, nextMilestone, homePct, isDone, fmt } from '../domain/mechanics';
 import { TabKey } from '../components/TabBar';
 
 const COIN_SPOTS = [
@@ -71,14 +71,14 @@ export function HomeTab({ onTab }: { onTab: (t: TabKey) => void }) {
 
         {/* pet room */}
         <Pressable onPress={pending > 0 ? collectIdle : undefined}>
-          <ImageBackground source={img.room1} style={styles.room} imageStyle={{ borderRadius: 22 }}>
+          <ImageBackground source={s.settings.room === 1 ? img.room2 : img.room1} style={styles.room} imageStyle={{ borderRadius: 22 }}>
             <View style={styles.moodtag}>
               <View style={[styles.mooddot, { backgroundColor: moodColors[mood.k] }]} />
               <Txt weight={700} size={12} color={colors.tealInk}>{mood.t}</Txt>
             </View>
             <View style={styles.petShadow} />
             <View style={styles.petStage}>
-              <PetView species={s.pet.species} clothesId={s.pet.clothesId} size={200} speed={moodRate(s.pet.health) < 0.5 ? 0.7 : 1} />
+              <PetView species={s.pet.species} clothesId={s.pet.clothesId} size={200} speed={mood.spd} />
             </View>
             {pending > 0 && (
               <>
