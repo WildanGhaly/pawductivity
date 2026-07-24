@@ -111,12 +111,34 @@ export const useStore = create<StoreShape>((set, get) => {
 
     hydrate: async () => {
       const loaded = await persistence.load();
-      // Installs saved before the referral/sync backend existed have no deviceId.
-      if (loaded && !loaded.deviceId) {
-        loaded.deviceId = newDeviceId();
-        persistence.save(loaded);
+      // Backfill any fields a state saved by an older build is missing, so schema
+      // growth never leaves a slice undefined (which would crash a screen that spreads
+      // it, e.g. HomeTab's weekly chart). Loaded values always win over the defaults.
+      if (loaded) {
+        const def = freshState();
+        const migrated: AppState = {
+          ...def,
+          ...loaded,
+          profile: { ...def.profile, ...(loaded.profile || {}) },
+          pet: { ...def.pet, ...(loaded.pet || {}) },
+          streak: { ...def.streak, ...(loaded.streak || {}) },
+          settings: { ...def.settings, ...(loaded.settings || {}) },
+          cloud: { ...def.cloud, ...(loaded.cloud || {}) },
+          insights: { ...def.insights, ...(loaded.insights || {}) },
+          today: { ...def.today, ...(loaded.today || {}) },
+          lifetime: { ...def.lifetime, ...(loaded.lifetime || {}) },
+          quests: Array.isArray(loaded.quests) ? loaded.quests : def.quests,
+          reminders: Array.isArray(loaded.reminders) ? loaded.reminders : def.reminders,
+          plan: Array.isArray(loaded.plan) ? loaded.plan : [],
+          achievements: Array.isArray(loaded.achievements) ? loaded.achievements : [],
+          completedDays: Array.isArray(loaded.completedDays) ? loaded.completedDays : def.completedDays,
+          deviceId: loaded.deviceId || newDeviceId(),
+        };
+        persistence.save(migrated);
+        set({ state: migrated, hydrated: true });
+        return;
       }
-      set({ state: loaded, hydrated: true });
+      set({ state: null, hydrated: true });
     },
 
     showToast: (text, coin) => set({ toast: { id: toastSeq++, text, coin } }),

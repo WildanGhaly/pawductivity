@@ -8,10 +8,18 @@
 //    verifies the purchase token. Play remains the source of truth for price and status.
 //  - Nothing here consumes the purchase: subscriptions are acknowledged, not consumed.
 import { Platform } from 'react-native';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { PREMIUM_SKUS } from './products';
 import { BillingPlan, PurchaseOutcome } from './types';
 
 export type { BillingPlan, PurchaseOutcome } from './types';
+
+// react-native-iap v15 relies on NitroModules (new-architecture native modules) that
+// do NOT exist in Expo Go. Requiring it there throws an uncatchable NitroModules error,
+// so we hard-gate on the execution environment: only a development or production BUILD
+// (standalone/bare) may load the native billing module. Expo Go and web report
+// unavailable and fall back gracefully.
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 let iap: any = null;
 let connected = false;
@@ -23,6 +31,7 @@ let errorSub: any = null;
 function loadIap(): any {
   if (iap) return iap;
   if (Platform.OS !== 'android' && Platform.OS !== 'ios') return null;
+  if (isExpoGo) return null; // native module is absent in Expo Go; do not require it
   try {
     // Static require so Metro bundles it; the try/catch handles the native module
     // being absent at runtime (Expo Go), where accessing it throws.
