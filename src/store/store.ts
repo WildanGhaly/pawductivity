@@ -23,12 +23,15 @@ interface StoreShape {
   state: AppState | null; // null until hydrated
   hydrated: boolean;
   toast: ToastMsg | null;
-  overlay: OverlayState | null;
+  // Overlay navigation stack. The last entry is the visible overlay; closing pops
+  // back to its parent (so Profile -> Appearance -> back returns to Profile).
+  overlays: OverlayState[];
 
   hydrate: () => Promise<void>;
   showToast: (text: string, coin?: boolean) => void;
   openOverlay: (name: OverlayName, param?: any) => void;
   closeOverlay: () => void;
+  closeAllOverlays: () => void;
   mutate: (fn: (s: AppState) => void, opts?: { silent?: boolean }) => void;
 
   // lifecycle
@@ -94,7 +97,7 @@ export const useStore = create<StoreShape>((set, get) => {
     state: null,
     hydrated: false,
     toast: null,
-    overlay: null,
+    overlays: [],
 
     hydrate: async () => {
       const loaded = await persistence.load();
@@ -102,8 +105,15 @@ export const useStore = create<StoreShape>((set, get) => {
     },
 
     showToast: (text, coin) => set({ toast: { id: toastSeq++, text, coin } }),
-    openOverlay: (name, param) => set({ overlay: { name, param } }),
-    closeOverlay: () => set({ overlay: null }),
+    // Push onto the stack. 'reward' is terminal: it follows a finished focus session,
+    // so it replaces the stack rather than sitting on top of the spent Focus screen.
+    openOverlay: (name, param) =>
+      set((store) => ({
+        overlays: name === 'reward' ? [{ name, param }] : [...store.overlays, { name, param }],
+      })),
+    // Pop back to the parent overlay (or to the tab when the stack empties).
+    closeOverlay: () => set((store) => ({ overlays: store.overlays.slice(0, -1) })),
+    closeAllOverlays: () => set({ overlays: [] }),
 
     mutate,
 
