@@ -110,3 +110,11 @@ export const fonts = {
   'Poppins-Regular': require('../../assets/Poppins-Regular.ttf'),
   'Poppins-Bold': require('../../assets/Poppins-Bold.ttf'),
 };
+
+// Focus soundscapes, keyed by the SOUNDS catalog id (0 = None, so no asset).
+// Seamlessly loopable ambient loops generated offline, no streaming needed.
+export const soundscapes: Record<number, any> = {
+  1: require('../../assets/audio/rain.wav'),
+  2: require('../../assets/audio/waves.wav'),
+  3: require('../../assets/audio/lofi.wav'),
+};

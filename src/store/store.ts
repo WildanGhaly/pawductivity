@@ -256,8 +256,14 @@ export const useStore = create<StoreShape>((set, get) => {
         d.lifetime.sessions += 1;
         d.lifetime.minutes += mins;
         d.insights.coinsLifetime += coins + bonus;
-        if (pomodoro && !d.achievements.includes('pomodoro')) d.achievements.push('pomodoro');
       });
+      // Finishing a Pomodoro cycle is an event badge (no numeric progress), so it is
+      // granted here rather than by the achievement checker, and announced once.
+      if (pomodoro && s && !s.achievements.includes('pomodoro')) {
+        mutate((d) => { d.achievements.push('pomodoro'); });
+        const a = ACHIEVEMENTS.find((x) => x.id === 'pomodoro');
+        setTimeout(() => get().showToast(`Badge unlocked: ${a ? a.name : 'Tomato timer'}`, true), 600);
+      }
       return { coins, bonus, mins };
     },
 
