@@ -44,10 +44,13 @@ const SHEET: Partial<Record<OverlayName, React.ComponentType<{ param?: any }>>> 
 const H = Dimensions.get('window').height;
 
 export function OverlayHost() {
-  const overlay = useStore((s) => s.overlay);
+  const overlays = useStore((s) => s.overlays);
   const closeOverlay = useStore((s) => s.closeOverlay);
   const translateY = useRef(new Animated.Value(H)).current;
 
+  // The visible overlay is the top of the stack; closing pops back to its parent.
+  const overlay = overlays.length ? overlays[overlays.length - 1] : null;
+  const depth = overlays.length;
   const isFull = overlay ? !!FULL[overlay.name] : false;
 
   useEffect(() => {
@@ -55,7 +58,7 @@ export function OverlayHost() {
       translateY.setValue(H);
       Animated.spring(translateY, { toValue: 0, useNativeDriver: true, friction: 9, tension: 65 }).start();
     }
-  }, [overlay?.name, isFull]);
+  }, [overlay?.name, depth, isFull]);
 
   // Android hardware back closes the active overlay.
   useEffect(() => {
@@ -71,7 +74,7 @@ export function OverlayHost() {
 
   const SheetComp = SHEET[overlay.name];
   if (SheetComp) {
-    return <SheetComp param={overlay.param} />;
+    return <SheetComp key={`${overlay.name}-${depth}`} param={overlay.param} />;
   }
 
   const FullComp = FULL[overlay.name];
@@ -79,7 +82,7 @@ export function OverlayHost() {
 
   return (
     <Animated.View style={[styles.full, { transform: [{ translateY }] }]}>
-      <FullComp param={overlay.param} />
+      <FullComp key={`${overlay.name}-${depth}`} param={overlay.param} />
     </Animated.View>
   );
 }
