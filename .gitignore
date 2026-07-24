@@ -69,3 +69,12 @@ redesign-*.png
 proto-*.png
 app-*.png
 z-*.png
+
+# Local build artifacts + signing secrets — kept in-workspace, never committed
+credentials/
+dist/
+*.aab
+*.apk
+*.jks
+*.keystore
+!android/app/debug.keystore
