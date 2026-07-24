@@ -338,7 +338,7 @@ export const useStore = create<StoreShape>((set, get) => {
           return;
         }
       }
-      const offline = res.error === 'offline' || res.error === 'timeout';
+      const offline = res.error === 'offline' || res.error === 'timeout' || res.error === 'not_configured';
       mutate((d) => { d.cloud.status = offline ? 'offline' : 'error'; d.cloud.lastError = res.error; });
       get().showToast(offline ? 'You are offline. Backup will wait.' : 'Backup failed');
     },
