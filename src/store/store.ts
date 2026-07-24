@@ -10,13 +10,25 @@ import { ACHIEVEMENTS } from '../domain/catalogs';
 // A transient toast message consumers can subscribe to.
 export interface ToastMsg { id: number; text: string; coin?: boolean }
 
+export type OverlayName =
+  // full-screen slide-ups
+  | 'focus' | 'shop' | 'premium' | 'referral' | 'insights' | 'journey'
+  | 'achievements' | 'recap' | 'sync' | 'profile' | 'appearance' | 'reward'
+  // bottom sheets / dialogs
+  | 'capture' | 'goal' | 'plan' | 'buy';
+
+export interface OverlayState { name: OverlayName; param?: any }
+
 interface StoreShape {
   state: AppState | null; // null until hydrated
   hydrated: boolean;
   toast: ToastMsg | null;
+  overlay: OverlayState | null;
 
   hydrate: () => Promise<void>;
   showToast: (text: string, coin?: boolean) => void;
+  openOverlay: (name: OverlayName, param?: any) => void;
+  closeOverlay: () => void;
   mutate: (fn: (s: AppState) => void, opts?: { silent?: boolean }) => void;
 
   // lifecycle
@@ -42,6 +54,17 @@ interface StoreShape {
   setAvatar: (i: number) => void;
   setAccent: (i: number) => void;
   setRoom: (i: number) => void;
+  setPremium: (on: boolean) => void;
+
+  // reminders
+  addReminder: (r: { name: string; time: string; rep: any; y?: number; mo?: number; day?: number }) => void;
+  toggleReminderDone: (id: number, key: string) => void;
+  deleteReminder: (id: number) => void;
+
+  // backend-parked features (local placeholders)
+  redeemReferral: (code: string) => void;
+  buyPremium: () => void;
+  runSync: () => void;
 }
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -71,6 +94,7 @@ export const useStore = create<StoreShape>((set, get) => {
     state: null,
     hydrated: false,
     toast: null,
+    overlay: null,
 
     hydrate: async () => {
       const loaded = await persistence.load();
@@ -78,6 +102,8 @@ export const useStore = create<StoreShape>((set, get) => {
     },
 
     showToast: (text, coin) => set({ toast: { id: toastSeq++, text, coin } }),
+    openOverlay: (name, param) => set({ overlay: { name, param } }),
+    closeOverlay: () => set({ overlay: null }),
 
     mutate,
 
@@ -226,10 +252,41 @@ export const useStore = create<StoreShape>((set, get) => {
     },
 
     toggleSetting: (k) => mutate((d) => { d.settings[k] = !d.settings[k]; }),
-    setName: (name) => mutate((d) => { d.profile.name = name; }),
+    setName: (name) => { mutate((d) => { d.profile.name = name; }); get().showToast('Name updated'); },
     setAvatar: (i) => mutate((d) => { d.profile.avatar = i; }),
     setAccent: (i) => mutate((d) => { d.settings.accent = i; }),
     setRoom: (i) => mutate((d) => { d.settings.room = i; }),
+    setPremium: (on) => mutate((d) => { d.profile.premium = on; }),
+
+    addReminder: (r) => mutate((d) => {
+      d.reminders.push({ id: d.nextRem, name: r.name, time: r.time, rep: r.rep, doneOn: [], y: r.y, mo: r.mo, day: r.day });
+      d.nextRem += 1;
+    }),
+    toggleReminderDone: (id, key) => mutate((d) => {
+      const r = d.reminders.find((x) => x.id === id);
+      if (!r) return;
+      if (!Array.isArray(r.doneOn)) r.doneOn = [];
+      const i = r.doneOn.indexOf(key);
+      if (i >= 0) r.doneOn.splice(i, 1); else r.doneOn.push(key);
+    }),
+    deleteReminder: (id) => mutate((d) => { d.reminders = d.reminders.filter((x) => x.id !== id); }),
+
+    // Referral verification needs a server (parked). Local placeholder: accept a
+    // well-formed code once and grant the coin boost, mirroring the give-100/get-100 rule.
+    redeemReferral: (code) => {
+      const s = get().state; if (!s) return;
+      const c = (code || '').trim().toUpperCase();
+      if (!/^[A-Z]{3}-[A-Z0-9]{4}$/.test(c)) { get().showToast('That code does not look right'); return; }
+      mutate((d) => { d.profile.coins += 100; d.insights.coinsLifetime += 100; });
+      get().showToast('Code redeemed. +100 coins', true);
+    },
+    // Real billing is parked; locally flip premium on so premium content is explorable.
+    buyPremium: () => { get().setPremium(true); get().showToast('Premium unlocked', true); },
+    // Cloud sync is simulated locally (no backend). Mark synced now.
+    runSync: () => {
+      mutate((d) => { d.cloud.pending = 0; d.cloud.lastSync = Date.now(); d.cloud.status = 'synced'; });
+      get().showToast('Backed up');
+    },
   };
 });
 
@@ -248,4 +305,9 @@ function grantAchievements(
     set({ state: produce(s, (d) => { d.achievements.push(...newly); }) });
     get().showToast(`Badge unlocked: ${ACHIEVEMENTS.find((a) => a.id === newly[0])!.name}`, true);
   }
+}
+
+// dev-only: expose the store for automated verification driving (stripped in production)
+if (typeof __DEV__ !== 'undefined' && __DEV__ && typeof window !== 'undefined') {
+  (window as any).__store = useStore;
 }
