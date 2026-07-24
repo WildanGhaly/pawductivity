@@ -28,6 +28,15 @@ export function PlanSheet() {
       title="Plan today"
       subtitle="Pick up to 3 to focus on today. We'll line them up smallest first, so starting is easy."
     >
+      {active.length === 0 && (
+        <View style={styles.empty}>
+          <Icon name="sprout" size={30} color={colors.grass} />
+          <Txt weight={700} size={14} color={colors.tealInk} style={{ marginTop: 8 }}>No quests to plan yet</Txt>
+          <Txt size={12.5} color={colors.muted} style={{ marginTop: 2, textAlign: 'center', lineHeight: 18 }}>
+            Add a quest first, then come back to line up your day.
+          </Txt>
+        </View>
+      )}
       <View style={styles.planlist}>
         {active.map((q) => {
           const on = s.plan.includes(q.id);
@@ -61,6 +70,7 @@ export function PlanSheet() {
 }
 
 const styles = StyleSheet.create({
+  empty: { alignItems: 'center', paddingVertical: 20, paddingHorizontal: 12 },
   planlist: { gap: 8 },
   planrow: {
     flexDirection: 'row',

@@ -396,15 +396,17 @@ export function FocusScreen({ param }: { param?: { questId?: number } }) {
         </View>
       </View>
 
-      {/* skip to end */}
-      <View style={styles.preview}>
-        <Pressable style={styles.previewBtn} onPress={previewFinish}>
-          <Icon name="check" size={13} color={colors.white} strokeWidth={2.2} />
-          <Txt weight={600} size={12.5} color={colors.white}>
-            Skip to end (demo)
-          </Txt>
-        </Pressable>
-      </View>
+      {/* skip to end: a testing shortcut only, never shipped in a production build */}
+      {__DEV__ && (
+        <View style={styles.preview}>
+          <Pressable style={styles.previewBtn} onPress={previewFinish}>
+            <Icon name="check" size={13} color={colors.white} strokeWidth={2.2} />
+            <Txt weight={600} size={12.5} color={colors.white}>
+              Skip to end (demo)
+            </Txt>
+          </Pressable>
+        </View>
+      )}
 
       {/* controls */}
       <View style={[styles.controls, { paddingBottom: 34 + insets.bottom }]}>

@@ -5,6 +5,7 @@ import {
   Pressable,
   TextInput,
   ImageBackground,
+  Share,
 } from 'react-native';
 import { colors, radius, font } from '../theme/tokens';
 import { Txt, Btn } from '../components/ui';
@@ -27,7 +28,14 @@ export function ReferralScreen() {
     return () => { alive = false; };
   }, [fetchReferralCode]);
 
-  const share = () => showToast('Share sheet opened', true);
+  const share = async () => {
+    if (!myCode) { showToast('Connect to get your code first'); return; }
+    try {
+      await Share.share({ message: `Join me on Pawductivity and grow a focus buddy. Use my invite code ${myCode} on your first day and we both get 100 coins.` });
+    } catch {
+      showToast('Could not open the share sheet');
+    }
+  };
   const redeem = () => redeemReferral(code);
 
   return (
