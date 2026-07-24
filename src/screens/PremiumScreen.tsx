@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, Pressable, ActivityIndicator, Linking } from 'react-native';
 import { colors, radius, shadow } from '../theme/tokens';
 import { Txt, Card, Btn } from '../components/ui';
 import { Icon } from '../components/Icon';
@@ -83,6 +83,13 @@ export function PremiumScreen() {
 
   const onContinue = async () => {
     if (busy) return;
+    // Already subscribed: send them to Play to manage/cancel, not into a new purchase.
+    if (premium) {
+      Linking.openURL(
+        `https://play.google.com/store/account/subscriptions?sku=${selectedSku}&package=com.pawductivity.app`,
+      ).catch(() => {});
+      return;
+    }
     setBusy(true);
     try {
       if (billingOk) {

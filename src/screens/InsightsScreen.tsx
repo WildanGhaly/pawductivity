@@ -37,8 +37,10 @@ export function InsightsScreen() {
   const pmax = Math.max(...primary.items.map((x) => x.v), 1);
   const pbest = primary.items.findIndex((x) => x.v === pmax);
 
+  const hasFocus = total > 0 || ins.sessions > 0; // any real focus history yet
+  const hoursTotal = ins.hours.reduce((a, b) => a + b, 0);
   const hMax = Math.max(...ins.hours, 1);
-  const hbest = ins.hours.indexOf(hMax);
+  const hbest = hoursTotal > 0 ? ins.hours.indexOf(hMax) : -1;
   const hourBars: Bar[] = ins.hours.map((v, i) => ({ v, lbl: HOUR_LABELS[i] }));
 
   const distItems: Bar[] = ins.dist.map(([n, c]) => ({ v: c, lbl: n }));
@@ -94,10 +96,20 @@ export function InsightsScreen() {
       {/* primary bar chart */}
       <View style={styles.shead}>
         <Txt weight={700} size={16} color={colors.tealInk}>{primary.title}</Txt>
-        <Txt weight={700} size={11} color={colors.muted}>tap a bar</Txt>
+        <Txt weight={700} size={11} color={colors.muted}>{rangeStatLbl.toLowerCase()}</Txt>
       </View>
       <Card style={{ paddingTop: 18, paddingBottom: 12, paddingHorizontal: 14 }}>
-        <VBars items={primary.items} best={pbest} max={pmax} tall />
+        {hasFocus ? (
+          <VBars items={primary.items} best={pbest} max={pmax} tall />
+        ) : (
+          <View style={styles.emptyChart}>
+            <Icon name="bolt" size={28} color={colors.line2} />
+            <Txt weight={700} size={13.5} color={colors.tealInk} style={{ marginTop: 8 }}>No focus yet</Txt>
+            <Txt size={12} color={colors.muted} style={{ marginTop: 2, textAlign: 'center' }}>
+              Finish a focus session and your stats will appear here.
+            </Txt>
+          </View>
+        )}
       </Card>
 
       {/* The deep dashboard is a Premium payoff; free users see a preview then this gate. */}
@@ -122,7 +134,7 @@ export function InsightsScreen() {
       <Card style={{ paddingTop: 18, paddingBottom: 12, paddingHorizontal: 14 }}>
         <VBars items={hourBars} best={hbest} max={hMax} />
         <Txt weight={600} size={12} color={colors.muted} style={{ textAlign: 'center', marginTop: 8 }}>
-          You focus best around {HOUR_LABELS[hbest]}.
+          {hbest >= 0 ? `You focus best around ${HOUR_LABELS[hbest]}.` : 'Focus a few sessions to find your best hours.'}
         </Txt>
       </Card>
 
@@ -131,7 +143,7 @@ export function InsightsScreen() {
         <Txt weight={700} size={16} color={colors.tealInk}>Where your time goes</Txt>
       </View>
       <Card style={{ paddingVertical: 14, paddingHorizontal: 16 }}>
-        {ins.categories.map(([n, p]) => (
+        {ins.categories.length ? ins.categories.map(([n, p]) => (
           <View key={n} style={styles.icat}>
             <View style={[styles.catdot, { backgroundColor: catColors[n] || colors.teal }]} />
             <Txt weight={700} size={12.5} color={colors.tealInk} style={styles.icatn}>{n}</Txt>
@@ -140,7 +152,9 @@ export function InsightsScreen() {
             </View>
             <Txt weight={700} size={12} color={colors.muted} style={styles.icatp}>{p}%</Txt>
           </View>
-        ))}
+        )) : (
+          <Txt size={12.5} color={colors.muted} style={{ textAlign: 'center', paddingVertical: 6 }}>Nothing tracked yet.</Txt>
+        )}
       </Card>
 
       {/* session length */}
@@ -149,7 +163,11 @@ export function InsightsScreen() {
         <Txt weight={700} size={11} color={colors.muted}>sessions</Txt>
       </View>
       <Card style={{ paddingTop: 18, paddingBottom: 12, paddingHorizontal: 14 }}>
-        <VBars items={distItems} best={-1} max={Math.max(...distItems.map((x) => x.v), 1)} />
+        {distItems.length ? (
+          <VBars items={distItems} best={-1} max={Math.max(...distItems.map((x) => x.v), 1)} />
+        ) : (
+          <Txt size={12.5} color={colors.muted} style={{ textAlign: 'center', paddingVertical: 14 }}>No sessions yet.</Txt>
+        )}
       </Card>
 
       {/* consistency */}
@@ -185,15 +203,6 @@ export function InsightsScreen() {
         <AtCard icon="trophy" v={`${s.achievements.length}/${ACHIEVEMENTS.length}`} l="Badges" />
         <AtCard icon="flame" v={`${ins.bestStreak}`} l="Best streak" />
       </View>
-
-      <Btn
-        title="Export report (CSV)"
-        variant="ghost"
-        block
-        left={<Icon name="download" size={16} color={colors.teal} />}
-        onPress={() => showToast('Focus report exported (demo)')}
-        style={{ marginTop: 18 }}
-      />
       </>
       ) : (
         <Card style={styles.upsell} onPress={() => openOverlay('premium')}>
@@ -310,6 +319,7 @@ function AtCard({ icon, v, l }: { icon: string; v: string; l: string }) {
 }
 
 const styles = StyleSheet.create({
+  emptyChart: { alignItems: 'center', justifyContent: 'center', paddingVertical: 26 },
   rangebar: { flexDirection: 'row', gap: 6, backgroundColor: '#EFE7D6', padding: 4, borderRadius: 14, marginBottom: 8 },
   rangeBtn: { flex: 1, paddingVertical: 8, paddingHorizontal: 4, borderRadius: 10, alignItems: 'center' },
   rangeBtnOn: { backgroundColor: '#fff', ...shadow.sm },

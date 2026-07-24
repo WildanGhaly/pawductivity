@@ -39,7 +39,7 @@ export function HomeTab({ onTab }: { onTab: (t: TabKey) => void }) {
   const wkMax = Math.max(...weekly, 1);
   const wkTotal = weekly.reduce((a, b) => a + b, 0);
   const dows = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-  const bestName = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][weekly.indexOf(wkMax)];
+  const bestName = wkTotal > 0 ? ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][weekly.indexOf(wkMax)] : null;
 
   const ringR = 35;
   const ringC = 2 * Math.PI * ringR;
@@ -184,7 +184,7 @@ export function HomeTab({ onTab }: { onTab: (t: TabKey) => void }) {
               </View>
             ))}
           </View>
-          <Txt weight={600} size={12} color={colors.muted} style={{ lineHeight: 17 }}>{bestName} was your strongest day. Tap for the full breakdown.</Txt>
+          <Txt weight={600} size={12} color={colors.muted} style={{ lineHeight: 17 }}>{bestName ? `${bestName} was your strongest day. Tap for the full breakdown.` : 'Finish a focus session to start your week.'}</Txt>
         </Card>
 
         {/* today's focus */}

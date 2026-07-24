@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, Pressable, Image } from 'react-native';
+import { View, StyleSheet, Pressable, Image, Share } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radius, shadow } from '../theme/tokens';
 import { catColors } from '../theme/tokens';
@@ -41,11 +42,13 @@ export function RecapScreen() {
   const petName = s.pet.name;
   const stg = petStage(s.pet);
   const total = ins.weekly.reduce((a, b) => a + b, 0);
+  const hasData = total > 0; // a brand new week has no best-day or category yet
   const max = Math.max(...ins.weekly, 1);
-  const bestIdx = ins.weekly.indexOf(max);
+  const bestIdx = ins.weekly.indexOf(Math.max(...ins.weekly, 0));
+  const bestDay = hasData && bestIdx >= 0 ? DAY_FULL[bestIdx] : '-';
   const delta = Math.round(((total - ins.lastWeekTotal) / Math.max(1, ins.lastWeekTotal)) * 100);
   const v = recapVerdict(delta, petName);
-  const topCat = ins.categories[0];
+  const topCat = ins.categories[0]; // may be undefined for a fresh user
   const avg = ins.avgLen;
 
   const lastMax = Math.max(total, ins.lastWeekTotal, 1);
@@ -57,8 +60,22 @@ export function RecapScreen() {
     ? `You already cleared your ${fmt(weekGoal * 60)} weekly goal, so this is ten percent on top of what you actually did.`
     : `That is your ${s.today.goalMin}m daily goal across seven days. You finished ${fmt(gap * 60)} short, roughly ${moreSessions} more sessions at your usual ${avg}m.`;
 
-  const share = () => showToast('Recap image saved. Share sheet opened.');
-  const copy = () => showToast('Summary copied');
+  const summary = `My Pawductivity week (${recapRange()}): ${fmt(total * 60)} focused across ${ins.weekFocusDays} day${ins.weekFocusDays === 1 ? '' : 's'}, ${money(ins.weekCoins)} coins earned. ${petName} is ${stageName(stg)}.`;
+  const share = async () => {
+    try {
+      await Share.share({ message: summary });
+    } catch {
+      showToast('Could not open the share sheet');
+    }
+  };
+  const copy = async () => {
+    try {
+      await Clipboard.setStringAsync(summary);
+      showToast('Summary copied');
+    } catch {
+      showToast('Could not copy');
+    }
+  };
 
   return (
     <OverlayScreen title="Weekly recap">
@@ -129,13 +146,13 @@ export function RecapScreen() {
         <Txt weight={700} size={16} color={colors.tealInk}>Highlights</Txt>
       </View>
       <Card style={styles.hlCard}>
-        <HlRow icon={<Icon name="trophy" size={17} color={colors.teal} />} title="Best day" value={`${DAY_FULL[bestIdx]}  ${max}m`} />
-        <HlRow icon={<Icon name="clock" size={17} color={colors.teal} />} title="Longest session" value={`${ins.longest}m`} />
+        <HlRow icon={<Icon name="trophy" size={17} color={colors.teal} />} title="Best day" value={hasData ? `${bestDay}  ${max}m` : 'No focus yet'} />
+        <HlRow icon={<Icon name="clock" size={17} color={colors.teal} />} title="Longest session" value={ins.longest > 0 ? `${ins.longest}m` : '-'} />
         <HlRow icon={<Icon name="target" size={17} color={colors.teal} />} title="Days you showed up" value={`${ins.weekFocusDays} of 7`} />
         <HlRow
-          icon={<View style={[styles.catdot, { backgroundColor: catColors[topCat[0]] || colors.teal }]} />}
+          icon={<View style={[styles.catdot, { backgroundColor: (topCat && catColors[topCat[0]]) || colors.teal }]} />}
           title="Most of your time"
-          value={`${topCat[0]}  ${topCat[1]}%`}
+          value={topCat ? `${topCat[0]}  ${topCat[1]}%` : 'Nothing yet'}
           last
         />
       </Card>
