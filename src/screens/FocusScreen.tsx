@@ -7,9 +7,11 @@ import { colors, radius, shadow } from '../theme/tokens';
 import { Txt } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { PetView } from '../components/PetView';
+import { BottomSheet } from '../components/BottomSheet';
 import { useStore } from '../store/store';
 import { mmss, fmt, isDone } from '../domain/mechanics';
-import { POMO_WORK, POMO_BREAK } from '../domain/catalogs';
+import { POMO_WORK, POMO_BREAK, SOUNDS } from '../domain/catalogs';
+import { playSoundscape, stopSoundscape, getActiveSoundscape } from '../audio/soundscape';
 
 type Mode = 'standard' | 'pomodoro';
 type Phase = 'work' | 'break';
@@ -35,6 +37,22 @@ export function FocusScreen({ param }: { param?: { questId?: number } }) {
 
   const pet = s.pet;
   const petName = pet.name;
+
+  // Soundscape: loops a bundled ambient asset for the whole session.
+  const [soundOpen, setSoundOpen] = useState(false);
+  const [soundId, setSoundId] = useState(() => getActiveSoundscape());
+  const pickSound = (id: number, free: boolean, name: string) => {
+    if (!free && !s.profile.premium) {
+      showToast(`${name} is a Premium soundscape`);
+      return;
+    }
+    setSoundId(id);
+    playSoundscape(id);
+    setSoundOpen(false);
+    showToast(id === 0 ? 'Sound off' : `${name} on`);
+  };
+  // Always release audio when the Focus screen goes away.
+  useEffect(() => () => stopSoundscape(), []);
 
   // Resolve the quest for this session. If none is found, fall back to a 25:00
   // standard timer named after the first active quest (or "Focus").
@@ -276,8 +294,8 @@ export function FocusScreen({ param }: { param?: { questId?: number } }) {
             </Txt>
           </Pressable>
         </View>
-        <Pressable style={styles.iconbtn} onPress={() => showToast('Soundscapes coming soon')}>
-          <Icon name="sound" size={18} color={colors.teal} strokeWidth={2.2} />
+        <Pressable style={styles.iconbtn} onPress={() => setSoundOpen(true)} accessibilityLabel="Soundscape">
+          <Icon name="sound" size={18} color={soundId ? colors.orange : colors.teal} strokeWidth={2.2} />
         </Pressable>
       </View>
 
@@ -371,6 +389,42 @@ export function FocusScreen({ param }: { param?: { questId?: number } }) {
           <Icon name="plus" size={22} color={colors.teal} strokeWidth={2.2} />
         </RoundCtl>
       </View>
+
+      {/* soundscape picker */}
+      <BottomSheet
+        visible={soundOpen}
+        onClose={() => setSoundOpen(false)}
+        title="Soundscape"
+        subtitle="A steady background loop, stored on your device so it works offline."
+      >
+        {SOUNDS.map(([name, id, free]) => {
+          const locked = !free && !s.profile.premium;
+          const on = soundId === id;
+          return (
+            <Pressable
+              key={id}
+              onPress={() => pickSound(id, free, name)}
+              style={[styles.soundRow, on && styles.soundRowOn]}
+            >
+              <View style={[styles.soundIc, on && { backgroundColor: colors.teal }]}>
+                <Icon
+                  name={id === 0 ? 'pause' : locked ? 'lock' : 'sound'}
+                  size={17}
+                  color={on ? colors.white : colors.teal}
+                />
+              </View>
+              <Txt weight={700} size={14.5} color={colors.tealInk} style={{ flex: 1 }}>
+                {name}
+              </Txt>
+              {locked ? (
+                <Txt weight={800} size={11} color={colors.orange2}>Premium</Txt>
+              ) : on ? (
+                <Icon name="check" size={18} color={colors.teal} />
+              ) : null}
+            </Pressable>
+          );
+        })}
+      </BottomSheet>
     </LinearGradient>
   );
 }
@@ -402,6 +456,15 @@ function RoundCtl({
 }
 
 const styles = StyleSheet.create({
+  soundRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 12,
+    borderRadius: 14, borderWidth: 1.5, borderColor: colors.line2, backgroundColor: '#fff', marginBottom: 8,
+  },
+  soundRowOn: { borderColor: colors.teal, backgroundColor: '#F1F7F9' },
+  soundIc: {
+    width: 34, height: 34, borderRadius: 11, backgroundColor: colors.cream,
+    alignItems: 'center', justifyContent: 'center',
+  },
   root: { flex: 1, justifyContent: 'flex-start' },
   center: { textAlign: 'center' },
   top: {
