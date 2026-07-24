@@ -155,7 +155,7 @@ export function SyncScreen() {
       )}
 
       <Txt weight={500} size={11.5} color={colors.muted} style={styles.note}>
-        Sync is offline-first: everything works without a connection, and the backend here is a local placeholder, so nothing leaves your device.
+        Sync is offline-first: everything works without a connection. Backing up sends only your progress and a random device id to the Pawductivity server, and if the server holds a newer backup it is restored instead.
       </Txt>
     </OverlayScreen>
   );

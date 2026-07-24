@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { produce } from 'immer';
 import { AppState, Species } from '../domain/types';
-import { freshState } from '../domain/state';
+import { freshState, newDeviceId } from '../domain/state';
+import { api, referralErrorText } from '../api/client';
 import { persistence } from '../db/persistence';
 import { FOODS, CLOTHES, SPECIES, JOURNEY } from '../domain/catalogs';
 import { idlePending, petStage, achMet } from '../domain/mechanics';
@@ -64,10 +65,11 @@ interface StoreShape {
   toggleReminderDone: (id: number, key: string) => void;
   deleteReminder: (id: number) => void;
 
-  // backend-parked features (local placeholders)
-  redeemReferral: (code: string) => void;
+  // networked features (the only ones that talk to a server)
+  redeemReferral: (code: string) => Promise<void>;
+  fetchReferralCode: () => Promise<string | null>;
+  runSync: () => Promise<void>;
   buyPremium: () => void;
-  runSync: () => void;
 }
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -101,6 +103,11 @@ export const useStore = create<StoreShape>((set, get) => {
 
     hydrate: async () => {
       const loaded = await persistence.load();
+      // Installs saved before the referral/sync backend existed have no deviceId.
+      if (loaded && !loaded.deviceId) {
+        loaded.deviceId = newDeviceId();
+        persistence.save(loaded);
+      }
       set({ state: loaded, hydrated: true });
     },
 
@@ -287,22 +294,57 @@ export const useStore = create<StoreShape>((set, get) => {
     }),
     deleteReminder: (id) => mutate((d) => { d.reminders = d.reminders.filter((x) => x.id !== id); }),
 
-    // Referral verification needs a server (parked). Local placeholder: accept a
-    // well-formed code once and grant the coin boost, mirroring the give-100/get-100 rule.
-    redeemReferral: (code) => {
+    // Referral codes are verified by the backend so a code can only ever be
+    // redeemed once. Offline, we say so rather than granting coins locally.
+    redeemReferral: async (code) => {
       const s = get().state; if (!s) return;
       const c = (code || '').trim().toUpperCase();
-      if (!/^[A-Z]{3}-[A-Z0-9]{4}$/.test(c)) { get().showToast('That code does not look right'); return; }
-      mutate((d) => { d.profile.coins += 100; d.insights.coinsLifetime += 100; });
-      get().showToast('Code redeemed. +100 coins', true);
+      const res = await api.claimReferral(s.deviceId, c);
+      if (res.ok) {
+        const coins = (res as any).coins ?? 100;
+        mutate((d) => { d.profile.coins += coins; d.insights.coinsLifetime += coins; });
+        get().showToast(`Code redeemed. +${coins} coins`, true);
+      } else {
+        get().showToast(referralErrorText(res.error, res.message));
+      }
     },
-    // Real billing is parked; locally flip premium on so premium content is explorable.
+
+    // The invite code is owned by the server so it is unique across devices.
+    fetchReferralCode: async () => {
+      const s = get().state; if (!s) return null;
+      const res = await api.referralCode(s.deviceId);
+      return res.ok ? (res as any).code as string : null;
+    },
+
+    // Cloud backup. Push local state; if the server holds something newer, adopt it.
+    runSync: async () => {
+      const s = get().state; if (!s) return;
+      mutate((d) => { d.cloud.status = 'syncing'; });
+      const now = Date.now();
+      const res = await api.syncPush(s.deviceId, s, now);
+      if (res.ok) {
+        mutate((d) => { d.cloud.pending = 0; d.cloud.lastSync = now; d.cloud.status = 'synced'; d.cloud.lastError = null; });
+        get().showToast('Backed up');
+        return;
+      }
+      if (res.error === 'stale') {
+        const pulled = await api.syncPull(s.deviceId);
+        if (pulled.ok && (pulled as any).state) {
+          const remote = (pulled as any).state as AppState;
+          const merged: AppState = { ...remote, tab: s.tab, deviceId: s.deviceId };
+          set({ state: merged });
+          persistence.save(merged);
+          get().showToast('Restored a newer backup');
+          return;
+        }
+      }
+      const offline = res.error === 'offline' || res.error === 'timeout';
+      mutate((d) => { d.cloud.status = offline ? 'offline' : 'error'; d.cloud.lastError = res.error; });
+      get().showToast(offline ? 'You are offline. Backup will wait.' : 'Backup failed');
+    },
+
+    // Real billing is out of scope; locally flip premium so premium content is explorable.
     buyPremium: () => { get().setPremium(true); get().showToast('Premium unlocked', true); },
-    // Cloud sync is simulated locally (no backend). Mark synced now.
-    runSync: () => {
-      mutate((d) => { d.cloud.pending = 0; d.cloud.lastSync = Date.now(); d.cloud.status = 'synced'; });
-      get().showToast('Backed up');
-    },
   };
 });
 
