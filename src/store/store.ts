@@ -306,3 +306,8 @@ function grantAchievements(
     get().showToast(`Badge unlocked: ${ACHIEVEMENTS.find((a) => a.id === newly[0])!.name}`, true);
   }
 }
+
+// dev-only: expose the store for automated verification driving (stripped in production)
+if (typeof __DEV__ !== 'undefined' && __DEV__ && typeof window !== 'undefined') {
+  (window as any).__store = useStore;
+}

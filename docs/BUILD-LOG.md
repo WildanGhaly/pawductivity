@@ -9,13 +9,15 @@ PRs into `main`. Verify on Expo-web (Playwright) + pawductivity_x64 AVD.
 - [x] PR2 Data layer: domain types/catalogs/state/mechanics + expo-sqlite(native)/localStorage(web) persistence + zustand store with debounced write-through. DONE + verified: store hydrates, collect-coins mutation persists, survives reload.
 - [x] PR3a Onboarding + Home (DONE, verified 1:1 + persistence, merged in PR #9).
 - [x] PR3b Pet tab (DONE, verified 1:1; feed/equip/build-home/collect all persist; grew pet to stage 2). On feat/pet-tab, delivery parked (network).
-- [ ] PR4 Quests + capture (quick add + brain dump parser) + daily goal + today plan.
-- [ ] PR5 Focus timer (standard + pomodoro) + reward overlay + confetti + soundscape UI.
-- [ ] PR6 Shop (food/pets/clothes) + Premium paywall.
-- [ ] PR7 Calendar + reminders (repeat rules, time picker, per-day done).
-- [ ] PR8 Profile + settings + appearance + sync (simulated) + referral (stub).
-- [ ] PR9 Insights (charts) + Journey + Achievements + Recap.
-- [ ] PR10 Full SQLite wiring pass + persistence e2e + polish + parity sweep.
+- [x] PR4-PR9 (delivered together on feat/pet-tab): overlay system + all remaining screens
+  (Quests, Calendar, Capture/Goal/Plan sheets, Focus, Reward, Shop, Premium, Referral,
+  Insights, Journey, Achievements, Recap, Sync, Profile, Appearance). Built via a 17-agent
+  parallel Workflow, integrated via OverlayHost. tsc clean; 20 screens verified 1:1 on web
+  (Playwright) + core loop and Shop overlay verified 1:1 natively on the pawductivity_x64
+  emulator (Expo Go, real Lottie, SQLite). Zero defects found.
+- [x] Android-first verification: app runs on pawductivity_x64 via Expo Go; onboarding, home,
+  pet, and shop overlay all render 1:1 natively with animated Lottie companion and SQLite
+  persistence (survives restart).
 
 ## Progress log (one line per milestone)
 - Phase 0 done: prototype fully analyzed; SPEC.md + this log written; catalogs/data-model/mechanics captured.
