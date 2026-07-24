@@ -58,7 +58,9 @@ export function RecapScreen() {
   const moreSessions = Math.max(1, Math.ceil(gap / Math.max(1, avg)));
   const nextWhy = total >= weekGoal
     ? `You already cleared your ${fmt(weekGoal * 60)} weekly goal, so this is ten percent on top of what you actually did.`
-    : `That is your ${s.today.goalMin}m daily goal across seven days. You finished ${fmt(gap * 60)} short, roughly ${moreSessions} more sessions at your usual ${avg}m.`;
+    : total === 0
+    ? `That is your ${s.today.goalMin}m daily goal across seven days. Finish one session and ${petName} starts earning.`
+    : `That is your ${s.today.goalMin}m daily goal across seven days. You finished ${fmt(gap * 60)} short, roughly ${moreSessions} more session${moreSessions === 1 ? '' : 's'} at your usual ${avg}m.`;
 
   const summary = `My Pawductivity week (${recapRange()}): ${fmt(total * 60)} focused across ${ins.weekFocusDays} day${ins.weekFocusDays === 1 ? '' : 's'}, ${money(ins.weekCoins)} coins earned. ${petName} is ${stageName(stg)}.`;
   const share = async () => {

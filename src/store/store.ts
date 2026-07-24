@@ -171,7 +171,7 @@ export const useStore = create<StoreShape>((set, get) => {
       s.profile.name = 'Friend';
       set({ state: s });
       persistence.save(s);
-      get().showToast(`${s.pet.name} is ready to go! +200 coins`, true);
+      get().showToast(`${s.pet.name} is ready. Finish a focus session to earn your first coins.`);
     },
 
     resetData: async () => {

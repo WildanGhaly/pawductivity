@@ -1,5 +1,6 @@
 import React, { ReactNode, useState } from 'react';
 import { View, StyleSheet, Pressable, Image, TextInput, Linking } from 'react-native';
+import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radius, shadow, fontFor } from '../theme/tokens';
 import { Txt, Card } from '../components/ui';
@@ -10,6 +11,13 @@ import { img, avatars } from '../assets/registry';
 import { useStore } from '../store/store';
 import { ACHIEVEMENTS, DISCORD_URL } from '../domain/catalogs';
 import { money } from '../domain/mechanics';
+
+// App identity for the footer. Read from the live app config so it always matches
+// what actually shipped, rather than the prototype's placeholder package name
+// (com.production.pawductivity, which Play Console permanently rejected).
+const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
+const APP_ID =
+  (Constants.expoConfig?.android?.package as string | undefined) ?? 'com.pawductivity.app';
 
 type SyncKind = 'off' | 'busy' | 'wait' | 'err' | 'ok';
 
@@ -207,7 +215,7 @@ export function ProfileScreen() {
       </View>
 
       <Txt weight={500} size={11.5} color={colors.muted} style={styles.note}>
-        Pawductivity v1.0 · com.production.pawductivity{'\n'}Made for people who like getting things done.
+        Pawductivity v{APP_VERSION} · {APP_ID}{'\n'}Made for people who like getting things done.
       </Txt>
 
       {/* edit name sheet */}
