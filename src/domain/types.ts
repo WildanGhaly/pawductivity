@@ -40,6 +40,7 @@ export interface Quest {
   done: number; // seconds
   due?: string;
   repeat?: boolean;
+  rlabel?: string; // repeat display label ('Daily', 'Weekdays', 'Mondays'...) — proto rlabel
   focus?: boolean;
 }
 

@@ -49,8 +49,8 @@ interface StoreShape {
   buyFood: (id: number) => void;
   buyClothes: (id: number) => void;
   buyPet: (id: number) => void;
-  addQuest: (q: { name: string; est: number; tag: any; repeat?: boolean }) => number;
-  addQuests: (list: { name: string; est: number; tag: any; repeat?: boolean }[]) => void;
+  addQuest: (q: { name: string; est: number; tag: any; repeat?: boolean; rlabel?: string; due?: string }) => number;
+  addQuests: (list: { name: string; est: number; tag: any; repeat?: boolean; rlabel?: string; due?: string }[]) => void;
   setGoal: (min: number) => void;
   togglePlan: (id: number) => void;
   completeFocus: (qid: number | null, pomodoro: boolean) => { coins: number; bonus: number; mins: number } | null;
@@ -272,7 +272,7 @@ export const useStore = create<StoreShape>((set, get) => {
       const s = get().state; if (!s) return 0;
       const id = s.nextId;
       mutate((d) => {
-        d.quests.unshift({ id, name: q.name, tag: q.tag, est: q.est, done: 0, repeat: q.repeat, focus: true });
+        d.quests.unshift({ id, name: q.name, tag: q.tag, est: q.est, done: 0, repeat: q.repeat, rlabel: q.rlabel, due: q.due, focus: true });
         d.nextId += 1;
       });
       return id;
@@ -281,7 +281,7 @@ export const useStore = create<StoreShape>((set, get) => {
     addQuests: (list) => {
       mutate((d) => {
         list.forEach((q) => {
-          d.quests.unshift({ id: d.nextId, name: q.name, tag: q.tag, est: q.est, done: 0, repeat: q.repeat, focus: true });
+          d.quests.unshift({ id: d.nextId, name: q.name, tag: q.tag, est: q.est, done: 0, repeat: q.repeat, rlabel: q.rlabel, due: q.due, focus: true });
           d.nextId += 1;
         });
       });
