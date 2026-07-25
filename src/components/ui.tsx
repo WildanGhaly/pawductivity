@@ -10,10 +10,35 @@ import {
   StyleProp,
   TextStyle,
 } from 'react-native';
-import { colors, fontFor, radius, shadow } from '../theme/tokens';
+import { colors, fontFor, radius, shadow, MAX_CONTENT } from '../theme/tokens';
 import { img } from '../assets/registry';
 
 type Weight = 400 | 500 | 600 | 700 | 800;
+
+// Centered, width-capped content column. Full width on phones; on large screens it
+// caps at MAX_CONTENT and centers, so nothing stretches edge to edge. `pad` adds the
+// horizontal inset for screens that relied on their scroll container's padding.
+export function Bounded({
+  children,
+  pad = false,
+  style,
+}: {
+  children: ReactNode;
+  pad?: boolean;
+  style?: StyleProp<ViewStyle>;
+}) {
+  return (
+    <View
+      style={[
+        { width: '100%', maxWidth: pad ? MAX_CONTENT + 32 : MAX_CONTENT, alignSelf: 'center' },
+        pad && { paddingHorizontal: 16 },
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
+}
 
 // Text that always uses Poppins. weight picks Regular/Bold from the two shipped ttf.
 export function Txt({

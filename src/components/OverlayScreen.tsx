@@ -2,7 +2,7 @@ import React, { ReactNode } from 'react';
 import { View, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius, shadow, NAV_H } from '../theme/tokens';
-import { Txt } from './ui';
+import { Txt, Bounded } from './ui';
 import { Icon } from './Icon';
 import { useStore } from '../store/store';
 
@@ -29,19 +29,21 @@ export function OverlayScreen({
   return (
     <View style={styles.root}>
       <View style={[styles.head, { paddingTop: insets.top + 14 }]}>
-        <Pressable style={styles.iconbtn} onPress={back}>
-          <Icon name="chevL" size={18} color={colors.teal} strokeWidth={2.5} />
-        </Pressable>
-        <Txt weight={700} size={18} color={colors.tealInk} style={{ flex: 1 }}>{title}</Txt>
-        {right ?? <View style={{ width: 40 }} />}
+        <Bounded style={styles.headRow}>
+          <Pressable style={styles.iconbtn} onPress={back}>
+            <Icon name="chevL" size={18} color={colors.teal} strokeWidth={2.5} />
+          </Pressable>
+          <Txt weight={700} size={18} color={colors.tealInk} style={{ flex: 1 }}>{title}</Txt>
+          {right ?? <View style={{ width: 40 }} />}
+        </Bounded>
       </View>
       {scroll ? (
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={{ padding: 16, paddingBottom: NAV_H + insets.bottom + 20 }}
+          contentContainerStyle={{ paddingTop: 16, paddingBottom: NAV_H + insets.bottom + 20 }}
           showsVerticalScrollIndicator={false}
         >
-          {children}
+          <Bounded pad>{children}</Bounded>
         </ScrollView>
       ) : (
         <View style={{ flex: 1 }}>{children}</View>
@@ -53,9 +55,10 @@ export function OverlayScreen({
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.cream },
   head: {
-    flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingBottom: 14,
+    paddingHorizontal: 16, paddingBottom: 14,
     backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: colors.line,
   },
+  headRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   iconbtn: {
     width: 40, height: 40, borderRadius: 14, backgroundColor: 'rgba(255,255,255,.9)',
     alignItems: 'center', justifyContent: 'center', ...shadow.sm,
