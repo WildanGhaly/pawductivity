@@ -91,19 +91,22 @@ export function ShopScreen({ param }: { param?: { tab?: ShopTab } }) {
     });
   }
 
+  const segbar = (
+    <View style={styles.segtabs}>
+      {TABS.map((t) => {
+        const active = tab === t.key;
+        return (
+          <Pressable key={t.key} style={[styles.seg, active && styles.segOn]} onPress={() => setTab(t.key)}>
+            <Image source={t.icon} style={[styles.segImg, active && { opacity: 1 }]} resizeMode="contain" />
+            <Txt weight={700} size={12} color={active ? colors.orange2 : colors.muted}>{t.label}</Txt>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+
   return (
-    <OverlayScreen title="Shop" right={<CoinPill amount={s.profile.coins} />}>
-      <View style={styles.segtabs}>
-        {TABS.map((t) => {
-          const active = tab === t.key;
-          return (
-            <Pressable key={t.key} style={[styles.seg, active && styles.segOn]} onPress={() => setTab(t.key)}>
-              <Image source={t.icon} style={[styles.segImg, active && { opacity: 1 }]} resizeMode="contain" />
-              <Txt weight={700} size={12} color={active ? colors.orange2 : colors.muted}>{t.label}</Txt>
-            </Pressable>
-          );
-        })}
-      </View>
+    <OverlayScreen title="Shop" right={<CoinPill amount={s.profile.coins} />} belowHeader={segbar}>
       <View style={styles.grid}>{cards}</View>
     </OverlayScreen>
   );
@@ -221,7 +224,7 @@ function BuyButton({ spec }: { spec: BtnSpec }) {
 }
 
 const styles = StyleSheet.create({
-  segtabs: { flexDirection: 'row', gap: 6, marginBottom: 12 },
+  segtabs: { flexDirection: 'row', gap: 6 },
   seg: {
     flex: 1, alignItems: 'center', gap: 4, paddingVertical: 9, paddingHorizontal: 4,
     borderRadius: 14, borderWidth: 1.5, borderColor: 'transparent',
