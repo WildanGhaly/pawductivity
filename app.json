@@ -31,7 +31,8 @@
     "extra": {
       "eas": {
         "projectId": "27ed1726-88ab-4e84-a688-6db47d483424"
-      }
+      },
+      "googleWebClientId": "431119941310-49pgvbf66j4at1sgoqqf05ukmf1e2rmu.apps.googleusercontent.com"
     },
     "plugins": [
       "expo-sqlite",
@@ -61,7 +62,8 @@
         {
           "photosPermission": "Pawductivity uses your photos only to set your profile picture."
         }
-      ]
+      ],
+      "@react-native-google-signin/google-signin"
     ]
   }
 }

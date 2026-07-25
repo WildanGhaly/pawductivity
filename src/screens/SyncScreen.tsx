@@ -5,6 +5,7 @@ import { Txt, Card, Btn } from '../components/ui';
 import { Icon, IconName } from '../components/Icon';
 import { OverlayScreen } from '../components/OverlayScreen';
 import { BottomSheet } from '../components/BottomSheet';
+import { isGoogleSupported, signInWithGoogle, signOutGoogle } from '../auth/google';
 import { useStore } from '../store/store';
 
 // Human friendly "time ago" for the last sync timestamp. Ported from the prototype relTime().
@@ -58,14 +59,28 @@ export function SyncScreen() {
   const kind = KIND[status.k];
 
   const [confirm, setConfirm] = useState<'in' | 'out' | null>(null);
-  const doSignIn = () => {
+  const doSignIn = async () => {
     setConfirm(null);
-    updateCloud({ signedIn: true, email: c.email || 'you@gmail.com' });
-    showToast('Signed in. Backing up.');
-    runSync();
+    // Native builds do a real Google Sign-In; web / Expo Go fall back to the local mock.
+    if (!isGoogleSupported()) {
+      updateCloud({ signedIn: true, email: c.email || 'you@gmail.com' });
+      showToast('Signed in. Backing up.');
+      runSync();
+      return;
+    }
+    try {
+      const user = await signInWithGoogle();
+      if (!user) return; // cancelled / no account
+      updateCloud({ signedIn: true, email: user.email });
+      showToast(`Signed in as ${user.email}`);
+      runSync();
+    } catch {
+      showToast('Google sign-in was cancelled');
+    }
   };
   const doSignOut = () => {
     setConfirm(null);
+    signOutGoogle();
     updateCloud({ signedIn: false, email: null, status: 'idle' });
     showToast('Signed out. Your data is still here.');
   };
