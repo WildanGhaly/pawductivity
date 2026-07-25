@@ -1,0 +1,954 @@
+{
+  "summary": "Audit the RN app against prototype/pawductivity_v1.html area by area, listing concrete 1:1 discrepancies to fix",
+  "agentCount": 10,
+  "logs": [
+    "Audit complete: 81 divergences (12 high, 39 medium, 30 low)."
+  ],
+  "result": {
+    "total": 81,
+    "high": [
+      {
+        "severity": "high",
+        "title": "Full-screen overlays have NO exit (slide-down) animation; they vanish instantly",
+        "proto_evidence": "closeSlide() (line 3418-3428) removes 'slide-up' and adds 'slide-down', waiting 250ms before removing 'active'. CSS line 59 `.slide-down{animation:slidedown .26s cubic-bezier(.4,0,.9,.5) both;}` + line 62 `@keyframes slidedown{from{transform:none}to{transform:translateY(100%)}}`. Every close path uses it (e.g. line 1973 closeSlide('focus'), 2370 closeShop, 3138 closePremium, 3147 closeScreen).",
+        "app_file": "src/store/store.ts (closeOverlay) + src/components/OverlayHost.tsx (OverlayHost)",
+        "current": "closeOverlay() immediately does `overlays.slice(0,-1)`; OverlayHost then renders the next overlay or returns null on the same frame. The Animated container only ever animates the OPEN (translateY H->0); there is no exit animation, so a closing overlay disappears with a hard cut.",
+        "expected": "The closing overlay should slide DOWN off-screen (translateY 0 -> full height) over 260ms with easing cubic-bezier(.4,0,.9,.5) before it is unmounted.",
+        "fix": "Keep rendering the closing overlay while animating: on close, run Animated.timing(translateY, {toValue: H, duration: 260, easing: Easing.bezier(0.4,0,0.9,0.5), useNativeDriver:true}) and only pop the stack in its completion callback. Requires a 'closing' state (e.g. a store flag or a local ref holding the outgoing overlay) so OverlayHost can animate it out."
+      },
+      {
+        "severity": "high",
+        "title": "Reward popup uses a bottom slide-up instead of scrim-fade + card pop-scale + trophy spin",
+        "proto_evidence": "line 488 `#reward.show{display:flex;animation:fade .25s both;}` (backdrop fades in); line 489 `.rewardcard{...animation:pop .45s cubic-bezier(.2,1.3,.4,1) both;}` with line 189 `@keyframes pop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}` (card pops with overshoot); line 490 `.rewardcard .burst{...animation:spin 1.2s ease;}` + line 493 `@keyframes spin{from{transform:rotate(-20deg) scale(.5)}to{transform:none}}` (trophy spins in). Close: line 2006 adds 'fade-out' (fadeout .2s).",
+        "app_file": "src/components/OverlayHost.tsx (reward listed in FULL) + src/screens/RewardOverlay.tsx",
+        "current": "reward is in the FULL slide-up map, so the whole overlay INCLUDING its dark scrim slides up from the bottom via Animated.spring (during which the top of the screen is uncovered). RewardOverlay is a static View: the card does not pop-scale and the trophy burst does not spin.",
+        "expected": "Backdrop fades in (opacity 0->0.55 over ~250ms), the card scales in from 0.4->1 with overshoot over 450ms cubic-bezier(.2,1.3,.4,1) + opacity 0->1, and the trophy burst rotates from -20deg/scale .5 to rest over ~1.2s.",
+        "fix": "Remove 'reward' from OverlayHost's FULL slide-up container (mount it directly like SHEET so it is not translated). In RewardOverlay add entrance animations: Animated backdrop opacity, an Animated.spring/timing scale (0.4->1 with overshoot) + opacity on the card, and a rotation Animated.timing on the burst."
+      },
+      {
+        "severity": "high",
+        "title": "Sign-out skips the confirmation sheet and its unsynced-changes safeguard",
+        "proto_evidence": "prototype/pawductivity_v1.html L2925-2935 signOutAsk()/doSignOut(): opens dialog '<h3>Sign out?</h3><p class=\"d-sub\">Your data stays on this device...'; when c.pending>0 it injects an orange warning `${c.pending} change(s) are not backed up yet. Sync before signing out...` and swaps the primary action to 'Sync first' plus a secondary 'Sign out anyway'; only doSignOut() actually signs out.",
+        "app_file": "src/screens/SyncScreen.tsx (signOut, L64-67 / 'Sign out' Btn L100)",
+        "current": "The 'Sign out' button calls signOut() directly, which immediately updateCloud({signedIn:false,email:null,status:'idle'}) and toasts. No confirmation sheet, and no warning when c.pending>0 — a user with unsynced changes signs out silently with one tap.",
+        "expected": "Tapping 'Sign out' opens a confirm sheet ('Sign out?' + 'Your data stays on this device...'); if there are pending changes it shows the orange warning and offers 'Sync first' / 'Sign out anyway'; otherwise 'Cancel' / 'Sign out'.",
+        "fix": "Gate signOut() behind a BottomSheet confirm (the app already uses BottomSheet for the reset-data confirm in ProfileScreen L245). Render the c.pending>0 warning and the 'Sync first' (closeDialog();runSync(true)) vs 'Sign out anyway' branch to mirror signOutAsk()."
+      },
+      {
+        "severity": "high",
+        "title": "Quests tab shows a \"Today's focus goal\" ring card that the proto's Quests screen does not contain",
+        "proto_evidence": "renderQuests (lines 1705-1724) renders ONLY: topbar, capture-entry, `<div class=\"shead\"><h3>In progress</h3>...`, and `Completed today`. The goalcard (`<div class=\"goalcard card\" onclick=\"openGoal()\">`, line 1665) exists only inside renderHome (line 1613+).",
+        "app_file": "src/screens/QuestsTab.tsx (goal Card, lines 60-83; styles goalcard/goalRingWrap/goalCtr/goalChips/gchip)",
+        "current": "The Quests tab renders the daily-goal ring card (ring, 'Today's focus goal', streak/sessions chips) between the capture entry and the plan section.",
+        "expected": "The proto Quests screen has no goal card at all; the goal card belongs only to Home (openGoal is reachable from Home's card).",
+        "fix": "Delete the goal Card block (lines 60-83) and its now-unused styles from QuestsTab.tsx. It is already present in HomeTab.tsx, matching the proto."
+      },
+      {
+        "severity": "high",
+        "title": "Quests tab shows a \"Today's plan\" section + card that does not exist in the proto Quests screen",
+        "proto_evidence": "renderQuests (1705-1724) has no plan section. The only plan-related section is in Home: `<div class=\"shead\"><h3>Today's focus</h3><span class=\"see\" onclick=\"openPlan()\">Plan</span></div>` (line 1683), and it renders full questRows, not a mini checklist card. No 'Today's plan' heading or 'planCard' mini-list exists anywhere in the proto.",
+        "app_file": "src/screens/QuestsTab.tsx (Today's plan shead + planCard, lines 85-107; styles planCard/planrow/planck/planTime)",
+        "current": "Quests tab renders a 'Today's plan' header with a 'Plan' link and a card listing planned quests as mini filled-check rows (or a placeholder sentence).",
+        "expected": "No such section in the proto Quests screen. Home's equivalent is titled 'Today's focus' and shows real questRows, not this mini list.",
+        "fix": "Remove the 'Today's plan' shead + planCard block (lines 85-107) from QuestsTab.tsx so the capture entry is followed directly by 'In progress', matching renderQuests."
+      },
+      {
+        "severity": "high",
+        "title": "Shop purchase confirmation dialog is missing entirely (buy commits instantly)",
+        "proto_evidence": "tryBuy opens a confirmation sheet before committing: `openDialog(buyDialog(img,name,price,premium,'', '<button ... onclick=\"closeDialog()\">Cancel</button><button ... onclick=\"confirmBuy()\">Buy now</button>'))` (line 2431-2432); buyDialog shows art, name, a Price line and a Your balance line (lines 2437-2445); only confirmBuy commits and toasts `${name} purchased!` (line 2433). buyFood/buyPet/buyClothes all route through tryBuy (lines 2447-2452).",
+        "app_file": "src/screens/ShopScreen.tsx (BuyButton onPress) + src/store/store.ts (buyFood/buyClothes/buyPet, lines 239-267)",
+        "current": "Tapping a Buy button calls the store action directly, which decrements coins and grants the item on the same tap with no confirmation. Success toasts read `Bought ${f.name}`, `Bought ${c.name}. Wear it from the wardrobe.`, `Welcome, a new ${sp.name}!`. Not-enough-coins shows a toast `Not enough coins yet`.",
+        "expected": "Buy should open a bottom-sheet confirmation dialog (item art 96px, name, `Premium item`/`Add to your collection` subtitle, Price line, Your balance line, Cancel + Buy now). Purchase commits only on Buy now, then toast `${name} purchased!`. Not-enough-coins should show the dialog with `Not enough coins. You need ${price-coins} more.` (line 2427) instead of buying/toasting.",
+        "fix": "Add a purchase-confirmation BottomSheet (register e.g. a `buyConfirm` sheet in OverlayHost). ShopScreen's Buy button should open it with the item/price/balance; move the coin-deduction and grant into a confirm handler. Match copy: subtitle, Price/Your balance rows, and toast `${name} purchased!`. Update the not-enough-coins branch in the store to surface `Not enough coins. You need X more.` in the dialog."
+      },
+      {
+        "severity": "high",
+        "title": "New reminder sheet is missing the entire Date picker (mini calendar)",
+        "proto_evidence": "addReminder() dialog (proto L2676-2677) renders a Date section: `<p class=\"label\" style=\"margin-top:14px\">Date</p><div id=\"remCalHost\" class=\"calbody\">${remMiniCal()}</div>`, backed by remMiniCal() (L2697-2723) — a full swipeable mini-calendar with month/year picker (remShift/remSetMonth/remSetYear/remPickDay) letting the user pick ANY day, month and year. bindSwipe($('remCalHost'),...) L2683.",
+        "app_file": "src/screens/CalendarTab.tsx (New reminder BottomSheet, L332-365; openAdd L155-163)",
+        "current": "The New reminder sheet has only Name, Time and Repeat. There is no date picker. remDay is fixed by openAdd() to today (or day 1 when the visible month isn't current) and can never be changed by the user, so a reminder opened via the header '+ Add' is always created on today.",
+        "expected": "Below the name field there is a 'Date' label and a swipeable mini-calendar (month arrows + tappable month/year picker + day grid, past days greyed) so the user picks any date/month/year the reminder starts on.",
+        "fix": "Add a mini-calendar date-picker (port remMiniCal: mchead nav, month/year `.mygrid`, day grid `.mcgrid` with `.mcday.sel`/`.mcday.past`) into the sheet between the name field and Repeat, wired to remDay plus a local {y,mo} seeded from cal.y/cal.m. Field order must be Name → Date → Repeat → Time."
+      },
+      {
+        "severity": "high",
+        "title": "New reminder Time is a freeform text field instead of the hour/minute/AM-PM picker",
+        "proto_evidence": "remTimePicker() (proto L2726-2750): hour dropdown (1-12), `:` colon, minute dropdown (00,05,...,55) and AM/PM segmented toggle (`.tpampm`), producing 24h HH:MM in saveReminder() via `let h=remSel.h%12; if(remSel.ap==='PM')h+=12` (L2782-2783). CSS `.tpwrap/.tpfield/.tpmenu/.tpampm` L742-760.",
+        "app_file": "src/screens/CalendarTab.tsx (Time field L341-349)",
+        "current": "Time is a plain TextInput with placeholder 'e.g. 09:00'; saveReminder() falls back to `remTime.trim() || '09:00'` (L171). No hour/minute dropdowns, no AM/PM toggle.",
+        "expected": "A styled time picker: hour field + minute field (dropdowns of allowed values) and an AM/PM toggle, defaulting to 6:00 PM (h=6, m=0, ap='PM'), placed AFTER the Repeat chips.",
+        "fix": "Replace the TextInput with a time-picker matching remTimePicker (hour 1-12 dropdown, minute in 5-min steps, AM/PM segmented control), compute 24h HH:MM on save, default 6:00 PM, and position it below the Repeat section."
+      },
+      {
+        "severity": "high",
+        "title": "First-reminder 'Should we remind you?' notification prompt is never shown",
+        "proto_evidence": "saveReminder() (proto L2789): `if(!S.settings.notifAsked)setTimeout(askNotif,600);`. askNotif() (L2769-2775): bell icon, `<h3>Should we remind you?</h3>`, sub 'You just set your first reminder. Allow notifications so it can actually reach you, and so you hear when a focus session ends.', buttons 'Not now' / 'Allow'; setNotif(on) (L2777) sets S.settings.notif and toasts 'Notifications on' when allowed.",
+        "app_file": "src/screens/CalendarTab.tsx (saveReminder L165-176); src/store/store.ts (addReminder L375-378)",
+        "current": "saveReminder() only calls addReminder + showToast. The notification-permission prompt is never triggered; settings.notifAsked (domain/types.ts L61, state.ts L36) is never read or written anywhere in the app.",
+        "expected": "After saving the very first reminder (settings.notifAsked false), a centered bell-icon sheet 'Should we remind you?' appears ~600ms later with Not now / Allow; choosing sets settings.notif and marks notifAsked true (Allow also toasts 'Notifications on').",
+        "fix": "After a successful save, if !s.settings.notifAsked show a notif-prompt BottomSheet (bell icon, exact copy above, Not now/Allow) and add store actions to set notifAsked=true and notif=choice, toasting 'Notifications on' when allowed."
+      },
+      {
+        "severity": "high",
+        "title": "Custom profile-picture upload (Premium) is entirely missing from the picker",
+        "proto_evidence": "prototype/pawductivity_v1.html L2991-2996: avpicker renders the 7 avatars PLUS `<button class=\"avup ${p.avatar===-1?'sel':''}\" onclick=\"pickAvatarFile()\">` showing either the custom photo or a plus icon, with a `<span class=\"avcrown\">${ic('crown',10)}</span>` badge. L3043-3058 pickAvatarFile(): non-premium users get a 'Use your own photo' Premium upsell dialog ('Custom profile pictures are part of Premium...'), premium users get a native file picker. L3059-3079 handleAvatarFile(): center-square crops to 256px canvas, sets S.profile.avatarCustom + S.profile.avatar=-1, toasts 'Profile picture updated'. L3037-3041 avatarSrc() returns avatarCustom when avatar===-1, and it feeds the profile hero (L2972) and every topbar avatar (L1623/1710/2247/2615). CSS L445-448 define the dashed .avup tile + .avcrown badge.",
+        "app_file": "src/screens/ProfileScreen.tsx (avpicker, L145-151) + src/store/store.ts (setAvatar L370, add avatarCustom) + src/domain/types.ts (Profile.avatar L9) + src/domain/state.ts (initial profile L20)",
+        "current": "The picker maps only the 7 built-in avatars (`avatars.map(...)`). There is no 8th upload tile, no crown badge, no Premium upsell, and no avatarCustom in state. The hero (L94) uses `avatars[p.avatar] || img.catThumb`, so avatar===-1 (custom) is unsupported and would silently fall back to the cat thumbnail. No expo-image-picker/expo-image-manipulator dependency is installed.",
+        "expected": "An 8th 'upload your own photo' tile after the 7 avatars: a dashed-border circle with a plus icon (or the chosen custom photo) and a small yellow crown badge bottom-right. Tapping it shows a Premium upsell sheet for non-premium users, or launches an image picker (crop center-square, downscale to 256px, store as data URI) for premium users, setting avatar=-1 and avatarCustom. The hero and all topbar avatars must resolve through an avatarSrc() helper that returns avatarCustom when avatar===-1.",
+        "fix": "Add expo-image-picker (+ expo-image-manipulator for the 256px center-square crop). Add `avatarCustom?: string` to Profile in types.ts/state.ts and a `setAvatarCustom` store action; change setAvatar/avatar type to allow -1. Render the 8th avup tile in ProfileScreen's avpicker with the crown badge; wire its onPress to a Premium upsell BottomSheet (title 'Use your own photo', copy 'Custom profile pictures are part of Premium. The seven avatars stay free forever.', buttons 'Not now' / 'See Premium') when !premium, else launch the picker. Add an avatarSrc(profile) helper returning avatarCustom for avatar===-1 and use it for the hero (L94) and topbar avatars."
+      },
+      {
+        "severity": "high",
+        "title": "Insights premium dashboard is missing three whole chart sections (day×time heat, 12-week heatmap, pet-stats chart)",
+        "proto_evidence": "renderInsights() 'pro' block: line 3307-3309 `<h3>When you focus</h3>...day × time` + `dayHourHeat(ins.dayhour)`; line 3311-3313 `<h3>Focus heatmap</h3>...last 12 weeks` + `heatGrid(ins.heat)` with a `heatkey` Less/More legend; line 3337-3345 `<h3>${pet}'s stats</h3>` + `areaChart(ins.petHealth,100,...)`. Render fns: dayHourHeat (line 3240) and heatGrid (line 3233).",
+        "app_file": "src/screens/InsightsScreen.tsx (premium block, lines 116-208)",
+        "current": "The premium dashboard renders only: 8-week trend, Best time of day, Where your time goes, Session length, Consistency, All time. There is no day×time heatmap, no 12-week focus heatmap, and no pet-stats health chart anywhere.",
+        "expected": "Proto order after '8-week trend' is: 'When you focus' (day×time heat grid, .dhh), then 'Focus heatmap' (12-week .heatgrid with the Less→More key), then 'Best time of day' … and later a '{pet} stats' section (petHealth area chart, fixedMax 100).",
+        "fix": "Add the three missing sections to the premium dashboard: a day×time heat grid (7 rows × 8 blocks, levels l0-l4 per proto .hcell colors #EFE7D6/#CFE2E8/#8FC0CC/#3E8DA0/teal), a 12-week heat grid with the Less/More legend row, and a pet-health AreaChart(max=100), matching proto structure and ordering."
+      },
+      {
+        "severity": "high",
+        "title": "Premium screen shows a duplicate title and an extra white header bar the proto does not have",
+        "proto_evidence": "prototype/pawductivity_v1.html L995-1001: the #premium screen goes straight into a full-bleed teal gradient header `<div class=\"pbg\">` (CSS L464: padding calc(22px + env(safe-area-inset-top))) that contains an absolutely-positioned back button (`style=\"position:absolute;left:16px;top:calc(20px + env(safe-area-inset-top))\"`), the crown svg, `<h2 ...>Pawductivity Premium</h2>` and the subtitle. There is NO `.sheethead` white top bar and the title appears exactly once.",
+        "app_file": "src/screens/PremiumScreen.tsx (PremiumScreen return, `<OverlayScreen title=\"Pawductivity Premium\">`), together with src/components/OverlayScreen.tsx",
+        "current": "PremiumScreen wraps its content in OverlayScreen, which always renders a white sheet-header bar with a back chevron and the title text (OverlayScreen.tsx L31-39, `<Txt ...>{title}</Txt>` = 'Pawductivity Premium', size 18). PremiumScreen then renders its own teal header inside the scroll body with a crown + a second 'Pawductivity Premium' (L110-112, size 23) + subtitle. Result: 'Pawductivity Premium' appears twice, stacked, and there is an extra white bar plus a redundant back affordance the proto never shows. The teal header also does not extend under the status bar (the white bar consumes the safe-area top), unlike proto's `.pbg`.",
+        "expected": "A single full-bleed teal gradient header (`.pbg`) with safe-area top padding, the back button overlaid at top-left, then crown + one title + subtitle, and the scrollable body directly below - no white sheethead and no duplicated title.",
+        "fix": "Do not render Premium through the standard OverlayScreen header. Either give OverlayScreen a headerless/custom-header mode, or have PremiumScreen render its own root: a teal header View (paddingTop insets.top+22 to match proto's calc(22px+safe-area)) with an absolutely-positioned back Pressable at left:16 / top:insets.top+20 and the crown+title+subtitle, followed by a ScrollView body. Remove the duplicate title so 'Pawductivity Premium' renders once, on the teal header."
+      }
+    ],
+    "medium": [
+      {
+        "severity": "medium",
+        "title": "Focus screen slides up from the bottom, but the proto FADES it in",
+        "proto_evidence": "line 1844 `prepOpen('focus').classList.add('active','fade-in');` (Focus opens with fade-in, NOT slide-up). CSS line 56-57 `.fade-in{animation:fade .28s ease both;}` `@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}`. Note it still CLOSES with slide-down (line 1973 closeSlide('focus')).",
+        "app_file": "src/components/OverlayHost.tsx (FULL map line 23)",
+        "current": "focus is in the FULL map, so it gets the same full-height slide-up (translateY H->0 spring) as every other overlay on open.",
+        "expected": "Focus should fade in on open: opacity 0->1 with a small translateY 8px->0 over 280ms ease (not a full-screen slide from the bottom). It should still slide DOWN on close.",
+        "fix": "Give focus a distinct entrance: animate opacity 0->1 and a small translateY (8px->0) over 280ms instead of the full-height slide-up, while keeping the shared slide-down on close."
+      },
+      {
+        "severity": "medium",
+        "title": "Overlay open uses a bouncy spring instead of the proto's fixed 320ms ease-out curve",
+        "proto_evidence": "line 58 `.slide-up{animation:slideup .32s cubic-bezier(.2,.8,.2,1) both;}` + line 61 `@keyframes slideup{from{transform:translateY(100%)}to{transform:none}}` — a 320ms ease-out with no overshoot.",
+        "app_file": "src/components/OverlayHost.tsx (line 59)",
+        "current": "Animated.spring(translateY, {toValue:0, friction:9, tension:65}) — spring physics with a settle/possible overshoot and a timing that does not match the proto's fixed 320ms.",
+        "expected": "A timing animation of exactly 320ms with easing cubic-bezier(0.2,0.8,0.2,1) and no overshoot.",
+        "fix": "Replace the spring with Animated.timing(translateY, {toValue:0, duration:320, easing:Easing.bezier(0.2,0.8,0.2,1), useNativeDriver:true})."
+      },
+      {
+        "severity": "medium",
+        "title": "Bottom sheets (capture/goal/plan) fade the whole modal instead of fading the scrim while the dialog slides",
+        "proto_evidence": "line 353 `.scrim{...animation:fade .2s both;}` (scrim/backdrop fades); line 356 `.dialog{...animation:slideup .3s cubic-bezier(.2,.8,.2,1) both;}` (the dialog card itself slides up from translateY(100%)). Close: line 354 `.scrim.closing{animation:fadeout .24s both;}` + line 355 `.scrim.closing .dialog{animation:slidedown .26s cubic-bezier(.4,0,.9,.5) both;}` (scrim fades out while dialog slides down).",
+        "app_file": "src/components/BottomSheet.tsx (line 23)",
+        "current": "Modal uses animationType=\"fade\", so the scrim AND the dialog fade in/out together; the dialog never translates up from the bottom.",
+        "expected": "The scrim fades (0.2s) while the dialog card slides up from translateY(100%)->0 over 0.3s cubic-bezier(.2,.8,.2,1); on close the scrim fades out (0.24s) and the dialog slides down over 0.26s cubic-bezier(.4,0,.9,.5).",
+        "fix": "Set Modal animationType=\"none\" and drive the transition internally: Animated opacity on the scrim View plus an Animated.timing translateY on the dialog for both open and close (mount the sheet, then animate; on close animate before onClose unmounts it)."
+      },
+      {
+        "severity": "medium",
+        "title": "Popping a stacked overlay re-animates the revealed PARENT (it slides up again)",
+        "proto_evidence": "Each screen is a separate persistent `.screen` element; closeSlide (line 3418-3428) animates ONLY the child out and the parent underneath keeps its 'active' state untouched. Open funcs add slide-up only to the opened id (e.g. line 3177 insights, 3137 premium), never to the parent.",
+        "app_file": "src/components/OverlayHost.tsx (useEffect, lines 56-61)",
+        "current": "The open effect depends on `depth`, and OverlayHost renders only the top overlay. When a child is popped, `depth` changes and the effect re-runs, resetting translateY to H and springing the newly-revealed parent up from the bottom again.",
+        "expected": "When popping back to a parent overlay, the parent must stay stationary; only the closing child should animate (slide down).",
+        "fix": "Only run the entrance animation when an overlay is PUSHED (depth increases / a genuinely new top mounts), not when depth decreases. Track the previous depth and skip the slide-up on pop (combine with the exit-animation fix in finding 1 so the outgoing child animates instead)."
+      },
+      {
+        "severity": "medium",
+        "title": "Appearance is rendered as a full-screen slide-up overlay, but the proto is a bottom-sheet dialog",
+        "proto_evidence": "line 3162 `function openAppearance(){ ... openDialog(...) }`, and openDialog (line 3409) builds a `.scrim`>`.dialog` bottom sheet (scrim fade + dialog slide-up per lines 353/356). The dialog has a grip, title 'Appearance', subtitle 'Make Pawductivity feel like yours.' (line 3165) and is dismissed by a 'Done' button (line 3172 `<button class=\"btn block\" onclick=\"closeDialog()\">Done</button>`). Contrast the full-screen openers that add slide-up to a `.screen`.",
+        "app_file": "src/components/OverlayHost.tsx (appearance in FULL) + src/screens/AppearanceScreen.tsx (uses OverlayScreen)",
+        "current": "appearance is in the FULL map and AppearanceScreen is built on OverlayScreen, so it renders as a full-screen slide-up with a sheet header + back chevron.",
+        "expected": "Appearance should be a bottom-sheet dialog: rounded-top card with a grip, over a fading scrim, with a 'Done' button to close (no full-screen header/back button).",
+        "fix": "Move 'appearance' from FULL to SHEET in OverlayHost, and rebuild AppearanceScreen on BottomSheet (grip + centered title 'Appearance' + subtitle + a 'Done' Btn) instead of OverlayScreen."
+      },
+      {
+        "severity": "medium",
+        "title": "Sign-in performs immediately with no confirmation dialog",
+        "proto_evidence": "prototype/pawductivity_v1.html L2895-2906 signInAsk()/doSignIn(): 'Sign in with Google' opens a dialog '<p class=\"d-sub\">We only store your quests, pet and stats. Signing in is optional and you can sign out any time.</p>' with 'Not now' / 'Continue'; only Continue runs doSignIn().",
+        "app_file": "src/screens/SyncScreen.tsx (signIn, L59-63 / 'Sign in with Google' Btn L108-114)",
+        "current": "The 'Sign in with Google' button calls signIn() directly (updateCloud({signedIn:true,...}) + toast + runSync). The intermediate consent/confirmation sheet does not exist.",
+        "expected": "Tapping the button first opens a confirm sheet with the 'We only store your quests, pet and stats...' copy and 'Not now' / 'Continue'; only 'Continue' completes the sign-in.",
+        "fix": "Wrap signIn() in a BottomSheet confirm (same primitive as ProfileScreen's reset sheet) with the proto copy and 'Not now'/'Continue' actions; move the current signIn() body to the 'Continue' handler."
+      },
+      {
+        "severity": "medium",
+        "title": "Sync action button labeled 'Back up now' instead of proto's 'Sync now'",
+        "proto_evidence": "prototype/pawductivity_v1.html L2868: `<button class=\"btn block\" ... >${c.status==='syncing'?ic('repeat',16):ic('bolt',16)} ${c.status==='syncing'?'Syncing...':'Sync now'}</button>`.",
+        "app_file": "src/screens/SyncScreen.tsx L143-150",
+        "current": "title={syncing ? 'Syncing...' : 'Back up now'}",
+        "expected": "The signed-in primary action reads 'Sync now' (and 'Syncing...' while in progress).",
+        "fix": "Change the button title 'Back up now' to 'Sync now' to match the source of truth."
+      },
+      {
+        "severity": "medium",
+        "title": "Idle coin pile is static — missing pop-in, bob, rotation and drop-shadow animations",
+        "proto_evidence": "coinPile() line 1361 renders each coin with transform:rotate(${p.r}deg) and a staggered animation-delay:${(i*0.05)}s; COIN_SPOTS (lines 1352-1357) each carry an `r` rotation value; CSS lines 697-700: `.pilecoin img{...animation:coinpop .42s ease-out backwards, coinbob 2.6s ease-in-out infinite;}` with `@keyframes coinpop{from{opacity:0;transform:translateY(10px) scale(.5)}}` and `@keyframes coinbob{50%{transform:translateY(-3px)}}`, plus drop-shadow(0 3px 3px rgba(0,0,0,.22)).",
+        "app_file": "src/screens/HomeTab.tsx (COIN_SPOTS lines 15-20; coin render lines 86-88)",
+        "current": "COIN_SPOTS omit the `r` rotation entirely; each coin is a plain static <Image> with no rotation, no drop-shadow, and no animation (no Animated usage in the file at all). Coins simply appear.",
+        "expected": "Each coin drops/pops in (coinpop: fade+translateY(10px)+scale .5 -> settled) with a per-coin stagger, then continuously bobs +/-3px (coinbob, 2.6s loop), is rotated by its spot's `r` degrees, and carries a soft drop-shadow.",
+        "fix": "Restore the `r` values in COIN_SPOTS, apply a rotate transform per coin, add a drop-shadow (shadow on the Image container), and drive coinpop (staggered by index*0.05s) + a looping coinbob translateY animation via Animated/Reanimated to match keyframes at proto lines 698-700."
+      },
+      {
+        "severity": "medium",
+        "title": "Home 'Feed' care button navigates to the Pet tab instead of opening the Feed dialog",
+        "proto_evidence": "Line 1650: `<button class=\"carebtn\" onclick=\"openFeed()\">...Feed</button>`; openFeed() (lines 2330-2348) opens the feed dialog inline from Home.",
+        "app_file": "src/screens/HomeTab.tsx line 119 (CareBtn Feed onPress)",
+        "current": "onPress={() => onTab('pet')} — tapping Feed just switches to the Pet tab; the user must then find and tap Feed again there. The feed dialog is local state (feedOpen) inside PetTab.tsx (lines 40-44) and there is no global 'feed' overlay (OverlayName list, store.ts lines 15-20, has none).",
+        "expected": "Tapping Feed on Home should open the Feed dialog directly (same one-tap-to-feed flow as proto), including the health>=100 'already full' toast guard.",
+        "fix": "Add a 'feed' overlay to OverlayName and render the feed dialog from the overlay layer, then set the Home Feed button to openOverlay('feed') with the health>=100 guard. (Dress and Shop buttons already match the proto — only Feed diverges.)"
+      },
+      {
+        "severity": "medium",
+        "title": "'Your week' card body is not tappable — only the 'See more' text opens insights",
+        "proto_evidence": "homeWeekCard() line 1695: `<div class=\"card wkcard\" onclick=\"openInsights()\">` — the entire week card is a tap target that opens the insights screen.",
+        "app_file": "src/screens/HomeTab.tsx line 169 (`<Card style={{ padding: 16 }}>`)",
+        "current": "The week Card has no onPress; only the small 'See more'/'Full dashboard' label (line 167) opens the insights overlay. Tapping the bars/number/body does nothing.",
+        "expected": "Tapping anywhere on the week card opens the insights overlay.",
+        "fix": "Add onPress={() => openOverlay('insights')} to the week <Card> at line 169 (matching goalcard which already wires onPress)."
+      },
+      {
+        "severity": "medium",
+        "title": "Bottom sheets fade in/out instead of sliding up/down (affects capture + plan sheets)",
+        "proto_evidence": ".dialog{...animation:slideup .3s cubic-bezier(.2,.8,.2,1) both;} (line 356); @keyframes slideup{from{transform:translateY(100%)}to{transform:none}} (line 61); .scrim.closing .dialog{animation:slidedown .26s cubic-bezier(.4,0,.9,.5) both;} (line 355); @keyframes slidedown (line 62).",
+        "app_file": "src/components/BottomSheet.tsx (line 23: <Modal ... animationType=\"fade\">)",
+        "current": "The sheet (used by CaptureSheet and PlanSheet) fades in and out via animationType=\"fade\" — the whole dialog opacity-animates.",
+        "expected": "The dialog panel slides up from the bottom (translateY 100%->0) on open and slides down (0->100%) on close; the scrim fades.",
+        "fix": "Replace animationType=\"fade\" with a slide-up: use animationType=\"slide\", or drive an Animated translateY on the dialog View (in on slideup easing, out on slidedown) while fading only the scrim."
+      },
+      {
+        "severity": "medium",
+        "title": "Capture brain-dump/quick-add drops the 'Weekdays' repeat label and the due date; repeats always show 'Daily'",
+        "proto_evidence": "parseText sets rlabel and due (lines 1791-1812: `rlabel=WDAY[...]+'s'`, `rlabel='Weekdays'`, `due=WDAY[...]`); commitQuick sets `rlabel: cap.repeat==='weekdays'?'Weekdays':'Daily'` (1598); questRow shows `q.repeat?...${q.rlabel||'Daily'}...:(q.due?...calendar ${q.due}...)` (line 1742).",
+        "app_file": "src/screens/CaptureSheet.tsx (parseText returns only {name,est,tag,repeat}; commitQuick passes `repeat: repeat !== 'once'`) and src/components/QuestRow.tsx (line 72 hardcodes 'Daily')",
+        "current": "The app's ParsedQuest omits rlabel and due, commitQuick collapses repeat to a boolean, and QuestRow always renders 'Daily'. A 'Weekdays' quest shows 'Daily'; a brain-dumped single-weekday due (e.g. 'call bank on Monday') is dropped entirely (no calendar chip).",
+        "expected": "Weekdays repeats display 'Weekdays' (and 'Mondays' etc. for specific weekday repeats); single-weekday mentions display a calendar due chip with the day name.",
+        "fix": "Carry rlabel and due through ParsedQuest, addQuest/addQuests, the Quest type, and render `quest.rlabel || 'Daily'` (and the quest.due calendar branch) in QuestRow.tsx instead of the hardcoded 'Daily'."
+      },
+      {
+        "severity": "medium",
+        "title": "Capture sheet renders an 'Add a quest' title header the proto capture dialog does not have",
+        "proto_evidence": "captureHTML (lines 1526-1533) is grip -> `.capmode` toggle -> `.capbody`, with NO <h3> title. (Contrast openPlan/openGoal which do emit an <h3>.)",
+        "app_file": "src/screens/CaptureSheet.tsx (line 120: <BottomSheet ... title=\"Add a quest\">)",
+        "current": "A centered 'Add a quest' heading is rendered above the Quick add / Brain dump toggle.",
+        "expected": "No title; the segmented Quick add/Brain dump toggle sits directly beneath the grip.",
+        "fix": "Remove the title=\"Add a quest\" prop from the BottomSheet in CaptureSheet.tsx."
+      },
+      {
+        "severity": "medium",
+        "title": "Plan sheet title and subtitle are centered; the proto left-aligns them",
+        "proto_evidence": "openPlan: `<h3 style=\"text-align:left\">Plan today</h3>` and `<p class=\"d-sub\" style=\"text-align:left;margin-bottom:12px\">Pick up to 3...` (lines 1772-1773). (The default .dialog h3 / .d-sub are centered, so this dialog explicitly overrides to left.)",
+        "app_file": "src/screens/PlanSheet.tsx (title/subtitle passed to BottomSheet) + src/components/BottomSheet.tsx (lines 28,33 use textAlign:'center')",
+        "current": "Plan sheet 'Plan today' title and its subtitle render center-aligned.",
+        "expected": "Both the title and the subtitle are left-aligned in the Plan sheet.",
+        "fix": "Add a left-align option to BottomSheet (e.g. an `alignHeader='left'` prop) and set it in PlanSheet, or render the left-aligned title/subtitle inside PlanSheet's body instead of via BottomSheet's centered header."
+      },
+      {
+        "severity": "medium",
+        "title": "Plan sheet 'Done' button is teal; the proto's default button is orange",
+        "proto_evidence": "openPlan action: `<button class=\"btn block\" onclick=\"closeDialog()...\">Done</button>` (line 1775). Base `.btn{...background:var(--orange);box-shadow:0 6px 0 var(--orange-2);}` (lines 86-88); teal is a separate `.btn.teal` modifier (line 90) not applied here.",
+        "app_file": "src/screens/PlanSheet.tsx (line 66: <Btn title=\"Done\" variant=\"teal\" ...>)",
+        "current": "The Plan sheet 'Done' button renders teal.",
+        "expected": "Orange (the default .btn), same face/shadow as the capture sheet's 'Add quest' button.",
+        "fix": "Change variant=\"teal\" to variant=\"orange\" on the Done button in PlanSheet.tsx."
+      },
+      {
+        "severity": "medium",
+        "title": "Capture category chips stretch unevenly; the proto uses a fixed 3-equal-column grid",
+        "proto_evidence": ".pchips.g3{grid-template-columns:repeat(3,1fr);} (line 180) and .pchips.g5{grid-template-columns:repeat(5,1fr);} (line 179). With 5 TAGS in g3 the wrapped 2nd row keeps two 1/3-width cells left-aligned.",
+        "app_file": "src/screens/CaptureSheet.tsx (styles chip3: flexGrow:1, flexBasis:'29%', lines 320-323; chip5 similarly flex-based, 316-319)",
+        "current": "Because chips use flexWrap + flexGrow, the wrapped 2nd-row Category chips (Personal, Project) grow to ~50% width each instead of staying 1/3 width.",
+        "expected": "Every category chip is exactly one-third the row width; the 2nd row shows two 1/3-width chips left-aligned (empty third cell). Duration chips are five equal columns in one row.",
+        "fix": "Lay the chip rows out as a fixed grid (or give chips a fixed ~31%/17% width without flexGrow) so wrapped chips retain equal column widths matching repeat(3,1fr)/repeat(5,1fr)."
+      },
+      {
+        "severity": "medium",
+        "title": "Premium-locked shop items have no 'Go Premium' upsell path",
+        "proto_evidence": "For a premium item without a subscription, tryBuy opens: `buyDialog(..., '<div class=\"d-err\">Premium content. Subscribe to unlock this item.</div>', '<button ... onclick=\"closeDialog()\">Not now</button><button ... onclick=\"closeDialog();openPremium()\">Go Premium</button>')` (lines 2421-2424).",
+        "app_file": "src/store/store.ts (buyFood line 242, buyClothes line 252, buyPet line 262)",
+        "current": "A locked item's Unlock button calls the buy action, which only fires a toast (`That treat is a Premium item` / `That outfit is a Premium item` / `That companion is Premium`) and returns. There is no dialog and no route to the Premium screen.",
+        "expected": "Tapping a locked item should open the confirmation dialog showing `Premium content. Subscribe to unlock this item.` with `Not now` and `Go Premium` buttons, where Go Premium opens the Premium overlay.",
+        "fix": "In the premium-locked branch, open the purchase dialog in its premium-error state with a `Go Premium` action calling openOverlay('premium'), instead of emitting a toast."
+      },
+      {
+        "severity": "medium",
+        "title": "Idle coin pile (scattered animated coins) not rendered in the room",
+        "proto_evidence": "coinPile() renders up to 12 coins scattered on the floor from COIN_SPOTS (lines 1352-1362) each `<span class=\"pilecoin\">` with `animation:coinpop .42s ..., coinbob 2.6s ... infinite` (CSS lines 696-700), plus the `.pilebadge` count.",
+        "app_file": "src/screens/PetTab.tsx (room ImageBackground, lines 75-80)",
+        "current": "Only the `pileBadge` (`{pending} · tap to collect`) is rendered when idle coins are pending; the scattered/animated coin sprites on the room floor are absent.",
+        "expected": "When idlePending() > 0, render up to 12 coin sprites positioned per COIN_SPOTS (left %, bottom px, rotation, size) with a pop-in and gentle bob animation, in addition to the badge.",
+        "fix": "Add a coin-pile layer inside the room: map COIN_SPOTS.slice(0, ceil(pending/3)) to absolutely-positioned coin Images with the given left/bottom/rotate/size, animating coinpop (entrance) and coinbob (loop) via Animated."
+      },
+      {
+        "severity": "medium",
+        "title": "Feed bottom sheet fades in instead of sliding up",
+        "proto_evidence": "`.dialog{... animation:slideup .3s cubic-bezier(.2,.8,.2,1) both;}` and the scrim only fades (`.scrim{... animation:fade .2s both;}`); on close `.scrim.closing .dialog{animation:slidedown .26s ...}` (CSS lines 353-356).",
+        "app_file": "src/components/BottomSheet.tsx (Modal, line 23)",
+        "current": "The BottomSheet Modal uses `animationType=\"fade\"`, so the whole sheet (scrim + dialog) fades in/out; the dialog does not translate.",
+        "expected": "The scrim should fade while the dialog panel slides up from the bottom on open and slides down on close (translateY based), per the prototype.",
+        "fix": "Use `animationType=\"none\"` on the Modal and drive an Animated translateY on the dialog panel (H -> 0 on open, 0 -> H on close), keeping the scrim opacity as a fade. This governs the Feed sheet in PetTab."
+      },
+      {
+        "severity": "medium",
+        "title": "Full-screen overlays (Journey/Shop) have no slide-down close animation",
+        "proto_evidence": "Overlays open with slide-up and close with slide-down: `closeSlide` removes slide-up and adds `slide-down` (`@keyframes slidedown{from{transform:none}to{transform:translateY(100%)}}`, CSS lines 61-62; close handler lines 3422-3426). Journey/Shop open via `prepOpen(...).classList.add('active','slide-up')` (lines 2097, 2369).",
+        "app_file": "src/components/OverlayHost.tsx (translateY effect + closeOverlay path, lines 56-88) with src/store/store.ts closeOverlay (line 162)",
+        "current": "OverlayHost only animates on open (spring translateY H->0). closeOverlay pops the stack immediately, so overlays disappear with no exit transition.",
+        "expected": "Closing an overlay should animate it sliding back down (translateY 0->H) over ~0.26s before it is removed, mirroring the open slide-up.",
+        "fix": "Run an exit Animated.timing (translateY -> H) on close and only clear the overlay from the store when it completes; wire the back button / hardware back to trigger the animated close rather than an immediate pop."
+      },
+      {
+        "severity": "medium",
+        "title": "Pet 'home' card is not tappable to open the Journey",
+        "proto_evidence": "`<div class=\"card jcard\" onclick=\"openJourney()\">` — the entire home card opens the Journey (line 2257), `.jcard{... cursor:pointer;}` (line 785), and the inner Build button stops propagation (`onclick=\"event.stopPropagation();buildMilestone(...)\"`, line 2264).",
+        "app_file": "src/screens/PetTab.tsx (home/journey Card, lines 91-118)",
+        "current": "The home card is a plain `<Card>` (View). Only the small 'Journey' link (line 89) and the Build button open/act; tapping the card body — including the chevron affordance at line 99 — does nothing.",
+        "expected": "Tapping anywhere on the home card (except the Build button) should open the Journey overlay.",
+        "fix": "Wrap the Card in a Pressable calling openOverlay('journey'); keep the Build button's onPress from bubbling (separate Pressable) so building still works without also opening Journey."
+      },
+      {
+        "severity": "medium",
+        "title": "Bottom sheets fade in/out instead of sliding up/down",
+        "proto_evidence": "`.dialog{...animation:slideup .3s cubic-bezier(.2,.8,.2,1) both;}` (proto L356) with `@keyframes slideup{from{transform:translateY(100%)}to{transform:none}}` (L61) and close `.scrim.closing .dialog{animation:slidedown .26s...}` (L355) / `@keyframes slidedown{...to{transform:translateY(100%)}}` (L62).",
+        "app_file": "src/components/BottomSheet.tsx (L23)",
+        "current": "`<Modal ... animationType=\"fade\">` — the New reminder and day-detail sheets (and scrim) fade in/out; there is no vertical slide.",
+        "expected": "The sheet panel translateYs up from off-screen bottom on open and translateYs back down on close, with the scrim fading.",
+        "fix": "Replace animationType=\"fade\" with a translateY slide: use animationType=\"slide\", or drive an Animated.Value (translateY 100%→0 open, 0→100% close, easing ~cubic-bezier(.2,.8,.2,1)) on the dialog while fading the scrim."
+      },
+      {
+        "severity": "medium",
+        "title": "Calendar month change has no slide/height transition",
+        "proto_evidence": "swapBody() (proto L2584-2600) animates `.calbody` on every month shift and pick toggle, tweening height and adding directional slide classes; calShift passes 'l'/'r' (L2464), calTogglePick 'd'/'u' (L2465). CSS `.calbody.calout.l{transform:translateX(-12px)}` etc (L761-776), keyframes calfadeL/R/D/U translate X/Y over ~.26-.28s.",
+        "app_file": "src/screens/CalendarTab.tsx (shift L131-134; setPick L205; calendar body L216-282)",
+        "current": "shift() and setPick just call setState; the calendar body swaps instantly with no transition.",
+        "expected": "Advancing month slides the grid horizontally (left forward, right back); opening/closing the month picker slides vertically; the container height animates between old and new content height.",
+        "fix": "Wrap the calendar body in an Animated view and run a directional slide + height tween on month/year/pick changes (translateX ±12 for month, translateY ±10-12 for pick toggle, ~260-320ms) mirroring calout/calin."
+      },
+      {
+        "severity": "medium",
+        "title": "Swipe-to-change-month gesture missing and legend copy altered to compensate",
+        "proto_evidence": "renderCal() binds swipe on the calendar card: `bindSwipe($('calWrap'),()=>calShift(1),()=>calShift(-1));` (proto L2629). The legend reads 'Swipe to change month': `<span style=\"color:var(--muted)\">Swipe to change month</span>` (L2552).",
+        "app_file": "src/screens/CalendarTab.tsx (calwrap has no gesture; legend L279)",
+        "current": "The calendar card has no swipe handler, and the legend was reworded to 'Change month above' (L279) — a copy change made because swipe was never implemented.",
+        "expected": "A horizontal swipe on the calendar card advances/retreats the month, and the legend reads 'Swipe to change month'.",
+        "fix": "Add a horizontal PanResponder/Gesture on the calwrap card (swipe left → shift(1), right → shift(-1), threshold ~42px, dominant-x) and restore the legend text to 'Swipe to change month'."
+      },
+      {
+        "severity": "medium",
+        "title": "New reminder and day-detail sheet headers are centered but should be left-aligned",
+        "proto_evidence": "New reminder overrides the default centered h3: `<h3 style=\"text-align:left\">New reminder</h3>` (proto L2674). openDay uses `<h3 style=\"text-align:left\">${label}</h3>` and `<p class=\"d-sub\" style=\"text-align:left;margin-bottom:14px\">...` (L2661-2662) — title and day subtitle left-aligned.",
+        "app_file": "src/components/BottomSheet.tsx (title L28, subtitle L33); used by src/screens/CalendarTab.tsx (day sheet L304-314, new-reminder sheet L332)",
+        "current": "BottomSheet hard-codes textAlign:'center' on title and subtitle, so the 'New reminder' title and the day-detail title/subtitle are centered.",
+        "expected": "For these two sheets the header (title + day subtitle) is left-aligned.",
+        "fix": "Give BottomSheet a left-header/alignment option (or render a left-aligned header inside children) and use it for the day-detail and New reminder sheets so their title and subtitle read left-aligned per proto."
+      },
+      {
+        "severity": "medium",
+        "title": "Focus-screen pet animation speed ignores mood (tied to running state instead)",
+        "proto_evidence": "mountPet sets the Lottie speed from pet mood: line 1407 `a.setSpeed(moodOf(S.pet.health).spd);`, and the focus pet is mounted the same way at line 1845 `mountPet($('fxPet'),200);`. moodOf spd = 0.6..1.25 by health (lines 1324-1328). The proto never changes pet speed based on whether the timer is running.",
+        "app_file": "src/screens/FocusScreen.tsx (PetView, line 394)",
+        "current": "`<PetView ... speed={running ? 1 : 0.7} />` — Lottie speed is 1 when running, 0.7 when paused, and completely ignores pet health/mood.",
+        "expected": "Pet plays at mood-based speed `moodOf(pet.health).spd` at all times, exactly as the proto and as the app's own HomeTab (line 82) and PetTab (line 73) already do with `speed={mood.spd}`.",
+        "fix": "Import moodOf, compute `const mood = moodOf(pet.health)` and pass `speed={mood.spd}`; drop the running-based speed."
+      },
+      {
+        "severity": "medium",
+        "title": "Missing 'Upload your own' soundscape option (Premium)",
+        "proto_evidence": "The soundscape list has a 5th row after the presets: line 2018 `<button class=\"soundopt ...\" onclick=\"uploadSound()\"><span>${ic('plus',14)} Upload your own${prem?'':' '+ic('crown',12,'gold')}</span>...`, wired to uploadSound() (lines 2034-2043) which loads a custom audio file for Premium users. The sheet subtitle also advertises it: line 2023 '...more sounds and your own uploads are Premium.'",
+        "app_file": "src/screens/FocusScreen.tsx (soundscape BottomSheet, lines 435-461)",
+        "current": "Only the 4 SOUNDS presets (None/Rain/Waves/Lo-fi) are rendered; there is no 'Upload your own' row and no custom-audio capability.",
+        "expected": "A 5th 'Upload your own' row, Premium-gated with a crown, that lets Premium users pick and loop a custom audio file.",
+        "fix": "Add an upload row after the SOUNDS map (crown when not premium), using expo-document-picker + expo-audio to load and loop the chosen file; show 'Custom sounds are a Premium feature' toast when locked."
+      },
+      {
+        "severity": "medium",
+        "title": "Soundscape row layout diverges from proto (extra icon circle + 'Premium' tag)",
+        "proto_evidence": "`.soundopt` is a flat row (lines 844-847): name on the left, check on the right, whole row text turns teal when selected (`.soundopt.on{...color:var(--teal)}`). Locked rows show a small gold crown next to the NAME, not a side tag: line 2017 `<span>${n}${locked?' '+ic('crown',12,'gold'):''}</span>${fxSound===id?ic('check',15):''}`. There is no leading icon circle.",
+        "app_file": "src/screens/FocusScreen.tsx (soundRow render 438-459; styles.soundIc 499-502)",
+        "current": "Each row has a 34px leading icon circle (pause/lock/sound), name in the middle, and a right-side 'Premium' text label for locked rows; selected text color is unchanged.",
+        "expected": "No leading icon circle; a small gold crown beside the name when locked; check on the right when selected; selected row text turns teal.",
+        "fix": "Remove the soundIc circle; render `name` with an inline gold crown when locked; keep the right-side check for the selected row; set selected text color to colors.teal."
+      },
+      {
+        "severity": "medium",
+        "title": "Sound sheet auto-closes on pick, lacks a Done button, and toasts on every selection",
+        "proto_evidence": "pickSound only re-renders the list in place, it does NOT close the sheet and shows no toast on success (lines 2027-2032). The sheet is closed by an explicit Done button: line 2025 `<div class=\"d-actions\"><button class=\"btn block\" onclick=\"closeDialog()\">Done</button></div>`. The only toast is the premium-lock case, worded 'This sound is a Premium feature' (line 2028).",
+        "app_file": "src/screens/FocusScreen.tsx (pickSound 45-54; BottomSheet 429-462)",
+        "current": "pickSound calls `setSoundOpen(false)` (closes immediately on tap) and `showToast(... 'on'/'Sound off')` on every pick; there is no Done button; the lock toast reads '{name} is a Premium soundscape'.",
+        "expected": "Selecting a sound updates the checkmark and keeps the sheet open; no per-pick toast; a full-width 'Done' button closes it; lock toast reads 'This sound is a Premium feature'.",
+        "fix": "Remove `setSoundOpen(false)` and the success `showToast` from pickSound; add a 'Done' button as the last child of the BottomSheet; change the lock toast text."
+      },
+      {
+        "severity": "medium",
+        "title": "Wrong soundscape sheet title, subtitle, and text alignment",
+        "proto_evidence": "Line 2022-2023: `<h3 style=\"text-align:left\">Focus sound</h3>` and left-aligned subtitle 'Gentle ambient audio, generated on your device. Rain is free; more sounds and your own uploads are Premium.'",
+        "app_file": "src/screens/FocusScreen.tsx (BottomSheet props, lines 432-433) + src/components/BottomSheet.tsx (title/subtitle textAlign 'center', lines 56/61)",
+        "current": "Title 'Soundscape', subtitle 'A steady background loop, stored on your device so it works offline.', both centered.",
+        "expected": "Title 'Focus sound'; subtitle matching the proto copy; left-aligned like the proto dialog.",
+        "fix": "Set title='Focus sound' and the proto subtitle; left-align the sound sheet's heading/subtitle (a per-sheet align option on BottomSheet, since it is shared)."
+      },
+      {
+        "severity": "medium",
+        "title": "Focus pet rendered too small (60vw/220 cap vs proto 74vw/300 cap)",
+        "proto_evidence": "Line 309 `.fxpetstage{...width:min(74vw,300px);height:min(74vw,300px);}` and line 311 `.fxpetbig{...width:min(74vw,300px);...}`. The pet stage is 74vw (capped 300px), making the companion visibly LARGER than the ~220px timer ring.",
+        "app_file": "src/screens/FocusScreen.tsx (line 21, `const PET = Math.min(220, Math.round(SCRW * 0.6));`)",
+        "current": "Pet is 60vw capped at 220px, so it renders smaller than or equal to the dial ring — the opposite of the proto proportions.",
+        "expected": "Pet stage at 74vw capped at 300px, larger than the ring.",
+        "fix": "Change to `const PET = Math.min(300, Math.round(SCRW * 0.74));`."
+      },
+      {
+        "severity": "medium",
+        "title": "Appearance is a full-screen overlay but the proto is a bottom-sheet dialog (and lacks the Done button)",
+        "proto_evidence": "prototype/pawductivity_v1.html L3162-3172 openAppearance() calls `openDialog(...)` — a bottom sheet that starts with `<div class=\"grip\"></div>`, a left-aligned `<h3>Appearance</h3>`, the subtitle, the accent/room controls, and ends with `<div class=\"d-actions\"><button class=\"btn block\" onclick=\"closeDialog()\">Done</button></div>`. It is a partial-height slide-up sheet, not a full page. (By contrast openInsights L3177 uses full-screen `.slide-up`.)",
+        "app_file": "src/components/OverlayHost.tsx (L34) + src/screens/AppearanceScreen.tsx (L32)",
+        "current": "'appearance' is registered in the FULL overlay map (OverlayHost L34) and AppearanceScreen wraps its content in `<OverlayScreen title=\"Appearance\">`, i.e. a full-screen page with a header bar + back chevron and no Done button.",
+        "expected": "Appearance should present as a bottom-sheet dialog (grip handle, rounded top, partial height) with a full-width 'Done' button at the bottom that closes it — matching the proto's openDialog presentation.",
+        "fix": "Move 'appearance' out of the FULL map into the SHEET map in OverlayHost.tsx and re-implement AppearanceScreen using the BottomSheet component (like CaptureSheet/GoalSheet/PlanSheet) with the title 'Appearance', subtitle 'Make Pawductivity feel like yours.', the accent + pet-room controls, and a solid full-width 'Done' button that calls closeOverlay. If keeping the full screen is a deliberate mobile adaptation, at minimum add the missing 'Done' action."
+      },
+      {
+        "severity": "medium",
+        "title": "Avatar picker uses flexGrow, so last-row avatars render larger than first-row avatars",
+        "proto_evidence": "prototype/pawductivity_v1.html L442: `.avpicker{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:8px;}` — a fixed 4-equal-column grid, so every avatar tile is identical width regardless of row.",
+        "app_file": "src/screens/ProfileScreen.tsx (styles.avpicker L336, styles.avwrap L337)",
+        "current": "`avpicker: { flexDirection:'row', flexWrap:'wrap', gap:10 }` with `avwrap: { width:'22%', flexGrow:1, aspectRatio:1 }`. With 7 tiles the first row holds 4 and the second row holds 3; flexGrow:1 makes the 3 second-row tiles stretch wider than the 4 first-row tiles, so avatars are visibly inconsistent in size (and it will not form the proto's clean 4-column grid once the 8th upload tile is added).",
+        "expected": "A fixed 4-column grid where all tiles are exactly equal width (4 per row, wrapping evenly), matching repeat(4,1fr) with a 10px gap.",
+        "fix": "Remove `flexGrow: 1` from avwrap and give each tile a fixed width equal to one of four columns accounting for the 10px gaps (e.g. width based on (100% - 3*gap)/4), so all rows share one consistent tile size. This also makes 8 tiles (7 avatars + upload) render as two even rows of 4."
+      },
+      {
+        "severity": "medium",
+        "title": "Insights bar charts are not tappable — the 'tap a bar' value tooltip is missing entirely",
+        "proto_evidence": "vbars(): line 3222 every bar is `<div class=\"ibar\" ... onclick=\"chartTip(this,'${it.tip}')\">`; header line 3299 literally reads `<span>tap a bar</span>`; chartTip() (lines 3180-3190) shows a floating tip (e.g. 'Mon · 45m', hours '6a · 30m', dist '45m · 3 sessions') that auto-hides after 1.9s.",
+        "app_file": "src/screens/InsightsScreen.tsx — VBars (lines 253-270)",
+        "current": "VBars renders each bar as a plain non-interactive <View>; Bar items carry no `tip` field, bars are not wrapped in Pressable, and there is no tooltip element. Same for the best-hours and session-length charts that reuse VBars.",
+        "expected": "Each bar is tappable and shows a transient tooltip with its value, per the proto's primaryData tips (weekday+minutes / week+fmt), hours tips ('6a · 30m'), and dist tips ('45m · 3 sessions').",
+        "fix": "Add a `tip` string to each Bar (mirror primaryData/hours/dist tip strings), wrap each bar in a Pressable, and render a floating tooltip component matching #chartTip (teal-ink bg #0B2530, white 12px/700 text, ~1.9s auto-hide)."
+      },
+      {
+        "severity": "medium",
+        "title": "Insight bars use a flat fill instead of the proto's vertical gradient",
+        "proto_evidence": "line 562 `.ibar{...background:linear-gradient(180deg,var(--teal-2),var(--teal));...}` and line 563 `.ibar.best{background:linear-gradient(180deg,var(--orange),var(--orange-2));}` (tokens: teal-2 #12667F, teal #0C4C60, orange #E28A4B, orange-2 #C9773A).",
+        "app_file": "src/screens/InsightsScreen.tsx — styles.ibar / styles.ibarBest (lines 338-339)",
+        "current": "Normal bar `ibar: { backgroundColor: colors.teal2 }` (flat #12667F); best bar `ibarBest: { backgroundColor: colors.orange }` (flat #E28A4B). No gradient — bars are one uniform shade top-to-bottom.",
+        "expected": "Vertical (180deg top→bottom) gradient: normal bar #12667F→#0C4C60; best bar #E28A4B→#C9773A.",
+        "fix": "Render each bar with expo-linear-gradient (colors={['#12667F','#0C4C60']}, start {x:0,y:0} end {x:0,y:1}; best bar {['#E28A4B','#C9773A']}) or an SVG vertical LinearGradient, keeping the 7/7/3/3 corner radii."
+      },
+      {
+        "severity": "medium",
+        "title": "Recap weekly bars are inert — missing tap tooltip and pressed-state feedback",
+        "proto_evidence": "line 2158 each column is `<div class=\"rcbarcol\" onclick=\"chartTip(this,'${tip}')\" onmouseenter=\"chartTip(...)\">` with tip `${dayFull[i]} · ${m>0?m+' min':'no focus'}`; CSS line 879 `.rcbarcol{cursor:pointer;...}` and line 880 `.rcbarcol:active .rctrack{background:rgba(255,255,255,.26);}`.",
+        "app_file": "src/screens/RecapScreen.tsx — rcbars map (lines 116-124)",
+        "current": "Each day column is a plain <View>; no Pressable, no tooltip, and no active/pressed feedback on the track.",
+        "expected": "Tapping a day column shows a tooltip ('Monday · 45 min' / 'Sunday · no focus'), and while pressed the rctrack background lightens to rgba(255,255,255,.26).",
+        "fix": "Wrap each rcbarcol in a Pressable that triggers the shared tooltip, and apply a pressed style raising rctrack background to rgba(255,255,255,.26)."
+      },
+      {
+        "severity": "medium",
+        "title": "Recap 'This week' comparison bar uses flat teal2 instead of a horizontal gradient",
+        "proto_evidence": "line 889 `.cmpbar i.now{background:linear-gradient(90deg,var(--teal-2),var(--teal));}` (used by the 'This week' rows in Versus-last-week at line 2193 and Next-week at line 2217).",
+        "app_file": "src/screens/RecapScreen.tsx — CmpRow (line 232)",
+        "current": "The `now` fill is `now && { backgroundColor: colors.teal2 }` — solid #12667F.",
+        "expected": "Horizontal (90deg left→right) gradient #12667F→#0C4C60 for the 'This week'/now bar. (The 'Last week' default #line2 and 'Target' solid orange already match proto.)",
+        "fix": "For the `now` variant, render the fill via expo-linear-gradient (colors={['#12667F','#0C4C60']}, start {x:0,y:0} end {x:1,y:0}) instead of a solid backgroundColor."
+      },
+      {
+        "severity": "medium",
+        "title": "Idle coins pile renders BEHIND the pet on Home (missing z-index) instead of in front",
+        "proto_evidence": "prototype/pawductivity_v1.html CSS L696 `.coinpile{position:absolute;inset:0;z-index:4;...}` vs L227 `.petstage{...z-index:2;}` - the coin pile (z-index 4) sits ABOVE the pet sprite (z-index 2), so coins visibly pile in front of the pet's feet.",
+        "app_file": "src/screens/HomeTab.tsx (COIN_SPOTS Image render, L86-88; petStage style L249)",
+        "current": "The pending-coin `<Image>`s (L87) are rendered with no zIndex (defaults to 0), while `styles.petStage` has zIndex:2 (L249). In React Native the explicit zIndex:2 pet stage paints on top of the zIndex-0 coins, so the piled coins are hidden behind the pet sprite.",
+        "expected": "Coins render on top of the pet (proto z-index 4 > petstage 2).",
+        "fix": "Add `zIndex: 4` to the coin Image style (L87) so the pile paints above petStage (zIndex 2); the pileBadge already uses zIndex 5 so it stays above the coins, matching the proto's `.coinpile`/`.pilebadge` layering."
+      },
+      {
+        "severity": "medium",
+        "title": "Pet tab is missing the physical coin pile entirely (only the badge is drawn)",
+        "proto_evidence": "prototype/pawductivity_v1.html L2253 renderPet includes `${coinPile()}`; coinPile() (L1358-1362) renders the COIN_SPOTS `.pilecoin` images piling around the pet AND the `.pilebadge`. The same helper is used on both Home (L1637) and Pet (L2253), so both tabs show the full coin pile.",
+        "app_file": "src/screens/PetTab.tsx (room pending block, L75-80)",
+        "current": "When pending>0, PetTab renders ONLY the `pileBadge` ('N · tap to collect') - it never renders the COIN_SPOTS coin images. HomeTab renders both (HomeTab.tsx L84-93), so the signature 'coins physically pile up around Pixel' visual is absent on the Pet tab.",
+        "expected": "The Pet tab room shows the same piled coins around the pet plus the badge.",
+        "fix": "In PetTab.tsx, inside the `pending > 0` block (L75-80), render the COIN_SPOTS coin `<Image>`s exactly like HomeTab (positioned absolute by l/b/s, with zIndex above petStageBox), then the pileBadge. Import/define the same COIN_SPOTS array."
+      }
+    ],
+    "low": [
+      {
+        "severity": "low",
+        "title": "Tab content switches with a hard cut; the proto fades each tab in",
+        "proto_evidence": "switchTab() line 1509 `host.classList.remove('fade-in');void host.offsetWidth;host.classList.add('fade-in');` re-triggers the fade on every tab change. CSS line 56-57 `.fade-in{animation:fade .28s ease both;}` `@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}`.",
+        "app_file": "src/screens/MainScreen.tsx (lines 33-41)",
+        "current": "The active tab is a plain conditional render (HomeTab/PetTab/QuestsTab/CalendarTab) that swaps instantly with no transition.",
+        "expected": "When a tab becomes active its content should fade in: opacity 0->1 with a small translateY 8px->0 over 280ms ease.",
+        "fix": "Wrap the active tab in an Animated.View keyed on `tab` that runs a fade+translateY entrance (opacity 0->1, translateY 8->0, 280ms) each time the tab changes."
+      },
+      {
+        "severity": "low",
+        "title": "Sign-out toast copy differs from the prototype",
+        "proto_evidence": "prototype/pawductivity_v1.html L2935 doSignOut(): toast('Signed out. Your data is still here.').",
+        "app_file": "src/screens/SyncScreen.tsx L66",
+        "current": "showToast('Signed out. Your data stays on this device.')",
+        "expected": "Toast text 'Signed out. Your data is still here.'",
+        "fix": "Update the sign-out toast string to 'Signed out. Your data is still here.'"
+      },
+      {
+        "severity": "low",
+        "title": "Splash quote has no slide-in animation and wrong typography",
+        "proto_evidence": "prototype/pawductivity_v1.html L192-194: `#splash .quote{...font-size:13.5px;font-weight:600;line-height:1.55;...animation:qin .8s ease .3s both;}` and `@keyframes qin{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}`.",
+        "app_file": "src/screens/SplashScreen.tsx (quote Txt, L69-75)",
+        "current": "The quote is a plain <Txt> with size 13 and fontFamily: font.regular (weight ~400), no entrance animation and no lineHeight — it just appears.",
+        "expected": "Quote fades in while translating up 7px over 0.8s (0.3s delay), rendered at 13.5px, weight 600, line-height ~1.55.",
+        "fix": "Wrap the quote in an Animated.View driving translateY 7->0 and opacity 0->1 (0.8s, 0.3s delay); set size={13.5} weight={600} and lineHeight ~21 on the Txt."
+      },
+      {
+        "severity": "low",
+        "title": "Screen transitions use a plain crossfade instead of the proto's fade + upward slide",
+        "proto_evidence": "prototype/pawductivity_v1.html L56-57: `.fade-in{animation:fade .28s ease both;}` `@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}`; show() (L1443) applies .fade-in for splash->onboarding and onboarding->main.",
+        "app_file": "src/navigation/RootNavigator.tsx L36 (Stack.Navigator screenOptions animation:'fade')",
+        "current": "All root screens use native-stack animation:'fade' — a pure opacity crossfade with no vertical movement.",
+        "expected": "Screens fade in while translating up 8px over ~0.28s (opacity 0 + translateY(8px) -> opacity 1 + translateY(0)).",
+        "fix": "Add a mount transition on the screen containers (Animated translateY 8->0 + opacity 0->1 over 280ms) instead of relying on the navigator's flat 'fade', so the entrance matches the proto's .fade-in keyframe."
+      },
+      {
+        "severity": "low",
+        "title": "Sync screen shows an always-visible footer note that the prototype does not have",
+        "proto_evidence": "prototype/pawductivity_v1.html renderSync() L2847-2884 renders only ONE note — 'Your quests, reminders, pet and stats are backed up. Premium is tied to your Google Play purchase, not to this backup.' — and only inside `controls`, i.e. when signed in (L2869). There is no additional note, and none at all when signed out.",
+        "app_file": "src/screens/SyncScreen.tsx L158-160",
+        "current": "An extra note renders unconditionally (signed in or out): 'Sync is offline-first: everything works without a connection. Backing up sends only your progress and a random device id to the Pawductivity server, and if the server holds a newer backup it is restored instead.'",
+        "expected": "Per the proto, no such always-on note exists; the only footer note is the signed-in backup/premium note.",
+        "fix": "Remove the extra always-visible note to match the proto. NOTE: it appears to be intentional real-backend disclosure copy (the app has a live sync backend in src/api/client.ts), so confirm intent before deleting rather than assuming it is stray."
+      },
+      {
+        "severity": "low",
+        "title": "Section header (shead) vertical spacing differs from proto",
+        "proto_evidence": "CSS line 251: `.shead{...margin:18px 2px 10px;}` — 18px above, 10px below, 2px sides.",
+        "app_file": "src/screens/HomeTab.tsx line 283 (styles.shead)",
+        "current": "marginVertical: 12, marginHorizontal: 2 — 12px above and 12px below.",
+        "expected": "18px above the heading and 10px below (2px sides).",
+        "fix": "Change shead to { marginTop: 18, marginBottom: 10, marginHorizontal: 2 }."
+      },
+      {
+        "severity": "low",
+        "title": "Health bar renders as flat solid colors instead of the proto gradients; missing inset track shadow",
+        "proto_evidence": "CSS lines 237-239: `.health .bar{...box-shadow:inset 0 1px 2px rgba(0,0,0,.06)}`, `.health .fill{background:linear-gradient(90deg,var(--yellow-2),var(--yellow))}`, `.health.low .fill{background:linear-gradient(90deg,#E5654B,#F09A6E)}`. Same flat-vs-gradient gap applies to `.wkbar` (line 662, linear-gradient teal-2->teal) and `.capture-entry` (line 161, linear-gradient 135deg #0C4C60->#12667F).",
+        "app_file": "src/screens/HomeTab.tsx lines 114 & 261 (healthFill/healthBar); also wkbar line 290, capture line 237",
+        "current": "healthFill uses a single solid color (colors.yellow2 or #E5654B); healthBar track has no inset shadow; week bars use solid colors.teal2; capture card uses solid colors.teal.",
+        "expected": "Health fill, week bars and the capture card use two-stop gradients per the proto; the health track has a subtle inset shadow.",
+        "fix": "Use expo-linear-gradient (or react-native-svg) for healthFill (yellow2->yellow, and #E5654B->#F09A6E when health<40), the wkbar (teal2->teal, 180deg), and the capture background (135deg teal->teal2); add an inner shadow/overlay to healthBar. If gradients are deliberately out of scope, at minimum this is the known fidelity gap."
+      },
+      {
+        "severity": "low",
+        "title": "Journey strip icon fallback is 'crown' where proto uses 'sparkle'",
+        "proto_evidence": "Line 1657: `${ic(nextMilestone()?(nextMilestone().ic||'sparkle'):'crown',16)}` — when a milestone exists but has no `ic`, proto falls back to 'sparkle'; only when there is no next milestone does it use 'crown'.",
+        "app_file": "src/screens/HomeTab.tsx line 127",
+        "current": "name={(nm?.ic as any) || 'crown'} — when nm exists but nm.ic is falsy, this yields 'crown' instead of 'sparkle'.",
+        "expected": "nm ? (nm.ic || 'sparkle') : 'crown'.",
+        "fix": "Change to name={nm ? ((nm.ic as any) || 'sparkle') : 'crown'}. (Latent: all current JOURNEY entries define `ic`, so it only surfaces if a milestone without an icon is added.)"
+      },
+      {
+        "severity": "low",
+        "title": "Capture '+' badge missing its 3px offset shadow (button bevel)",
+        "proto_evidence": "CSS line 166: `.capture-entry .ce-plus{...box-shadow:0 3px 0 var(--orange-2);}` — a solid 3px orange-2 offset giving the plus button a raised look.",
+        "app_file": "src/screens/HomeTab.tsx line 241 (styles.cePlus)",
+        "current": "cePlus has orange background but no offset shadow, so it reads flat.",
+        "expected": "A hard 3px downward shadow in colors.orange2 beneath the plus badge.",
+        "fix": "Add a shadow/border-bottom effect to cePlus emulating `0 3px 0 #C9773A` (e.g. borderBottomWidth or a shadow with 0 blur, offsetY 3, color orange2)."
+      },
+      {
+        "severity": "low",
+        "title": "Mood tag and several card paddings are 1-2px off the proto",
+        "proto_evidence": "moodtag CSS line 232: `padding:6px 12px;...font-size:12.5px`. Card paddings: `.card` inline for care card `padding:14px 16px` (line 1639); `.goalcard{padding:14px 16px}` (line 818); `.wkcard{padding:15px 16px}` (line 656); `.jstrip{padding:12px 14px}` (line 778); `.wkbars{margin:16px 0 10px}` (line 660).",
+        "app_file": "src/screens/HomeTab.tsx (moodtag line 243; careCard 254; goalcard 275; week Card 169; jstrip 269; wkbars 288)",
+        "current": "moodtag paddingVertical 5 / horizontal 11 and Txt size 12; careCard/goalcard/week Card all use padding:16 (16 vertical); jstrip padding:12 (horizontal 12); wkbars marginVertical 12.",
+        "expected": "moodtag 6/12 with 12.5px text; careCard & goalcard 14 vertical / 16 horizontal; week card 15 vertical / 16 horizontal; jstrip 12 vertical / 14 horizontal; wkbars 16 top / 10 bottom.",
+        "fix": "Set moodtag paddingVertical:6, paddingHorizontal:12 and its Txt size 12.5; careCard/goalcard {paddingVertical:14,paddingHorizontal:16}; week Card {paddingVertical:15,paddingHorizontal:16}; jstrip {paddingVertical:12,paddingHorizontal:14}; wkbars {marginTop:16,marginBottom:10}."
+      },
+      {
+        "severity": "low",
+        "title": "Week card hides the 'Best in the...' tag and strongest-day line at zero data (empty-state divergence, likely intentional)",
+        "proto_evidence": "homeWeekCard() lines 1697 & 1699 render `<div class=\"wktag\">...Best in the ${...}</div>` and `<div class=\"wksub\">${bestName} was your strongest day. Tap for the full breakdown.</div>` UNCONDITIONALLY.",
+        "app_file": "src/screens/HomeTab.tsx lines 175-180 (wktag) and line 190 (wksub)",
+        "current": "wktag is gated behind `wkTotal > 0` and the strongest-day sentence is replaced with 'Finish a focus session to start your week.' when wkTotal===0.",
+        "expected": "Proto always shows the tag and 'X was your strongest day' copy.",
+        "fix": "This appears to be the deliberate genuine-empty-state / honest-copy behavior from commits #18/#19 (proto's own code would render 'undefined was your strongest day' at true zero, which the app fixed). Recommend confirming it is intentional rather than reverting to proto; flagged only for completeness."
+      },
+      {
+        "severity": "low",
+        "title": "Plan sheet opens an empty-state instead of the proto's 'Add a quest first' toast-and-don't-open",
+        "proto_evidence": "openPlan guards up front: `if(!active.length){toast('Add a quest first');return;}` (lines 1770-1771) — the dialog never opens when there are no active quests.",
+        "app_file": "src/screens/PlanSheet.tsx (in-sheet empty state, lines 31-39) and QuestsTab.tsx (openOverlay('plan') has no guard)",
+        "current": "With no active quests, tapping Plan opens the sheet showing a 'No quests to plan yet' empty state.",
+        "expected": "No sheet opens; a toast 'Add a quest first' is shown instead.",
+        "fix": "Guard the plan entry points (show toast('Add a quest first') and skip openOverlay when active.length===0) and remove the in-sheet empty state to match the proto."
+      },
+      {
+        "severity": "low",
+        "title": "Plan sheet 'Clear' leaves the sheet open; the proto's Clear also closes the dialog",
+        "proto_evidence": "openPlan Clear button: `onclick=\"S.plan=[];closeDialog();if(S.tab==='home')renderHome()\"` (line 1775) — it clears the plan AND closes.",
+        "app_file": "src/screens/PlanSheet.tsx (clear(), lines 19-22; button line 65)",
+        "current": "clear() toggles off every selected quest but does not close the sheet, so the sheet stays open with all rows unchecked.",
+        "expected": "Clear empties the plan and closes the sheet.",
+        "fix": "Call closeOverlay() after clearing in PlanSheet.tsx clear()."
+      },
+      {
+        "severity": "low",
+        "title": "'In progress' empty-state uses ASCII '+' instead of the proto's fullwidth '＋'",
+        "proto_evidence": "renderQuests empty state: `Tap the card above (or the ＋ button) to add your first quest.` (line 1721) uses fullwidth plus U+FF0B.",
+        "app_file": "src/screens/QuestsTab.tsx (line 123)",
+        "current": "Copy reads 'Tap the card above (or the + button) to add your first quest.' with an ASCII '+'.",
+        "expected": "Same sentence with the fullwidth '＋' character, matching the proto.",
+        "fix": "Replace '+' with '＋' in the empty-state Txt in QuestsTab.tsx."
+      },
+      {
+        "severity": "low",
+        "title": "Quick add / Brain dump mode switch swaps instantly; the proto height-morphs and fades the body",
+        "proto_evidence": ".capbody{overflow:hidden;transition:height .28s cubic-bezier(.2,.8,.2,1);} plus .capbody.capout (opacity 0, translateY 5px) and .capbody.capin animation capfade (lines 172-175); capSetMode animates old->new height with the out/in classes (lines 1562-1590).",
+        "app_file": "src/screens/CaptureSheet.tsx (goMode only animates the toggle pill; the body is a plain conditional swap, lines 143-237)",
+        "current": "Switching modes instantly replaces the body content with no height animation or cross-fade.",
+        "expected": "The body animates its height between the two layouts and fades/slides the outgoing/incoming content (capout -> capin).",
+        "fix": "Animate the capbody container height and apply a short fade/translateY on content swap in goMode, matching the .capbody capout/capin transitions."
+      },
+      {
+        "severity": "low",
+        "title": "Section headers use symmetric 12px vertical margins; the proto uses 18px top / 10px bottom",
+        "proto_evidence": ".shead{display:flex;align-items:center;justify-content:space-between;margin:18px 2px 10px;} (line 251).",
+        "app_file": "src/screens/QuestsTab.tsx (styles.shead: marginVertical:12, line 174) — also HomeTab.tsx",
+        "current": "shead uses marginVertical:12 (12 top, 12 bottom).",
+        "expected": "18px top margin and 10px bottom margin (2px horizontal).",
+        "fix": "Set styles.shead to marginTop:18, marginBottom:10, marginHorizontal:2 in QuestsTab.tsx (and HomeTab.tsx)."
+      },
+      {
+        "severity": "low",
+        "title": "Journey progress bar uses a flat fill color and is inconsistent between screens",
+        "proto_evidence": "`.jprogfill{... background:linear-gradient(90deg,#8580B0,#B0A9D8);}` — one gradient used for both the Pet home card and the Journey list (CSS line 789).",
+        "app_file": "src/screens/PetTab.tsx (styles.jprogfill, line 280) and src/screens/JourneyScreen.tsx (styles.jprogfill, line 151)",
+        "current": "PetTab fills with flat `#8580B0`; JourneyScreen fills with flat `#B0A9D8` — two different flat colors, neither a gradient.",
+        "expected": "Both bars should use the same left-to-right gradient from #8580B0 to #B0A9D8.",
+        "fix": "Render the fill with a shared LinearGradient (or a consistent single color) in both files so the two progress bars match the prototype and each other."
+      },
+      {
+        "severity": "low",
+        "title": "Shop segment tabs scroll with content instead of sitting in a fixed white bar",
+        "proto_evidence": "`.segtabs{... padding:12px 16px 4px; background:#fff;}` sits above the scroll region, with the grid inside a separate `<div class=\"scroll\">` (CSS line 332; markup lines 986-991).",
+        "app_file": "src/screens/ShopScreen.tsx (segtabs rendered inside OverlayScreen ScrollView, lines 98-109; styles.segtabs line 226)",
+        "current": "The Food/Companions/Wardrobe tab row is the first item inside the scrollable body over the cream background, so it scrolls away and has no white bar.",
+        "expected": "The tab row should render as a fixed white bar directly under the header (background #fff, padding 12/16/4), with only the card grid scrolling beneath it.",
+        "fix": "Render the segtabs outside the OverlayScreen scroll body (e.g. via a header/fixed slot) with a white background, and put only the grid inside the ScrollView."
+      },
+      {
+        "severity": "low",
+        "title": "Journey 'next' milestone row missing its purple glow shadow",
+        "proto_evidence": "`.jrow.next{border-color:#8580B0;box-shadow:0 4px 14px rgba(133,128,176,.18);}` (CSS line 803).",
+        "app_file": "src/screens/JourneyScreen.tsx (styles.jrowNext, line 166)",
+        "current": "The next row only sets `borderColor: '#8580B0'`; no elevated colored shadow.",
+        "expected": "The next milestone row should also carry a soft purple drop shadow (rgba(133,128,176,.18), y4 blur14) to stand out.",
+        "fix": "Add a shadow/elevation to jrowNext approximating shadowColor '#8580B0', shadowOpacity ~0.18, shadowRadius 14, shadowOffset {0,4}."
+      },
+      {
+        "severity": "low",
+        "title": "PetTab wardrobe 'Wearing' tag lacks the 3D lip the shop button has",
+        "proto_evidence": "The Pet-tab wardrobe reuses the shop `.buy` classes: `.buy.equipped{background:var(--teal);box-shadow:0 4px 0 #072f3d;}` and `.buy.equip{... box-shadow:0 0 0 1.5px var(--line-2) inset;}` (CSS lines 346-347; markup lines 2313, 2316).",
+        "app_file": "src/screens/PetTab.tsx (WearTag, lines 245-251)",
+        "current": "WearTag renders a flat teal pill for 'Wearing' and a flat bordered pill for 'Wear' with no bottom lip, unlike the shop's BuyButton which recreates the `0 4px 0` lip.",
+        "expected": "The 'Wearing' state should show the teal button with a darker bottom lip (as in the shop), matching the shared `.buy.equipped` look.",
+        "fix": "Reuse the shop BuyButton's lip treatment (shade layer + translateY on press) for the equipped state in WearTag, or render it via the same shared button component."
+      },
+      {
+        "severity": "low",
+        "title": "Top-bar sound icon turns orange when active; proto keeps it teal",
+        "proto_evidence": "Line 299 `.iconbtn svg{...stroke:var(--teal);...}` is constant, and the Soundscape button (line 946) has no active/colored state.",
+        "app_file": "src/screens/FocusScreen.tsx (line 331)",
+        "current": "`color={soundId ? colors.orange : colors.teal}` — the speaker icon becomes orange whenever a soundscape is playing.",
+        "expected": "Icon stays teal regardless of soundscape state.",
+        "fix": "Use `color={colors.teal}`."
+      },
+      {
+        "severity": "low",
+        "title": "Timer/ring updates once per second instead of ~4x/sec (steppier ring)",
+        "proto_evidence": "Line 1918 `timer.raf=requestAnimationFrame(()=>setTimeout(tick,250));` — tick (and drawRing) runs roughly every 250ms, so the progress ring sweeps smoothly.",
+        "app_file": "src/screens/FocusScreen.tsx (line 214, `setInterval(tick, 1000)`)",
+        "current": "The tick runs once per second, so the ring offset jumps in 1-second steps.",
+        "expected": "~250ms update cadence for a smooth ring (time value is still timestamp-derived, so no drift).",
+        "fix": "Run the interval at 250ms (keep curRemaining timestamp math); mmss still only visibly changes each second while the ring animates smoothly."
+      },
+      {
+        "severity": "low",
+        "title": "Mode (Timer/Pomodoro) is not remembered between sessions",
+        "proto_evidence": "fxMode is a module-global that persists: line 1828 `let fxMode='standard';`, startFocus adopts it (line 1834 `mode:fxMode`), and setFxMode writes it back (line 1866). So re-opening Focus reuses the last-chosen mode.",
+        "app_file": "src/screens/FocusScreen.tsx (line 86, `useState<Mode>('standard')`)",
+        "current": "Mode resets to 'standard' (Timer) every time the Focus screen mounts.",
+        "expected": "Re-opening Focus starts in whichever mode was last used.",
+        "fix": "Persist the last mode at module/store level and initialize useState from it (update it in setFxMode)."
+      },
+      {
+        "severity": "low",
+        "title": "'Skip to end (demo)' shortcut is hidden in production; proto always shows it",
+        "proto_evidence": "Line 971 `<div class=\"fx-preview\"><button onclick=\"previewFinish()\">... Skip to end (demo)</button></div>` is rendered unconditionally in the prototype.",
+        "app_file": "src/screens/FocusScreen.tsx (lines 400-409)",
+        "current": "The Skip-to-end button is wrapped in `{__DEV__ && (...)}`, so it never appears in release builds.",
+        "expected": "Per the proto it is always visible. (Note: this is very likely an intentional production change per the repo's 'no demo affordances' history; flagged only for completeness.)",
+        "fix": "If strict 1:1 with the proto is required, drop the __DEV__ gate; otherwise leave as-is as an intentional divergence."
+      },
+      {
+        "severity": "low",
+        "title": "Selected avatar is missing the scale-up emphasis",
+        "proto_evidence": "prototype/pawductivity_v1.html L444: `.avpicker img.sel{border-color:var(--orange);transform:scale(1.04);}` (and L446 the same scale on the selected upload tile).",
+        "app_file": "src/screens/ProfileScreen.tsx (styles.avSel L339)",
+        "current": "`avSel: { borderColor: colors.orange }` only changes the border color; the selected avatar does not scale up.",
+        "expected": "The selected avatar tile should also scale to ~1.04 (subtle pop) in addition to the orange border.",
+        "fix": "Add `transform: [{ scale: 1.04 }]` to the avSel style (and apply the same to the custom-upload tile's selected state once added)."
+      },
+      {
+        "severity": "low",
+        "title": "Primary chart header caption shows the range label instead of proto's 'tap a bar'",
+        "proto_evidence": "line 3299 `<div class=\"shead\"><h3>${pd.title}</h3><span class=\"muted\" style=\"font-size:11px;font-weight:700\">tap a bar</span></div>`.",
+        "app_file": "src/screens/InsightsScreen.tsx (line 99)",
+        "current": "Right-side caption is `{rangeStatLbl.toLowerCase()}` → renders 'this week' / 'this month' / 'this year'.",
+        "expected": "Caption text 'tap a bar' (the affordance hint for the bar tooltip).",
+        "fix": "Replace `{rangeStatLbl.toLowerCase()}` with the literal 'tap a bar'."
+      },
+      {
+        "severity": "low",
+        "title": "8-week trend header caption reads 'trend' instead of 'tap a point'; trend points not tappable",
+        "proto_evidence": "line 3303 `<h3>8-week trend</h3><span class=\"muted\">tap a point</span>`; areaChart() line 3230 renders invisible r=12 hit circles per point `onclick=\"chartTip(this,'Week '+(i+1)+' · '+fmt(vals[i]*60))\"`.",
+        "app_file": "src/screens/InsightsScreen.tsx (line 121 caption; AreaChart lines 272-294)",
+        "current": "Caption is `<Txt>trend</Txt>`; AreaChart draws only the visible dots (r 2.5/4) with no tappable hit targets and no tooltip.",
+        "expected": "Caption 'tap a point'; each data point tappable, showing a tooltip like 'Week 3 · 1h 20m'.",
+        "fix": "Change the caption to 'tap a point' and add transparent r≈12 hit circles over each point wired to the shared tooltip."
+      },
+      {
+        "severity": "low",
+        "title": "Piled coins are static and unrotated - proto rotates each coin and animates pop-in + bob",
+        "proto_evidence": "prototype/pawductivity_v1.html L1352-1357: each COIN_SPOT carries a rotation `r` (e.g. `{l:37,b:7,s:26,r:-10}`), applied via `transform:rotate(${p.r}deg)` (L1361). CSS L698-700: `.pilecoin img{...animation:coinpop .42s ease-out backwards, coinbob 2.6s ease-in-out infinite;}` with staggered `animation-delay:${i*0.05}s` (L1361); keyframes coinpop/coinbob at L699-700.",
+        "app_file": "src/screens/HomeTab.tsx (COIN_SPOTS array L15-20 and coin Image render L87)",
+        "current": "App COIN_SPOTS omit the per-coin `r` rotation, and coins render as plain static Images with no rotation and no pop-in/bob animation, so the pile looks flat and uniform.",
+        "expected": "Each coin is rotated by its `r` value and animates a staggered pop-in plus a continuous gentle vertical bob.",
+        "fix": "Add the `r` field back to COIN_SPOTS and apply `transform:[{rotate: `${c.r}deg`}]` to each coin; drive a pop-in (scale/opacity) and looping bob (translateY +/-3px, ~2.6s) via Animated/Reanimated, staggered by index (~0.05s)."
+      },
+      {
+        "severity": "low",
+        "title": "Billing footnote drops the proto's 'Prices are illustrative.' sentence",
+        "proto_evidence": "prototype/pawductivity_v1.html L1018: `...Cancel anytime in Play Store subscriptions. Prices are illustrative.`",
+        "app_file": "src/screens/PremiumScreen.tsx (note Txt, L180-182)",
+        "current": "The app note ends at '...Cancel anytime in Play Store subscriptions.' and omits 'Prices are illustrative.' Even though live Play prices are fetched when billing is supported, the paywall still shows the hardcoded fallback prices (Rp 15.000 / Rp 119.000 / Rp 69.000) in Expo Go/web, so the illustrative caveat still applies there.",
+        "expected": "The footnote matches the proto and states the prices are illustrative (at least when the fallback catalog prices are being shown).",
+        "fix": "Append 'Prices are illustrative.' to the note in PremiumScreen.tsx L180-182, or render it conditionally when livePlans is empty (i.e. when fallbackPrice is displayed)."
+      },
+      {
+        "severity": "low",
+        "title": "Premium subtitle loses the proto's controlled two-line break",
+        "proto_evidence": "prototype/pawductivity_v1.html L1000: `Unlock every companion, outfit and deep insights.<br>Premium items still cost coins, which you earn by focusing.` - a hard `<br>` splits it into exactly two lines.",
+        "app_file": "src/screens/PremiumScreen.tsx (header subtitle Txt, L113-115)",
+        "current": "The subtitle is a single flowing centered string ('Unlock every companion, outfit and deep insights. Premium items still cost coins, which you earn by focusing.') with no forced break, so it wraps to whatever line count the width allows rather than the proto's deliberate 2-line layout.",
+        "expected": "Two centered lines: sentence one on line 1, sentence two on line 2, matching the proto's `<br>`.",
+        "fix": "Insert an explicit newline between the two sentences (e.g. include a `\\n`, or render two Txt lines) so the break lands exactly as in the proto."
+      }
+    ]
+  },
+  "workflowProgress": [
+    {
+      "type": "workflow_phase",
+      "index": 1,
+      "title": "Audit"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 1,
+      "label": "audit:Overlay/screen animation",
+      "phaseIndex": 1,
+      "phaseTitle": "Audit",
+      "agentId": "aa8f3aacc750aa9e7",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1784977863659,
+      "queuedAt": 1784977859564,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "You are auditing a React Native app for 1:1 fidelity against its ORIGINAL prototype\nat prototype/pawductivity_v1.html (a 3448-line self-contained HTML/CSS/JS mockup) which is the SOURCE OF\nTRUTH. The app lives in src/. Find every place the app DIVERGES from the prototype:\nmissing features, wrong flows, wrong animations (the proto uses slide up/down\ntransitions via CSS transform/translateY + keyfra…",
+      "lastProgressAt": 1784978164630,
+      "tokens": 88636,
+      "toolCalls": 28,
+      "durationMs": 300971,
+      "resultPreview": "{\"findings\":[{\"severity\":\"high\",\"title\":\"Full-screen overlays have NO exit (slide-down) animation; they vanish instantly\",\"proto_evidence\":\"closeSlide() (line 3418-3428) removes 'slide-up' and adds 'slide-down', waiting 250ms before removing 'active'. CSS line 59 `.slide-down{animation:slidedown .26s cubic-bezier(.4,0,.9,.5) both;}` + line 62 `@keyframes slidedown{from{transform:none}to{transform:…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 2,
+      "label": "audit:Onboarding + Google sign",
+      "phaseIndex": 1,
+      "phaseTitle": "Audit",
+      "agentId": "a0684ad21fbfc3aa6",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1784977862536,
+      "queuedAt": 1784977859565,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "You are auditing a React Native app for 1:1 fidelity against its ORIGINAL prototype\nat prototype/pawductivity_v1.html (a 3448-line self-contained HTML/CSS/JS mockup) which is the SOURCE OF\nTRUTH. The app lives in src/. Find every place the app DIVERGES from the prototype:\nmissing features, wrong flows, wrong animations (the proto uses slide up/down\ntransitions via CSS transform/translateY + keyfra…",
+      "lastProgressAt": 1784978220479,
+      "tokens": 115741,
+      "toolCalls": 23,
+      "durationMs": 357943,
+      "resultPreview": "{\"findings\":[{\"severity\":\"high\",\"title\":\"Sign-out skips the confirmation sheet and its unsynced-changes safeguard\",\"proto_evidence\":\"prototype/pawductivity_v1.html L2925-2935 signOutAsk()/doSignOut(): opens dialog '<h3>Sign out?</h3><p class=\\\"d-sub\\\">Your data stays on this device...'; when c.pending>0 it injects an orange warning `${c.pending} change(s) are not backed up yet. Sync before signing…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 3,
+      "label": "audit:Home tab",
+      "phaseIndex": 1,
+      "phaseTitle": "Audit",
+      "agentId": "a9ca2a76cab77e804",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1784977863392,
+      "queuedAt": 1784977859565,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "You are auditing a React Native app for 1:1 fidelity against its ORIGINAL prototype\nat prototype/pawductivity_v1.html (a 3448-line self-contained HTML/CSS/JS mockup) which is the SOURCE OF\nTRUTH. The app lives in src/. Find every place the app DIVERGES from the prototype:\nmissing features, wrong flows, wrong animations (the proto uses slide up/down\ntransitions via CSS transform/translateY + keyfra…",
+      "lastProgressAt": 1784978113309,
+      "tokens": 69530,
+      "toolCalls": 18,
+      "durationMs": 249916,
+      "resultPreview": "{\"findings\":[{\"severity\":\"medium\",\"title\":\"Idle coin pile is static — missing pop-in, bob, rotation and drop-shadow animations\",\"proto_evidence\":\"coinPile() line 1361 renders each coin with transform:rotate(${p.r}deg) and a staggered animation-delay:${(i*0.05)}s; COIN_SPOTS (lines 1352-1357) each carry an `r` rotation value; CSS lines 697-700: `.pilecoin img{...animation:coinpop .42s ease-out back…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 4,
+      "label": "audit:Quests tab + capture she",
+      "phaseIndex": 1,
+      "phaseTitle": "Audit",
+      "agentId": "ace34f4f250cc0e3c",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1784977861977,
+      "queuedAt": 1784977859566,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "You are auditing a React Native app for 1:1 fidelity against its ORIGINAL prototype\nat prototype/pawductivity_v1.html (a 3448-line self-contained HTML/CSS/JS mockup) which is the SOURCE OF\nTRUTH. The app lives in src/. Find every place the app DIVERGES from the prototype:\nmissing features, wrong flows, wrong animations (the proto uses slide up/down\ntransitions via CSS transform/translateY + keyfra…",
+      "lastProgressAt": 1784978268766,
+      "tokens": 92172,
+      "toolCalls": 17,
+      "durationMs": 406786,
+      "resultPreview": "{\"findings\":[{\"severity\":\"high\",\"title\":\"Quests tab shows a \\\"Today's focus goal\\\" ring card that the proto's Quests screen does not contain\",\"proto_evidence\":\"renderQuests (lines 1705-1724) renders ONLY: topbar, capture-entry, `<div class=\\\"shead\\\"><h3>In progress</h3>...`, and `Completed today`. The goalcard (`<div class=\\\"goalcard card\\\" onclick=\\\"openGoal()\\\">`, line 1665) exists only inside r…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 5,
+      "label": "audit:Pet tab + Journey + Shop",
+      "phaseIndex": 1,
+      "phaseTitle": "Audit",
+      "agentId": "a21cdb114d5906189",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1784977863089,
+      "queuedAt": 1784977859566,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "You are auditing a React Native app for 1:1 fidelity against its ORIGINAL prototype\nat prototype/pawductivity_v1.html (a 3448-line self-contained HTML/CSS/JS mockup) which is the SOURCE OF\nTRUTH. The app lives in src/. Find every place the app DIVERGES from the prototype:\nmissing features, wrong flows, wrong animations (the proto uses slide up/down\ntransitions via CSS transform/translateY + keyfra…",
+      "lastProgressAt": 1784978213131,
+      "tokens": 114667,
+      "toolCalls": 29,
+      "durationMs": 350042,
+      "resultPreview": "{\"findings\":[{\"severity\":\"high\",\"title\":\"Shop purchase confirmation dialog is missing entirely (buy commits instantly)\",\"proto_evidence\":\"tryBuy opens a confirmation sheet before committing: `openDialog(buyDialog(img,name,price,premium,'', '<button ... onclick=\\\"closeDialog()\\\">Cancel</button><button ... onclick=\\\"confirmBuy()\\\">Buy now</button>'))` (line 2431-2432); buyDialog shows art, name, a P…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 6,
+      "label": "audit:Calendar + reminders + N",
+      "phaseIndex": 1,
+      "phaseTitle": "Audit",
+      "agentId": "af1cc2c7c4012c4b2",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1784977865027,
+      "queuedAt": 1784977859566,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "You are auditing a React Native app for 1:1 fidelity against its ORIGINAL prototype\nat prototype/pawductivity_v1.html (a 3448-line self-contained HTML/CSS/JS mockup) which is the SOURCE OF\nTRUTH. The app lives in src/. Find every place the app DIVERGES from the prototype:\nmissing features, wrong flows, wrong animations (the proto uses slide up/down\ntransitions via CSS transform/translateY + keyfra…",
+      "lastProgressAt": 1784978118756,
+      "tokens": 85892,
+      "toolCalls": 15,
+      "durationMs": 253729,
+      "resultPreview": "{\"findings\":[{\"severity\":\"high\",\"title\":\"New reminder sheet is missing the entire Date picker (mini calendar)\",\"proto_evidence\":\"addReminder() dialog (proto L2676-2677) renders a Date section: `<p class=\\\"label\\\" style=\\\"margin-top:14px\\\">Date</p><div id=\\\"remCalHost\\\" class=\\\"calbody\\\">${remMiniCal()}</div>`, backed by remMiniCal() (L2697-2723) — a full swipeable mini-calendar with month/year pic…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 7,
+      "label": "audit:Focus / timer internals",
+      "phaseIndex": 1,
+      "phaseTitle": "Audit",
+      "agentId": "afd31ed7cf16e013b",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1784977862308,
+      "queuedAt": 1784977859566,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "You are auditing a React Native app for 1:1 fidelity against its ORIGINAL prototype\nat prototype/pawductivity_v1.html (a 3448-line self-contained HTML/CSS/JS mockup) which is the SOURCE OF\nTRUTH. The app lives in src/. Find every place the app DIVERGES from the prototype:\nmissing features, wrong flows, wrong animations (the proto uses slide up/down\ntransitions via CSS transform/translateY + keyfra…",
+      "lastProgressAt": 1784978201300,
+      "tokens": 122320,
+      "toolCalls": 22,
+      "durationMs": 338992,
+      "resultPreview": "{\"findings\":[{\"severity\":\"medium\",\"title\":\"Focus-screen pet animation speed ignores mood (tied to running state instead)\",\"proto_evidence\":\"mountPet sets the Lottie speed from pet mood: line 1407 `a.setSpeed(moodOf(S.pet.health).spd);`, and the focus pet is mounted the same way at line 1845 `mountPet($('fxPet'),200);`. moodOf spd = 0.6..1.25 by health (lines 1324-1328). The proto never changes pet…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 8,
+      "label": "audit:Profile menu structure +",
+      "phaseIndex": 1,
+      "phaseTitle": "Audit",
+      "agentId": "aaa18c6f352e414da",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1784977862232,
+      "queuedAt": 1784977859566,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "You are auditing a React Native app for 1:1 fidelity against its ORIGINAL prototype\nat prototype/pawductivity_v1.html (a 3448-line self-contained HTML/CSS/JS mockup) which is the SOURCE OF\nTRUTH. The app lives in src/. Find every place the app DIVERGES from the prototype:\nmissing features, wrong flows, wrong animations (the proto uses slide up/down\ntransitions via CSS transform/translateY + keyfra…",
+      "lastProgressAt": 1784978137505,
+      "tokens": 77338,
+      "toolCalls": 25,
+      "durationMs": 275273,
+      "resultPreview": "{\"findings\":[{\"severity\":\"high\",\"title\":\"Custom profile-picture upload (Premium) is entirely missing from the picker\",\"proto_evidence\":\"prototype/pawductivity_v1.html L2991-2996: avpicker renders the 7 avatars PLUS `<button class=\\\"avup ${p.avatar===-1?'sel':''}\\\" onclick=\\\"pickAvatarFile()\\\">` showing either the custom photo or a plus icon, with a `<span class=\\\"avcrown\\\">${ic('crown',10)}</span>…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 9,
+      "label": "audit:Insights + Recap charts",
+      "phaseIndex": 1,
+      "phaseTitle": "Audit",
+      "agentId": "ae2c7bdf4ed77a5f9",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1784977863883,
+      "queuedAt": 1784977859570,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "You are auditing a React Native app for 1:1 fidelity against its ORIGINAL prototype\nat prototype/pawductivity_v1.html (a 3448-line self-contained HTML/CSS/JS mockup) which is the SOURCE OF\nTRUTH. The app lives in src/. Find every place the app DIVERGES from the prototype:\nmissing features, wrong flows, wrong animations (the proto uses slide up/down\ntransitions via CSS transform/translateY + keyfra…",
+      "lastProgressAt": 1784978094940,
+      "tokens": 80962,
+      "toolCalls": 15,
+      "durationMs": 231057,
+      "resultPreview": "{\"findings\":[{\"severity\":\"high\",\"title\":\"Insights premium dashboard is missing three whole chart sections (day×time heat, 12-week heatmap, pet-stats chart)\",\"proto_evidence\":\"renderInsights() 'pro' block: line 3307-3309 `<h3>When you focus</h3>...day × time` + `dayHourHeat(ins.dayhour)`; line 3311-3313 `<h3>Focus heatmap</h3>...last 12 weeks` + `heatGrid(ins.heat)` with a `heatkey` Less/More legen…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 10,
+      "label": "audit:Premium + billing (real",
+      "phaseIndex": 1,
+      "phaseTitle": "Audit",
+      "agentId": "a19ae5290f42edc86",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1784977864426,
+      "queuedAt": 1784977859570,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "You are auditing a React Native app for 1:1 fidelity against its ORIGINAL prototype\nat prototype/pawductivity_v1.html (a 3448-line self-contained HTML/CSS/JS mockup) which is the SOURCE OF\nTRUTH. The app lives in src/. Find every place the app DIVERGES from the prototype:\nmissing features, wrong flows, wrong animations (the proto uses slide up/down\ntransitions via CSS transform/translateY + keyfra…",
+      "lastProgressAt": 1784978253846,
+      "tokens": 104606,
+      "toolCalls": 30,
+      "durationMs": 389420,
+      "resultPreview": "{\"findings\":[{\"severity\":\"high\",\"title\":\"Premium screen shows a duplicate title and an extra white header bar the proto does not have\",\"proto_evidence\":\"prototype/pawductivity_v1.html L995-1001: the #premium screen goes straight into a full-bleed teal gradient header `<div class=\\\"pbg\\\">` (CSS L464: padding calc(22px + env(safe-area-inset-top))) that contains an absolutely-positioned back button (…"
+    }
+  ],
+  "totalTokens": 951864,
+  "totalToolCalls": 222
+}

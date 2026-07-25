@@ -29,11 +29,11 @@ function SplashRoute({ navigation }: any) {
   return <SplashScreen onDone={() => setTimeUp(true)} />;
 }
 
-// Overlay screens (Focus/Shop/Premium/etc.) are added here in later PRs with
-// animation: 'slide_from_bottom' to match the prototype's slide-up sheets.
+// Top-level flow. Screens slide up (slide_from_bottom) to match the prototype's
+// slide-up transitions; overlays/sheets get the same treatment via OverlayHost.
 export function RootNavigator() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
+    <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_bottom' }}>
       <Stack.Screen name="Splash" component={SplashRoute} />
       <Stack.Screen name="Onboarding">
         {({ navigation }) => <OnboardingScreen onComplete={() => navigation.replace('Main')} />}

@@ -9,7 +9,7 @@ import { isDone, fmt } from '../domain/mechanics';
 
 // Plan today sheet: pick up to 3 not-done quests to focus on today.
 // Ported 1:1 from the prototype openPlan/planRows (proto.clean.js 670-692).
-export function PlanSheet() {
+export function PlanSheet({ visible = true }: { visible?: boolean; param?: any }) {
   const s = useStore((st) => st.state)!;
   const closeOverlay = useStore((st) => st.closeOverlay);
   const togglePlan = useStore((st) => st.togglePlan);
@@ -23,7 +23,7 @@ export function PlanSheet() {
 
   return (
     <BottomSheet
-      visible
+      visible={visible}
       onClose={closeOverlay}
       title="Plan today"
       subtitle="Pick up to 3 to focus on today. We'll line them up smallest first, so starting is easy."

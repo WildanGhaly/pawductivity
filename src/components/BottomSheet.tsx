@@ -1,10 +1,14 @@
-import React, { ReactNode } from 'react';
-import { Modal, View, Pressable, StyleSheet, ScrollView } from 'react-native';
+import React, { ReactNode, useEffect, useRef, useState } from 'react';
+import { Modal, View, Pressable, StyleSheet, ScrollView, Animated, Easing, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../theme/tokens';
 import { Txt } from './ui';
 
-// Slide-up bottom sheet matching the prototype dialog (grip, rounded top, scrim).
+const H = Dimensions.get('window').height;
+
+// Slide-up bottom sheet matching the prototype dialog: scrim fades in while the sheet
+// slides up from the bottom (proto .slide-up), and slides back down on close
+// (proto .slide-down). Never a plain fade.
 export function BottomSheet({
   visible,
   onClose,
@@ -19,10 +23,34 @@ export function BottomSheet({
   children: ReactNode;
 }) {
   const insets = useSafeAreaInsets();
+  const anim = useRef(new Animated.Value(0)).current; // 0 hidden, 1 shown
+  const [render, setRender] = useState(visible);
+
+  useEffect(() => {
+    if (visible) {
+      setRender(true);
+      Animated.timing(anim, {
+        toValue: 1, duration: 320, easing: Easing.bezier(0.2, 0.8, 0.2, 1), useNativeDriver: true,
+      }).start();
+    } else if (render) {
+      Animated.timing(anim, {
+        toValue: 0, duration: 240, easing: Easing.bezier(0.4, 0, 0.9, 0.5), useNativeDriver: true,
+      }).start(({ finished }) => finished && setRender(false));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
+
+  if (!render) return null;
+
+  const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [H, 0] });
+
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
-      <Pressable style={styles.scrim} onPress={onClose}>
-        <Pressable style={[styles.dialog, { paddingBottom: 22 + insets.bottom }]} onPress={() => {}}>
+    <Modal visible transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
+      <Animated.View style={[styles.scrim, { opacity: anim }]}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        <Animated.View
+          style={[styles.dialog, { paddingBottom: 22 + insets.bottom, transform: [{ translateY }] }]}
+        >
           <View style={styles.grip} />
           {title ? (
             <Txt weight={700} size={19} color={colors.tealInk} style={{ textAlign: 'center', marginBottom: 4 }}>
@@ -35,8 +63,8 @@ export function BottomSheet({
             </Txt>
           ) : null}
           <ScrollView bounces={false} showsVerticalScrollIndicator={false}>{children}</ScrollView>
-        </Pressable>
-      </Pressable>
+        </Animated.View>
+      </Animated.View>
     </Modal>
   );
 }

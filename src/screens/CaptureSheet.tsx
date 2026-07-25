@@ -68,7 +68,7 @@ function parseText(raw: string): ParsedQuest[] {
   return made;
 }
 
-export function CaptureSheet() {
+export function CaptureSheet({ visible = true }: { visible?: boolean; param?: any }) {
   const closeOverlay = useStore((st) => st.closeOverlay);
   const addQuest = useStore((st) => st.addQuest);
   const addQuests = useStore((st) => st.addQuests);
@@ -117,7 +117,7 @@ export function CaptureSheet() {
   };
 
   return (
-    <BottomSheet visible onClose={closeOverlay} title="Add a quest">
+    <BottomSheet visible={visible} onClose={closeOverlay} title="Add a quest">
       {/* mode toggle */}
       <View style={styles.capmode} onLayout={(e) => setBarW(e.nativeEvent.layout.width)}>
         {pillW > 0 ? (
