@@ -130,6 +130,38 @@ export function InsightsScreen() {
         </Txt>
       </Card>
 
+      {/* when you focus - day x time heat */}
+      <View style={styles.shead}>
+        <Txt weight={700} size={16} color={colors.tealInk}>When you focus</Txt>
+        <Txt weight={700} size={11} color={colors.muted}>day × time</Txt>
+      </View>
+      <Card style={{ padding: 14 }}>
+        <HeatGrid vals={ins.dayhour} cols={8} />
+      </Card>
+
+      {/* focus heatmap - last 12 weeks */}
+      <View style={styles.shead}>
+        <Txt weight={700} size={16} color={colors.tealInk}>Focus heatmap</Txt>
+        <Txt weight={700} size={11} color={colors.muted}>last 12 weeks</Txt>
+      </View>
+      <Card style={{ padding: 14 }}>
+        <HeatGrid vals={ins.heat} cols={12} />
+        <View style={styles.heatkey}>
+          <Txt weight={600} size={11} color={colors.muted}>Less</Txt>
+          {[0, 1, 2, 3, 4].map((l) => <View key={l} style={[styles.heatcellKey, { backgroundColor: HEAT[l] }]} />)}
+          <Txt weight={600} size={11} color={colors.muted}>More</Txt>
+        </View>
+      </Card>
+
+      {/* pet stats */}
+      <View style={styles.shead}>
+        <Txt weight={700} size={16} color={colors.tealInk}>{s.pet.name}'s stats</Txt>
+        <Txt weight={700} size={11} color={colors.muted}>health</Txt>
+      </View>
+      <Card style={{ paddingTop: 14, paddingBottom: 10, paddingHorizontal: 14 }}>
+        <AreaChart vals={ins.petHealth.length ? ins.petHealth : [0, 0]} />
+      </Card>
+
       {/* best time of day */}
       <View style={styles.shead}>
         <Txt weight={700} size={16} color={colors.tealInk}>Best time of day</Txt>
@@ -269,6 +301,27 @@ function VBars({ items, best, max, tall }: { items: Bar[]; best: number; max: nu
   );
 }
 
+const HEAT = ['#EFE7D6', '#CFE2E8', '#8FC0CC', '#3E8DA0', colors.teal];
+
+// A rows x cols heat grid: values are bucketed into 5 intensity levels (proto .hcell).
+function HeatGrid({ vals, cols }: { vals: number[]; cols: number }) {
+  const max = Math.max(...vals, 1);
+  const level = (v: number) => (v <= 0 ? 0 : Math.min(4, 1 + Math.floor((v / max) * 3.99)));
+  const rows: number[][] = [];
+  for (let i = 0; i < vals.length; i += cols) rows.push(vals.slice(i, i + cols));
+  return (
+    <View style={{ gap: 4 }}>
+      {rows.map((row, r) => (
+        <View key={r} style={{ flexDirection: 'row', gap: 4 }}>
+          {row.map((v, c) => (
+            <View key={c} style={[styles.heatcell, { backgroundColor: HEAT[level(v)] }]} />
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+}
+
 function AreaChart({ vals }: { vals: number[] }) {
   const w = 300, h = 94, pad = 8;
   const max = Math.max(...vals, 1);
@@ -337,6 +390,9 @@ const styles = StyleSheet.create({
   ibarcol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', height: '100%', gap: 7 },
   ibar: { width: '100%', maxWidth: 26, backgroundColor: colors.teal2, borderTopLeftRadius: 7, borderTopRightRadius: 7, borderBottomLeftRadius: 3, borderBottomRightRadius: 3 },
   ibarBest: { backgroundColor: colors.orange },
+  heatcell: { flex: 1, aspectRatio: 1, borderRadius: 3 },
+  heatcellKey: { width: 14, height: 14, borderRadius: 3 },
+  heatkey: { flexDirection: 'row', alignItems: 'center', gap: 5, justifyContent: 'flex-end', marginTop: 10 },
   icat: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingVertical: 8 },
   catdot: { width: 6, height: 6, borderRadius: 3 },
   icatn: { width: 64 },
