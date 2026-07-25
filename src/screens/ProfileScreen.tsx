@@ -2,12 +2,14 @@ import React, { ReactNode, useState } from 'react';
 import { View, StyleSheet, Pressable, Image, TextInput, Linking } from 'react-native';
 import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { colors, radius, shadow, fontFor } from '../theme/tokens';
-import { Txt, Card } from '../components/ui';
+import { Txt, Card, Btn } from '../components/ui';
 import { Icon, IconName } from '../components/Icon';
 import { OverlayScreen } from '../components/OverlayScreen';
 import { BottomSheet } from '../components/BottomSheet';
-import { img, avatars } from '../assets/registry';
+import { img, avatars, avatarSrc } from '../assets/registry';
 import { useStore } from '../store/store';
 import { ACHIEVEMENTS, DISCORD_URL } from '../domain/catalogs';
 import { money } from '../domain/mechanics';
@@ -46,13 +48,32 @@ export function ProfileScreen() {
   const openOverlay = useStore((st) => st.openOverlay);
   const setName = useStore((st) => st.setName);
   const setAvatar = useStore((st) => st.setAvatar);
+  const setAvatarCustom = useStore((st) => st.setAvatarCustom);
   const toggleSetting = useStore((st) => st.toggleSetting);
   const resetData = useStore((st) => st.resetData);
   const showToast = useStore((st) => st.showToast);
+  const [upsellOpen, setUpsellOpen] = useState(false);
 
   const p = s.profile;
   const c = s.cloud;
   const pct = Math.round((p.xp / p.needed) * 100);
+
+  // Custom profile photo: Premium only. Non-premium users get an upsell; premium users
+  // pick + square-crop a photo, downscaled to 256px and stored as a data URI.
+  const onPickAvatar = async () => {
+    if (!p.premium) { setUpsellOpen(true); return; }
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.8,
+    });
+    if (res.canceled || !res.assets?.[0]) return;
+    try {
+      const m = await ImageManipulator.manipulateAsync(
+        res.assets[0].uri, [{ resize: { width: 256, height: 256 } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG, base64: true },
+      );
+      if (m.base64) { setAvatarCustom(`data:image/jpeg;base64,${m.base64}`); showToast('Profile picture updated'); }
+    } catch { showToast('Could not load that photo'); }
+  };
 
   const [nameOpen, setNameOpen] = useState(false);
   const [nameDraft, setNameDraft] = useState(p.name);
@@ -91,7 +112,7 @@ export function ProfileScreen() {
     <OverlayScreen title="Profile">
       {/* hero */}
       <LinearGradient colors={['#0C4C60', '#12667F']} start={{ x: 0, y: 0 }} end={{ x: 0.4, y: 1 }} style={styles.hero}>
-        <Image source={avatars[p.avatar] || img.catThumb} style={styles.heroAv} />
+        <Image source={avatarSrc(p.avatar, p.avatarCustom)} style={styles.heroAv} />
         <Txt weight={800} size={20} color="#fff" style={{ marginTop: 14 }}>{p.name}</Txt>
         <View style={[styles.badge, p.premium ? styles.badgePrem : styles.badgeBasic]}>
           {p.premium && <Icon name="crown" size={12} color="#7A4B00" />}
@@ -148,6 +169,16 @@ export function ProfileScreen() {
             <Image source={a} style={[styles.av, p.avatar === i && styles.avSel]} />
           </Pressable>
         ))}
+        <Pressable style={styles.avwrap} onPress={onPickAvatar}>
+          <View style={[styles.avup, p.avatar === -1 && styles.avupSel]}>
+            {p.avatar === -1 && p.avatarCustom ? (
+              <Image source={{ uri: p.avatarCustom }} style={styles.avupImg} />
+            ) : (
+              <Icon name="plus" size={22} color={colors.muted} strokeWidth={2.5} />
+            )}
+            <View style={styles.avcrown}><Icon name="crown" size={11} color="#7A4B00" /></View>
+          </View>
+        </Pressable>
       </View>
 
       {/* progress */}
@@ -252,6 +283,14 @@ export function ProfileScreen() {
           </Pressable>
         </View>
       </BottomSheet>
+
+      <BottomSheet visible={upsellOpen} onClose={() => setUpsellOpen(false)} title="Use your own photo"
+        subtitle="Custom profile pictures are part of Premium. The seven avatars stay free forever.">
+        <View style={styles.dactions}>
+          <Btn title="Not now" variant="ghost" block style={{ flex: 1 }} onPress={() => setUpsellOpen(false)} />
+          <Btn title="See Premium" block style={{ flex: 1 }} onPress={() => { setUpsellOpen(false); openOverlay('premium'); }} />
+        </View>
+      </BottomSheet>
     </OverlayScreen>
   );
 }
@@ -339,6 +378,16 @@ const styles = StyleSheet.create({
   avwrap: { width: '22%', aspectRatio: 1 },
   av: { width: '100%', height: '100%', borderRadius: 999, borderWidth: 3, borderColor: 'transparent', backgroundColor: '#DDEDE9' },
   avSel: { borderColor: colors.orange, transform: [{ scale: 1.04 }] },
+  avup: {
+    width: '100%', height: '100%', borderRadius: 999, borderWidth: 2.5, borderStyle: 'dashed',
+    borderColor: colors.line2, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center',
+  },
+  avupSel: { borderStyle: 'solid', borderColor: colors.orange, transform: [{ scale: 1.04 }] },
+  avupImg: { width: '100%', height: '100%', borderRadius: 999 },
+  avcrown: {
+    position: 'absolute', right: -1, bottom: -1, width: 20, height: 20, borderRadius: 10,
+    backgroundColor: colors.yellow, alignItems: 'center', justifyContent: 'center', ...shadow.sm,
+  },
 
   group: { borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: colors.line, ...shadow.sm },
   setrow: {

@@ -54,6 +54,13 @@ export const avatars = [
   require('../../assets/profile/6.png'),
 ];
 
+// Resolve the image source for a profile: the custom uploaded photo when avatar is -1,
+// otherwise the built-in avatar (falling back to the cat thumbnail).
+export function avatarSrc(avatar: number, custom?: string): any {
+  if (avatar === -1 && custom) return { uri: custom };
+  return avatars[avatar] || img.catThumb;
+}
+
 // food images by catalog id
 export const foodImg: Record<number, any> = {
   1: img.apple,

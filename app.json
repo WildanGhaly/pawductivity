@@ -55,6 +55,12 @@
             "extraProguardRules": "-keep class com.margelo.nitro.** { *; }\n"
           }
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Pawductivity uses your photos only to set your profile picture."
+        }
       ]
     ]
   }

@@ -58,6 +58,7 @@ interface StoreShape {
   toggleSetting: (k: 'notif' | 'sound') => void;
   setName: (name: string) => void;
   setAvatar: (i: number) => void;
+  setAvatarCustom: (uri: string) => void;
   setAccent: (i: number) => void;
   setRoom: (i: number) => void;
   setNotif: (on: boolean) => void;
@@ -369,6 +370,7 @@ export const useStore = create<StoreShape>((set, get) => {
     toggleSetting: (k) => mutate((d) => { d.settings[k] = !d.settings[k]; }),
     setName: (name) => { mutate((d) => { d.profile.name = name; }); get().showToast('Name updated'); },
     setAvatar: (i) => mutate((d) => { d.profile.avatar = i; }),
+    setAvatarCustom: (uri) => mutate((d) => { d.profile.avatarCustom = uri; d.profile.avatar = -1; }),
     setAccent: (i) => mutate((d) => { d.settings.accent = i; }),
     setRoom: (i) => mutate((d) => { d.settings.room = i; }),
     setNotif: (on) => mutate((d) => { d.settings.notif = on; d.settings.notifAsked = true; }),
