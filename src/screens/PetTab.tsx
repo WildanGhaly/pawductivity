@@ -208,7 +208,7 @@ function CareBtn({ icon, label, onPress }: { icon: any; label: string; onPress: 
 }
 function WearTag({ on }: { on: boolean }) {
   return (
-    <View style={[styles.wear, on ? { backgroundColor: colors.teal } : { backgroundColor: '#fff', borderWidth: 1.5, borderColor: colors.line2 }]}>
+    <View style={[styles.wear, on ? { backgroundColor: colors.teal, borderBottomWidth: 3, borderBottomColor: colors.tealInk } : { backgroundColor: '#fff', borderWidth: 1.5, borderColor: colors.line2 }]}>
       <Txt weight={800} size={13.5} color={on ? '#fff' : colors.teal}>{on ? 'Wearing' : 'Wear'}</Txt>
     </View>
   );

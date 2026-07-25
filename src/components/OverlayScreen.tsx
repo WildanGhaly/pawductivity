@@ -15,12 +15,15 @@ export function OverlayScreen({
   children,
   scroll = true,
   onBack,
+  belowHeader,
 }: {
   title: string;
   right?: ReactNode;
   children: ReactNode;
   scroll?: boolean;
   onBack?: () => void;
+  // Optional fixed content that sits in a white bar under the header (does not scroll).
+  belowHeader?: ReactNode;
 }) {
   const insets = useSafeAreaInsets();
   const closeOverlay = useStore((s) => s.closeOverlay);
@@ -37,6 +40,11 @@ export function OverlayScreen({
           {right ?? <View style={{ width: 40 }} />}
         </Bounded>
       </View>
+      {belowHeader ? (
+        <View style={styles.belowHeader}>
+          <Bounded pad>{belowHeader}</Bounded>
+        </View>
+      ) : null}
       {scroll ? (
         <ScrollView
           style={{ flex: 1 }}
@@ -57,6 +65,10 @@ const styles = StyleSheet.create({
   head: {
     paddingHorizontal: 16, paddingBottom: 14,
     backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: colors.line,
+  },
+  belowHeader: {
+    backgroundColor: '#fff', paddingVertical: 10,
+    borderBottomWidth: 1, borderBottomColor: colors.line,
   },
   headRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   iconbtn: {
