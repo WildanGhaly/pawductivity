@@ -178,7 +178,7 @@ export function PremiumScreen() {
         )}
 
         <Txt weight={400} size={11.5} color={colors.muted} style={styles.note}>
-          Billed through Google Play. Your subscription is linked to your Google account, not this phone, so it restores on any device you sign in with. Cancel anytime in Play Store subscriptions.
+          Billed through Google Play. Your subscription is linked to your Google account, not this phone, so it restores on any device you sign in with. Cancel anytime in Play Store subscriptions. Prices are illustrative.
         </Txt>
       </View>
     </OverlayScreen>

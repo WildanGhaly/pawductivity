@@ -63,7 +63,7 @@ export function SyncScreen() {
   };
   const signOut = () => {
     updateCloud({ signedIn: false, email: null, status: 'idle' });
-    showToast('Signed out. Your data stays on this device.');
+    showToast('Signed out. Your data is still here.');
   };
 
   const toggleAuto = () => {
