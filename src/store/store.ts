@@ -60,6 +60,7 @@ interface StoreShape {
   setAvatar: (i: number) => void;
   setAccent: (i: number) => void;
   setRoom: (i: number) => void;
+  setNotif: (on: boolean) => void;
   setPremium: (on: boolean) => void;
 
   // reminders
@@ -370,6 +371,7 @@ export const useStore = create<StoreShape>((set, get) => {
     setAvatar: (i) => mutate((d) => { d.profile.avatar = i; }),
     setAccent: (i) => mutate((d) => { d.settings.accent = i; }),
     setRoom: (i) => mutate((d) => { d.settings.room = i; }),
+    setNotif: (on) => mutate((d) => { d.settings.notif = on; d.settings.notifAsked = true; }),
     setPremium: (on) => mutate((d) => { d.profile.premium = on; }),
 
     addReminder: (r) => mutate((d) => {

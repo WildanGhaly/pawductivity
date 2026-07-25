@@ -102,6 +102,8 @@ export function CalendarTab() {
   const toggleReminderDone = useStore((st) => st.toggleReminderDone);
   const showToast = useStore((st) => st.showToast);
   const openOverlay = useStore((st) => st.openOverlay);
+  const setNotif = useStore((st) => st.setNotif);
+  const [notifOpen, setNotifOpen] = useState(false);
 
   const now = new Date();
   const [cal, setCal] = useState({ y: now.getFullYear(), m: now.getMonth() });
@@ -111,7 +113,9 @@ export function CalendarTab() {
 
   // add-reminder form state
   const [remName, setRemName] = useState('');
-  const [remTime, setRemTime] = useState('');
+  const [remH, setRemH] = useState(6);
+  const [remM, setRemM] = useState(0);
+  const [remAp, setRemAp] = useState<'AM' | 'PM'>('PM');
   const [remRep, setRemRep] = useState<ReminderRep>('once');
   const [remDay, setRemDay] = useState(1);
 
@@ -156,7 +160,9 @@ export function CalendarTab() {
     const useCur = cal.y === now.getFullYear() && cal.m === now.getMonth();
     setRemDay(typeof day === 'number' ? day : useCur ? now.getDate() : 1);
     setRemName('');
-    setRemTime('');
+    setRemH(6);
+    setRemM(0);
+    setRemAp('PM');
     setRemRep('once');
     setDayOpen(null);
     setAddOpen(true);
@@ -168,11 +174,15 @@ export function CalendarTab() {
       showToast('Give it a name first');
       return;
     }
-    const t = remTime.trim() || '09:00';
+    let h = remH % 12;
+    if (remAp === 'PM') h += 12;
+    const t = `${String(h).padStart(2, '0')}:${String(remM).padStart(2, '0')}`;
     addReminder({ name: n, time: t, rep: remRep, y: cal.y, mo: cal.m, day: remDay });
     setAddOpen(false);
     const when = new Date(cal.y, cal.m, remDay).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     showToast(remRep === 'once' ? `Reminder set for ${when}` : `Reminder set, starting ${when}`);
+    // First reminder: ask about notifications (proto askNotif), a beat after the sheet closes.
+    if (!s.settings.notifAsked) setTimeout(() => setNotifOpen(true), 450);
   };
 
   return (
@@ -339,14 +349,23 @@ export function CalendarTab() {
           placeholderTextColor="#BDB8AB"
         />
         <Txt weight={700} size={12.5} color={colors.teal} style={[styles.label, { marginTop: 14 }]}>Time</Txt>
-        <TextInput
-          style={styles.field}
-          value={remTime}
-          onChangeText={setRemTime}
-          placeholder="e.g. 09:00"
-          placeholderTextColor="#BDB8AB"
-          keyboardType="numbers-and-punctuation"
-        />
+        <View style={styles.timeRow}>
+          <View style={styles.tstep}>
+            <Pressable hitSlop={6} style={styles.tbtn} onPress={() => setRemH((h) => (h === 1 ? 12 : h - 1))}><Txt weight={800} size={18} color={colors.teal}>−</Txt></Pressable>
+            <Txt weight={800} size={19} color={colors.tealInk} style={styles.tval}>{remH}</Txt>
+            <Pressable hitSlop={6} style={styles.tbtn} onPress={() => setRemH((h) => (h === 12 ? 1 : h + 1))}><Txt weight={800} size={18} color={colors.teal}>+</Txt></Pressable>
+          </View>
+          <Txt weight={800} size={20} color={colors.tealInk}>:</Txt>
+          <View style={styles.tstep}>
+            <Pressable hitSlop={6} style={styles.tbtn} onPress={() => setRemM((m) => (m + 55) % 60)}><Txt weight={800} size={18} color={colors.teal}>−</Txt></Pressable>
+            <Txt weight={800} size={19} color={colors.tealInk} style={styles.tval}>{String(remM).padStart(2, '0')}</Txt>
+            <Pressable hitSlop={6} style={styles.tbtn} onPress={() => setRemM((m) => (m + 5) % 60)}><Txt weight={800} size={18} color={colors.teal}>+</Txt></Pressable>
+          </View>
+          <View style={styles.ampm}>
+            <Pressable style={[styles.ampmBtn, remAp === 'AM' && styles.ampmOn]} onPress={() => setRemAp('AM')}><Txt weight={700} size={13} color={remAp === 'AM' ? colors.tealInk : colors.muted}>AM</Txt></Pressable>
+            <Pressable style={[styles.ampmBtn, remAp === 'PM' && styles.ampmOn]} onPress={() => setRemAp('PM')}><Txt weight={700} size={13} color={remAp === 'PM' ? colors.tealInk : colors.muted}>PM</Txt></Pressable>
+          </View>
+        </View>
         <Txt weight={700} size={12.5} color={colors.teal} style={[styles.label, { marginTop: 14 }]}>Repeat</Txt>
         <View style={styles.pchips}>
           {REM_REPS.map(([l, v]) => {
@@ -361,6 +380,18 @@ export function CalendarTab() {
         <View style={[styles.dactions, { marginTop: 16 }]}>
           <Btn title="Cancel" variant="ghost" block style={{ flex: 1 }} onPress={() => setAddOpen(false)} />
           <Btn title="Add reminder" block style={{ flex: 1 }} onPress={saveReminder} />
+        </View>
+      </BottomSheet>
+
+      {/* First-reminder notification prompt (proto askNotif) */}
+      <BottomSheet visible={notifOpen} onClose={() => { setNotif(false); setNotifOpen(false); }} title="Should we remind you?">
+        <View style={styles.bellWrap}><Icon name="bell" size={30} color={colors.teal} strokeWidth={2} /></View>
+        <Txt weight={600} size={13.5} color={colors.muted} style={{ textAlign: 'center', lineHeight: 20, marginBottom: 18 }}>
+          You just set your first reminder. Allow notifications so it can actually reach you, and so you hear when a focus session ends.
+        </Txt>
+        <View style={styles.dactions}>
+          <Btn title="Not now" variant="ghost" block style={{ flex: 1 }} onPress={() => { setNotif(false); setNotifOpen(false); }} />
+          <Btn title="Allow" block style={{ flex: 1 }} onPress={() => { setNotif(true); setNotifOpen(false); showToast('Notifications on'); }} />
         </View>
       </BottomSheet>
     </View>
@@ -536,9 +567,17 @@ const styles = StyleSheet.create({
 
   label: { marginBottom: 7, marginLeft: 4 },
   field: { width: '100%', backgroundColor: '#fff', borderWidth: 2, borderColor: colors.line, borderRadius: 16, paddingVertical: 15, paddingHorizontal: 16, fontFamily: 'Poppins-Regular', fontSize: 15, color: colors.ink },
+  timeRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  tstep: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderWidth: 2, borderColor: colors.line, borderRadius: 14 },
+  tbtn: { width: 40, height: 46, alignItems: 'center', justifyContent: 'center' },
+  tval: { minWidth: 30, textAlign: 'center' },
+  ampm: { flexDirection: 'row', backgroundColor: '#F1EADB', borderRadius: 12, padding: 3, marginLeft: 'auto' },
+  ampmBtn: { paddingVertical: 9, paddingHorizontal: 14, borderRadius: 10 },
+  ampmOn: { backgroundColor: '#fff', ...shadow.sm },
   pchips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pchip: { width: '31%', flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 9, paddingHorizontal: 6, borderRadius: 12, backgroundColor: '#fff', borderWidth: 1.5, borderColor: colors.line2 },
   pchipOn: { backgroundColor: '#FFF7EF', borderColor: colors.orange },
 
   dactions: { flexDirection: 'row', gap: 10, marginTop: 16 },
+  bellWrap: { alignSelf: 'center', width: 56, height: 56, borderRadius: 28, backgroundColor: '#E4EFF3', alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
 });
