@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { View, TextInput, Pressable, StyleSheet, Animated } from 'react-native';
+import { View, TextInput, Pressable, StyleSheet, Animated, Easing } from 'react-native';
 import { colors, radius, catColors, shadow } from '../theme/tokens';
 import { Txt, Btn } from '../components/ui';
 import { Icon } from '../components/Icon';
@@ -101,6 +101,7 @@ export function CaptureSheet({ visible = true }: { visible?: boolean; param?: an
   // segmented toggle pill animation
   const [barW, setBarW] = useState(0);
   const slide = useRef(new Animated.Value(0)).current;
+  const bodyAnim = useRef(new Animated.Value(1)).current; // fades the body on mode swap
   const goMode = (m: 'quick' | 'dump') => {
     if (m === mode) return;
     setMode(m);
@@ -109,6 +110,8 @@ export function CaptureSheet({ visible = true }: { visible?: boolean; param?: an
       duration: 300,
       useNativeDriver: true,
     }).start();
+    bodyAnim.setValue(0);
+    Animated.timing(bodyAnim, { toValue: 1, duration: 220, easing: Easing.out(Easing.ease), useNativeDriver: true }).start();
   };
   const pillW = barW > 0 ? (barW - 6) / 2 : 0;
 
@@ -156,6 +159,7 @@ export function CaptureSheet({ visible = true }: { visible?: boolean; param?: an
         </Pressable>
       </View>
 
+      <Animated.View style={{ opacity: bodyAnim, transform: [{ translateY: bodyAnim.interpolate({ inputRange: [0, 1], outputRange: [6, 0] }) }] }}>
       {mode === 'quick' ? (
         <View>
           <TextInput
@@ -251,6 +255,7 @@ export function CaptureSheet({ visible = true }: { visible?: boolean; param?: an
           </View>
         </View>
       )}
+      </Animated.View>
     </BottomSheet>
   );
 }
