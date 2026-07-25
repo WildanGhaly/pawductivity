@@ -7,17 +7,11 @@ import { Txt, Card, CoinPill, Bounded } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { PetView } from '../components/PetView';
 import { QuestRow } from '../components/QuestRow';
+import { CoinPile } from '../components/CoinPile';
 import { img, avatars, avatarSrc } from '../assets/registry';
 import { useStore } from '../store/store';
 import { moodOf, bonusPct, idlePending, nextMilestone, homePct, isDone, fmt } from '../domain/mechanics';
 import { TabKey } from '../components/TabBar';
-
-const COIN_SPOTS = [
-  { l: 47, b: 5, s: 30, r: 0 }, { l: 37, b: 7, s: 26, r: -10 }, { l: 57, b: 6, s: 27, r: 11 },
-  { l: 30, b: 13, s: 22, r: -16 }, { l: 64, b: 13, s: 22, r: 14 }, { l: 50, b: 16, s: 24, r: 5 },
-  { l: 41, b: 20, s: 20, r: -7 }, { l: 59, b: 22, s: 20, r: 16 }, { l: 33, b: 3, s: 23, r: 8 },
-  { l: 67, b: 3, s: 23, r: -12 }, { l: 49, b: 27, s: 18, r: 0 }, { l: 44, b: 11, s: 26, r: -5 },
-];
 
 export function HomeTab({ onTab }: { onTab: (t: TabKey) => void }) {
   const insets = useSafeAreaInsets();
@@ -81,17 +75,7 @@ export function HomeTab({ onTab }: { onTab: (t: TabKey) => void }) {
             <View style={styles.petStage}>
               <PetView species={s.pet.species} clothesId={s.pet.clothesId} size={200} speed={mood.spd} />
             </View>
-            {pending > 0 && (
-              <>
-                {COIN_SPOTS.slice(0, Math.min(COIN_SPOTS.length, Math.max(1, Math.ceil(pending / 3)))).map((c, i) => (
-                  <Image key={i} source={img.coin} style={{ position: 'absolute', left: `${c.l}%`, bottom: c.b, width: c.s, height: c.s, zIndex: 4, transform: [{ rotate: `${c.r}deg` }] }} />
-                ))}
-                <View style={styles.pileBadge}>
-                  <Image source={img.coin} style={{ width: 15, height: 15 }} />
-                  <Txt weight={800} size={11.5} color="#fff">{pending} · tap to collect</Txt>
-                </View>
-              </>
-            )}
+            <CoinPile pending={pending} />
           </ImageBackground>
         </Pressable>
 
@@ -247,10 +231,6 @@ const styles = StyleSheet.create({
   mooddot: { width: 8, height: 8, borderRadius: 4 },
   petShadow: { position: 'absolute', bottom: 20, alignSelf: 'center', width: 120, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,.14)', zIndex: 1 },
   petStage: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 200, alignItems: 'center', justifyContent: 'flex-end', zIndex: 2 },
-  pileBadge: {
-    position: 'absolute', top: 12, alignSelf: 'center', zIndex: 5, flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: 'rgba(12,76,96,.92)', paddingVertical: 5, paddingHorizontal: 11, borderRadius: radius.pill,
-  },
   careCard: { padding: 16, marginTop: -24, zIndex: 3 },
   spread: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   bonuspill: {
