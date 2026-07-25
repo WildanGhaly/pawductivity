@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Pressable, ActivityIndicator, Linking } from 'react-native';
-import { colors, radius, shadow } from '../theme/tokens';
-import { Txt, Card, Btn } from '../components/ui';
+import { View, ScrollView, StyleSheet, Pressable, ActivityIndicator, Linking } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { colors, radius, shadow, NAV_H } from '../theme/tokens';
+import { Txt, Card, Btn, Bounded } from '../components/ui';
 import { Icon } from '../components/Icon';
-import { OverlayScreen } from '../components/OverlayScreen';
 import { useStore } from '../store/store';
 import { PREMIUM_PLANS, PremiumPlan } from '../billing/products';
 import { isBillingSupported, connectBilling, fetchPlans, BillingPlan } from '../billing/billing';
@@ -53,7 +54,9 @@ function PlanCard({
 }
 
 export function PremiumScreen() {
+  const insets = useSafeAreaInsets();
   const openOverlay = useStore((st) => st.openOverlay);
+  const closeOverlay = useStore((st) => st.closeOverlay);
   const purchasePremium = useStore((st) => st.purchasePremium);
   const restorePremium = useStore((st) => st.restorePremium);
   const buyPremium = useStore((st) => st.buyPremium);
@@ -104,8 +107,18 @@ export function PremiumScreen() {
   };
 
   return (
-    <OverlayScreen title="Pawductivity Premium">
-      <View style={styles.header}>
+    <View style={styles.root}>
+      {/* Full-bleed teal gradient header (proto .pbg) with an overlaid back button;
+          the title appears exactly once here — no white sheethead above it. */}
+      <LinearGradient
+        colors={['#0C4C60', '#0a3d4e']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0.35, y: 1 }}
+        style={[styles.pbg, { paddingTop: insets.top + 22 }]}
+      >
+        <Pressable style={[styles.backBtn, { top: insets.top + 20 }]} onPress={closeOverlay} hitSlop={8}>
+          <Icon name="chevL" size={18} color={colors.teal} strokeWidth={2.5} />
+        </Pressable>
         <Icon name="crown" size={40} color={colors.yellow} />
         <Txt weight={800} size={23} color={colors.white} style={{ marginTop: 6 }}>
           Pawductivity Premium
@@ -119,9 +132,15 @@ export function PremiumScreen() {
             <Txt weight={800} size={12} color={colors.teal}>Premium active</Txt>
           </View>
         )}
-      </View>
+      </LinearGradient>
 
-      <View style={{ paddingTop: 18 }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: NAV_H + insets.bottom + 20 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <Bounded pad>
+        <View style={{ paddingTop: 18 }}>
         <Card onPress={() => openOverlay('insights')} style={styles.preview}>
           <View style={styles.previewHead}>
             <Txt weight={800} size={14} color={colors.tealInk}>Focus insights</Txt>
@@ -180,15 +199,19 @@ export function PremiumScreen() {
         <Txt weight={400} size={11.5} color={colors.muted} style={styles.note}>
           Billed through Google Play. Your subscription is linked to your Google account, not this phone, so it restores on any device you sign in with. Cancel anytime in Play Store subscriptions. Prices are illustrative.
         </Txt>
-      </View>
-    </OverlayScreen>
+        </View>
+        </Bounded>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
-    marginHorizontal: -16, marginTop: -16, backgroundColor: colors.teal,
-    paddingHorizontal: 22, paddingTop: 22, paddingBottom: 26, alignItems: 'center',
+  root: { flex: 1, backgroundColor: colors.cream },
+  pbg: { paddingHorizontal: 22, paddingBottom: 26, alignItems: 'center', position: 'relative' },
+  backBtn: {
+    position: 'absolute', left: 16, width: 40, height: 40, borderRadius: 14, zIndex: 2,
+    backgroundColor: 'rgba(255,255,255,.9)', alignItems: 'center', justifyContent: 'center', ...shadow.sm,
   },
   activePill: {
     flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12,

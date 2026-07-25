@@ -117,7 +117,11 @@ export function CalendarTab() {
   const [remM, setRemM] = useState(0);
   const [remAp, setRemAp] = useState<'AM' | 'PM'>('PM');
   const [remRep, setRemRep] = useState<ReminderRep>('once');
+  // reminder date (independent of the main calendar's visible month)
+  const [remY, setRemY] = useState(now.getFullYear());
+  const [remMo, setRemMo] = useState(now.getMonth());
   const [remDay, setRemDay] = useState(1);
+  const [remPick, setRemPick] = useState(false);
 
   const isCurMonth = cal.y === now.getFullYear() && cal.m === now.getMonth();
 
@@ -158,7 +162,10 @@ export function CalendarTab() {
 
   const openAdd = (day?: number) => {
     const useCur = cal.y === now.getFullYear() && cal.m === now.getMonth();
+    setRemY(cal.y);
+    setRemMo(cal.m);
     setRemDay(typeof day === 'number' ? day : useCur ? now.getDate() : 1);
+    setRemPick(false);
     setRemName('');
     setRemH(6);
     setRemM(0);
@@ -167,6 +174,34 @@ export function CalendarTab() {
     setDayOpen(null);
     setAddOpen(true);
   };
+
+  // ---- reminder-date mini-calendar handlers (proto remShift/remSetMonth/remSetYear) ----
+  const remShift = (delta: number) => {
+    const nd = new Date(remY, remMo + delta, 1);
+    setRemY(nd.getFullYear());
+    setRemMo(nd.getMonth());
+    setRemPick(false);
+    const max = daysInMonth(nd.getFullYear(), nd.getMonth());
+    setRemDay((d) => Math.min(d, max));
+  };
+  const remSetMonth = (mi: number) => {
+    setRemMo(mi);
+    const max = daysInMonth(remY, mi);
+    setRemDay((d) => Math.min(d, max));
+    setRemPick(false);
+  };
+  const remSetYear = (delta: number) => setRemY((y) => y + delta);
+
+  // ---- reminder-date grid ----
+  const remFirst = new Date(remY, remMo, 1).getDay();
+  const remTotal = daysInMonth(remY, remMo);
+  const remCells: (number | null)[] = [];
+  for (let i = 0; i < remFirst; i++) remCells.push(null);
+  for (let d = 1; d <= remTotal; d++) remCells.push(d);
+  while (remCells.length % 7 !== 0) remCells.push(null);
+  const remWeeks: (number | null)[][] = [];
+  for (let i = 0; i < remCells.length; i += 7) remWeeks.push(remCells.slice(i, i + 7));
+  const remIsCur = remY === now.getFullYear() && remMo === now.getMonth();
 
   const saveReminder = () => {
     const n = remName.trim();
@@ -177,9 +212,9 @@ export function CalendarTab() {
     let h = remH % 12;
     if (remAp === 'PM') h += 12;
     const t = `${String(h).padStart(2, '0')}:${String(remM).padStart(2, '0')}`;
-    addReminder({ name: n, time: t, rep: remRep, y: cal.y, mo: cal.m, day: remDay });
+    addReminder({ name: n, time: t, rep: remRep, y: remY, mo: remMo, day: remDay });
     setAddOpen(false);
-    const when = new Date(cal.y, cal.m, remDay).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    const when = new Date(remY, remMo, remDay).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     showToast(remRep === 'once' ? `Reminder set for ${when}` : `Reminder set, starting ${when}`);
     // First reminder: ask about notifications (proto askNotif), a beat after the sheet closes.
     if (!s.settings.notifAsked) setTimeout(() => setNotifOpen(true), 450);
@@ -348,6 +383,83 @@ export function CalendarTab() {
           placeholder="e.g. Take a break"
           placeholderTextColor="#BDB8AB"
         />
+        <Txt weight={700} size={12.5} color={colors.teal} style={[styles.label, { marginTop: 14 }]}>Date</Txt>
+        <View style={styles.miniCal}>
+          <View style={styles.calhead}>
+            <Pressable style={styles.iconbtn} onPress={() => remShift(-1)}>
+              <Icon name="chevL" size={14} color={colors.teal} strokeWidth={2.5} />
+            </Pressable>
+            <Pressable style={[styles.calmonth, remPick && styles.calmonthOn]} onPress={() => setRemPick((v) => !v)}>
+              <Txt weight={800} size={14.5} color={colors.tealInk}>{MONTHS_FULL[remMo]} {remY}</Txt>
+              <View style={{ transform: [{ rotate: remPick ? '-90deg' : '90deg' }] }}>
+                <Icon name="chevR" size={12} color={colors.muted} strokeWidth={2.5} />
+              </View>
+            </Pressable>
+            <Pressable style={styles.iconbtn} onPress={() => remShift(1)}>
+              <Icon name="chevR" size={14} color={colors.teal} strokeWidth={2.5} />
+            </Pressable>
+          </View>
+          {remPick ? (
+            <View>
+              <View style={styles.ystep}>
+                <Pressable style={styles.iconbtn} onPress={() => remSetYear(-1)}>
+                  <Icon name="chevL" size={14} color={colors.teal} strokeWidth={2.5} />
+                </Pressable>
+                <Txt weight={800} size={16} color={colors.tealInk} style={styles.yval}>{remY}</Txt>
+                <Pressable style={styles.iconbtn} onPress={() => remSetYear(1)}>
+                  <Icon name="chevR" size={14} color={colors.teal} strokeWidth={2.5} />
+                </Pressable>
+              </View>
+              <View style={styles.mygrid}>
+                {MONTHS_SHORT.map((mn, i) => {
+                  const on = i === remMo;
+                  return (
+                    <Pressable key={mn} style={[styles.mybtn, on && styles.mybtnOn]} onPress={() => remSetMonth(i)}>
+                      <Txt weight={700} size={13} color={on ? '#fff' : colors.tealInk}>{mn}</Txt>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          ) : (
+            <View>
+              <View style={styles.calgridRow}>
+                {DOWS.map((d, i) => (
+                  <View key={i} style={styles.caldow}>
+                    <Txt weight={700} size={10.5} color={colors.muted}>{d}</Txt>
+                  </View>
+                ))}
+              </View>
+              {remWeeks.map((wk, wi) => (
+                <View key={wi} style={styles.calgridRow}>
+                  {wk.map((d, di) => {
+                    if (d === null) return <View key={di} style={styles.calcell} />;
+                    const sel = d === remDay;
+                    const past = remIsCur && d < now.getDate();
+                    return (
+                      <View key={di} style={styles.calcell}>
+                        <Pressable style={[styles.calday, sel && styles.caldayToday, past && { opacity: 0.35 }]} onPress={() => setRemDay(d)}>
+                          <Txt weight={sel ? 800 : 600} size={13} color={sel ? '#fff' : colors.ink}>{d}</Txt>
+                        </Pressable>
+                      </View>
+                    );
+                  })}
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+        <Txt weight={700} size={12.5} color={colors.teal} style={[styles.label, { marginTop: 14 }]}>Repeat</Txt>
+        <View style={styles.pchips}>
+          {REM_REPS.map(([l, v]) => {
+            const on = remRep === v;
+            return (
+              <Pressable key={v} style={[styles.pchip, on && styles.pchipOn]} onPress={() => setRemRep(v)}>
+                <Txt weight={700} size={13} color={on ? colors.orange2 : colors.tealInk}>{l}</Txt>
+              </Pressable>
+            );
+          })}
+        </View>
         <Txt weight={700} size={12.5} color={colors.teal} style={[styles.label, { marginTop: 14 }]}>Time</Txt>
         <View style={styles.timeRow}>
           <View style={styles.tstep}>
@@ -365,17 +477,6 @@ export function CalendarTab() {
             <Pressable style={[styles.ampmBtn, remAp === 'AM' && styles.ampmOn]} onPress={() => setRemAp('AM')}><Txt weight={700} size={13} color={remAp === 'AM' ? colors.tealInk : colors.muted}>AM</Txt></Pressable>
             <Pressable style={[styles.ampmBtn, remAp === 'PM' && styles.ampmOn]} onPress={() => setRemAp('PM')}><Txt weight={700} size={13} color={remAp === 'PM' ? colors.tealInk : colors.muted}>PM</Txt></Pressable>
           </View>
-        </View>
-        <Txt weight={700} size={12.5} color={colors.teal} style={[styles.label, { marginTop: 14 }]}>Repeat</Txt>
-        <View style={styles.pchips}>
-          {REM_REPS.map(([l, v]) => {
-            const on = remRep === v;
-            return (
-              <Pressable key={v} style={[styles.pchip, on && styles.pchipOn]} onPress={() => setRemRep(v)}>
-                <Txt weight={700} size={13} color={on ? colors.orange2 : colors.tealInk}>{l}</Txt>
-              </Pressable>
-            );
-          })}
         </View>
         <View style={[styles.dactions, { marginTop: 16 }]}>
           <Btn title="Cancel" variant="ghost" block style={{ flex: 1 }} onPress={() => setAddOpen(false)} />
@@ -529,6 +630,7 @@ const styles = StyleSheet.create({
   todaychip: { backgroundColor: colors.cream, borderWidth: 1, borderColor: colors.line2, paddingVertical: 7, paddingHorizontal: 13, borderRadius: 999 },
 
   calwrap: { backgroundColor: '#fff', borderRadius: 20, padding: 14, borderWidth: 1, borderColor: colors.line, ...shadow.sm },
+  miniCal: { backgroundColor: colors.cream, borderRadius: 16, padding: 12, borderWidth: 1, borderColor: colors.line2, marginTop: 6 },
   calhead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8 },
   iconbtn: { width: 32, height: 32, borderRadius: 12, backgroundColor: '#fff', borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center', ...shadow.sm },
   calmonth: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 12 },
