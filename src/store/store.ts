@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { produce } from 'immer';
-import { AppState, Species } from '../domain/types';
+import { AppState, Species, ActiveSession } from '../domain/types';
 import { freshState, newDeviceId } from '../domain/state';
 import { api, referralErrorText } from '../api/client';
 import { purchasePlan, hasPremiumEntitlement } from '../billing/billing';
@@ -8,6 +8,7 @@ import { persistence } from '../db/persistence';
 import { FOODS, CLOTHES, SPECIES, JOURNEY } from '../domain/catalogs';
 import { idlePending, petStage, achMet, moodOf, stageName } from '../domain/mechanics';
 import { ACHIEVEMENTS } from '../domain/catalogs';
+import * as Notif from '../notifications/notifications';
 
 // A transient toast message consumers can subscribe to.
 export interface ToastMsg { id: number; text: string; coin?: boolean }
@@ -55,6 +56,7 @@ interface StoreShape {
   togglePlan: (id: number) => void;
   completeFocus: (qid: number | null, pomodoro: boolean) => { coins: number; bonus: number; mins: number } | null;
   leaveFocus: (qid: number | null, doneAbsolute: number, started: boolean) => void;
+  setActiveSession: (session: ActiveSession | null) => void;
   toggleSetting: (k: 'notif' | 'sound') => void;
   setName: (name: string) => void;
   setAvatar: (i: number) => void;
@@ -105,6 +107,13 @@ export const useStore = create<StoreShape>((set, get) => {
     scheduleSave(get);
   };
 
+  // Reconcile OS-scheduled reminder notifications with the current list + toggle.
+  const syncReminderNotifs = () => {
+    const s = get().state;
+    if (!s) return;
+    Notif.syncReminders(s.reminders, s.settings.notif);
+  };
+
   return {
     state: null,
     hydrated: false,
@@ -138,6 +147,7 @@ export const useStore = create<StoreShape>((set, get) => {
         };
         persistence.save(migrated);
         set({ state: migrated, hydrated: true });
+        Notif.syncReminders(migrated.reminders, migrated.settings.notif);
         return;
       }
       set({ state: null, hydrated: true });
@@ -367,19 +377,25 @@ export const useStore = create<StoreShape>((set, get) => {
       }
     },
 
+    // Persist (or clear) the running focus session so a killed app can resume it.
+    setActiveSession: (session) => mutate((d) => { d.activeSession = session; }),
+
     toggleSetting: (k) => mutate((d) => { d.settings[k] = !d.settings[k]; }),
     setName: (name) => { mutate((d) => { d.profile.name = name; }); get().showToast('Name updated'); },
     setAvatar: (i) => mutate((d) => { d.profile.avatar = i; }),
     setAvatarCustom: (uri) => mutate((d) => { d.profile.avatarCustom = uri; d.profile.avatar = -1; }),
     setAccent: (i) => mutate((d) => { d.settings.accent = i; }),
     setRoom: (i) => mutate((d) => { d.settings.room = i; }),
-    setNotif: (on) => mutate((d) => { d.settings.notif = on; d.settings.notifAsked = true; }),
+    setNotif: (on) => { mutate((d) => { d.settings.notif = on; d.settings.notifAsked = true; }); syncReminderNotifs(); },
     setPremium: (on) => mutate((d) => { d.profile.premium = on; }),
 
-    addReminder: (r) => mutate((d) => {
-      d.reminders.push({ id: d.nextRem, name: r.name, time: r.time, rep: r.rep, doneOn: [], y: r.y, mo: r.mo, day: r.day });
-      d.nextRem += 1;
-    }),
+    addReminder: (r) => {
+      mutate((d) => {
+        d.reminders.push({ id: d.nextRem, name: r.name, time: r.time, rep: r.rep, doneOn: [], y: r.y, mo: r.mo, day: r.day });
+        d.nextRem += 1;
+      });
+      syncReminderNotifs();
+    },
     toggleReminderDone: (id, key) => mutate((d) => {
       const r = d.reminders.find((x) => x.id === id);
       if (!r) return;
@@ -387,7 +403,7 @@ export const useStore = create<StoreShape>((set, get) => {
       const i = r.doneOn.indexOf(key);
       if (i >= 0) r.doneOn.splice(i, 1); else r.doneOn.push(key);
     }),
-    deleteReminder: (id) => mutate((d) => { d.reminders = d.reminders.filter((x) => x.id !== id); }),
+    deleteReminder: (id) => { mutate((d) => { d.reminders = d.reminders.filter((x) => x.id !== id); }); syncReminderNotifs(); },
 
     // Referral codes are verified by the backend so a code can only ever be
     // redeemed once. Offline, we say so rather than granting coins locally.

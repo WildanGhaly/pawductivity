@@ -7,6 +7,7 @@ import { Icon } from '../components/Icon';
 import { BottomSheet } from '../components/BottomSheet';
 import { img, avatars, avatarSrc } from '../assets/registry';
 import { useStore } from '../store/store';
+import { requestNotifPermission } from '../notifications/notifications';
 import type { Reminder, ReminderRep } from '../domain/types';
 
 // ---- ported calendar helpers (from prototype: CALENDAR + REMINDERS) ----
@@ -529,7 +530,17 @@ export function CalendarTab() {
         </Txt>
         <View style={styles.dactions}>
           <Btn title="Not now" variant="ghost" block style={{ flex: 1 }} onPress={() => { setNotif(false); setNotifOpen(false); }} />
-          <Btn title="Allow" block style={{ flex: 1 }} onPress={() => { setNotif(true); setNotifOpen(false); showToast('Notifications on'); }} />
+          <Btn
+            title="Allow"
+            block
+            style={{ flex: 1 }}
+            onPress={async () => {
+              setNotifOpen(false);
+              const granted = await requestNotifPermission();
+              setNotif(granted);
+              showToast(granted ? 'Notifications on' : 'Enable notifications in Settings to get reminders');
+            }}
+          />
         </View>
       </BottomSheet>
     </View>

@@ -4,6 +4,7 @@ import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
+import { requestNotifPermission } from '../notifications/notifications';
 import { colors, radius, shadow, fontFor } from '../theme/tokens';
 import { Txt, Card, Btn } from '../components/ui';
 import { Icon, IconName } from '../components/Icon';
@@ -50,8 +51,17 @@ export function ProfileScreen() {
   const setAvatar = useStore((st) => st.setAvatar);
   const setAvatarCustom = useStore((st) => st.setAvatarCustom);
   const toggleSetting = useStore((st) => st.toggleSetting);
+  const setNotif = useStore((st) => st.setNotif);
   const resetData = useStore((st) => st.resetData);
   const showToast = useStore((st) => st.showToast);
+
+  // Turning notifications on requests the OS permission first; off just clears them.
+  const onToggleNotif = async () => {
+    if (s.settings.notif) { setNotif(false); return; }
+    const granted = await requestNotifPermission();
+    setNotif(granted);
+    if (!granted) showToast('Enable notifications in Settings to get alerts');
+  };
   const [upsellOpen, setUpsellOpen] = useState(false);
 
   const p = s.profile;
@@ -206,7 +216,7 @@ export function ProfileScreen() {
       <View style={styles.shead}><Txt weight={700} size={16} color={colors.tealInk}>Settings</Txt></View>
       <Group>
         <SetRow icon="edit" title="Edit name" desc={p.name} onPress={openEditName} />
-        <SetRow icon="bell" title="Notifications" desc="Quest and reminder alerts" right={<Toggle on={s.settings.notif} onPress={() => toggleSetting('notif')} />} />
+        <SetRow icon="bell" title="Notifications" desc="Quest and reminder alerts" right={<Toggle on={s.settings.notif} onPress={onToggleNotif} />} />
         <SetRow icon="sound" title="Sound and haptics" right={<Toggle on={s.settings.sound} onPress={() => toggleSetting('sound')} />} />
         <SetRow icon="gift" title="Invite friends" desc="Give 100, get 100 coins" onPress={() => openOverlay('referral')} last />
       </Group>

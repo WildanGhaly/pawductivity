@@ -8,12 +8,15 @@ import { RootNavigator } from './src/navigation/RootNavigator';
 import { fonts } from './src/assets/registry';
 import { colors } from './src/theme/tokens';
 import { useStore } from './src/store/store';
+import { initNotifications } from './src/notifications/notifications';
 
 export default function App() {
   const [loaded] = useFonts(fonts);
 
   useEffect(() => {
     useStore.getState().hydrate();
+    // Set up notification channels + the foreground handler once at launch.
+    initNotifications();
   }, []);
 
   if (!loaded) {
