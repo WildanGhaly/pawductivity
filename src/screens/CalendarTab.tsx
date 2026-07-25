@@ -349,6 +349,7 @@ export function CalendarTab() {
       <BottomSheet
         visible={dayOpen !== null}
         onClose={() => setDayOpen(null)}
+        align="left"
         title={dayOpen !== null ? new Date(cal.y, cal.m, dayOpen).toLocaleString('en-US', { weekday: 'long', day: 'numeric', month: 'long' }) : ''}
         subtitle={
           dayOpen !== null
@@ -374,7 +375,7 @@ export function CalendarTab() {
       </BottomSheet>
 
       {/* add-reminder sheet */}
-      <BottomSheet visible={addOpen} onClose={() => setAddOpen(false)} title="New reminder">
+      <BottomSheet visible={addOpen} onClose={() => setAddOpen(false)} title="New reminder" align="left">
         <Txt weight={700} size={12.5} color={colors.teal} style={styles.label}>What's the reminder?</Txt>
         <TextInput
           style={styles.field}
