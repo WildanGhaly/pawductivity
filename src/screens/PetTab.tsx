@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, ScrollView, StyleSheet, Pressable, Image, ImageBackground } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius, shadow, NAV_H, moodColors } from '../theme/tokens';
@@ -7,9 +7,9 @@ import { Icon } from '../components/Icon';
 import { PetView } from '../components/PetView';
 import { CoinPile } from '../components/CoinPile';
 import { BottomSheet } from '../components/BottomSheet';
-import { img, avatars, avatarSrc, foodImg, clothesImg } from '../assets/registry';
+import { img, avatars, avatarSrc, clothesImg } from '../assets/registry';
 import { useStore } from '../store/store';
-import { FOODS, CLOTHES } from '../domain/catalogs';
+import { CLOTHES } from '../domain/catalogs';
 import {
   moodOf, bonusPct, shieldActive, petStage, stageName, homePct, nextMilestone,
   idleRate, idleCap, idlePending, idleFull, money,
@@ -21,10 +21,8 @@ export function PetTab() {
   const collectIdle = useStore((st) => st.collectIdle);
   const buildMilestone = useStore((st) => st.buildMilestone);
   const equip = useStore((st) => st.equip);
-  const feed = useStore((st) => st.feed);
   const showToast = useStore((st) => st.showToast);
   const openOverlay = useStore((st) => st.openOverlay);
-  const [feedOpen, setFeedOpen] = useState(false);
 
   const pet = s.pet;
   const mood = moodOf(pet.health);
@@ -40,10 +38,8 @@ export function PetTab() {
 
   const openFeed = () => {
     if (pet.health >= 100) { showToast(`${pet.name} is already full`); return; }
-    setFeedOpen(true);
+    openOverlay('feed');
   };
-  const doFeed = (id: number) => { feed(id); setFeedOpen(false); };
-  const anyFood = FOODS.some((f) => (pet.food[f.id] || 0) > 0);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.cream }}>
@@ -197,35 +193,6 @@ export function PetTab() {
         </Bounded>
       </ScrollView>
 
-      {/* feed sheet */}
-      <BottomSheet visible={feedOpen} onClose={() => setFeedOpen(false)} title={`Feed ${pet.name}`}
-        subtitle={`Health ${pet.health}/100 · a happier pet means a bigger focus reward (now +${bp}%)`}>
-        {anyFood ? (
-          <View style={styles.feedgrid}>
-            {FOODS.map((f) => {
-              const qty = pet.food[f.id] || 0;
-              return (
-                <Pressable key={f.id} style={[styles.fooditem, qty <= 0 && { opacity: 0.4 }]} disabled={qty <= 0} onPress={() => doFeed(f.id)}>
-                  {qty > 0 && <View style={styles.fq}><Txt weight={800} size={10} color={colors.teal}>×{qty}</Txt></View>}
-                  <Image source={foodImg[f.id]} style={{ width: 46, height: 46 }} resizeMode="contain" />
-                  <Txt weight={700} size={11} color={colors.tealInk}>{f.name}</Txt>
-                  <Txt weight={700} size={10.5} color={colors.good}>+{f.heal}</Txt>
-                </Pressable>
-              );
-            })}
-          </View>
-        ) : (
-          <View style={{ alignItems: 'center', padding: 14 }}>
-            <Icon name="bag" size={34} color={colors.line2} />
-            <Txt weight={700} color={colors.tealInk} style={{ marginTop: 8 }}>No food yet</Txt>
-            <Txt size={12} color={colors.muted}>Grab some snacks from the shop.</Txt>
-          </View>
-        )}
-        <View style={styles.dactions}>
-          <Btn title="Close" variant="ghost" block style={{ flex: 1 }} onPress={() => setFeedOpen(false)} />
-          <Btn title="Buy food" block style={{ flex: 1 }} onPress={() => { setFeedOpen(false); openOverlay('shop', { tab: 'food' }); }} />
-        </View>
-      </BottomSheet>
     </View>
   );
 }
@@ -289,8 +256,4 @@ const styles = StyleSheet.create({
   shopcard: { width: '47%', flexGrow: 1, backgroundColor: '#fff', borderRadius: 18, padding: 12, borderWidth: 1, borderColor: colors.line, alignItems: 'center', ...shadow.sm },
   art: { width: 78, height: 78, marginVertical: 6 },
   wear: { marginTop: 10, width: '100%', alignItems: 'center', paddingVertical: 9, borderRadius: 12 },
-  feedgrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 6 },
-  fooditem: { width: '31%', flexGrow: 1, backgroundColor: colors.cream, borderRadius: 16, paddingVertical: 10, alignItems: 'center', borderWidth: 2, borderColor: colors.line },
-  fq: { position: 'absolute', top: 4, right: 4, backgroundColor: '#fff', borderWidth: 1, borderColor: colors.line2, paddingVertical: 1, paddingHorizontal: 6, borderRadius: 999, zIndex: 1 },
-  dactions: { flexDirection: 'row', gap: 10, marginTop: 16 },
 });
