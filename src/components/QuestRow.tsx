@@ -69,7 +69,7 @@ export function QuestRow({
           {quest.repeat ? (
             <View style={styles.metaItem}>
               <Icon name="repeat" size={13} color="#9A968A" />
-              <Txt weight={600} size={12} color={colors.muted}>Daily</Txt>
+              <Txt weight={600} size={12} color={colors.muted}>{quest.rlabel || 'Daily'}</Txt>
             </View>
           ) : quest.due ? (
             <View style={styles.metaItem}>

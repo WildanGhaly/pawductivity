@@ -15,7 +15,7 @@ const WDAY: Record<string, string> = {
   fri: 'Friday', sat: 'Saturday', sun: 'Sunday',
 };
 
-type ParsedQuest = { name: string; est: number; tag: string; repeat: boolean };
+type ParsedQuest = { name: string; est: number; tag: string; repeat: boolean; rlabel?: string; due?: string };
 
 function inferTag(t: string): string {
   t = t.toLowerCase();
@@ -32,6 +32,8 @@ function parseText(raw: string): ParsedQuest[] {
   parts.forEach((txt) => {
     let est = 1500;
     let repeat = false;
+    let rlabel: string | undefined;
+    let due: string | undefined;
     let m = txt.match(/~?\s*(\d+(?:\.\d+)?)\s*(hours?|hrs?|h)\b/i);
     if (m) {
       est = Math.round(parseFloat(m[1]) * 3600);
@@ -44,10 +46,17 @@ function parseText(raw: string): ParsedQuest[] {
       || txt.match(/\b(mon|tue|wed|thu|fri|sat|sun)[a-z]*s\b/i);
     if (ewd) {
       repeat = true;
+      rlabel = WDAY[ewd[1].toLowerCase()] + 's'; // e.g. 'Mondays'
     } else if (/\bweek ?days?\b|\bevery\s*week ?day\b/i.test(txt)) {
       repeat = true;
+      rlabel = 'Weekdays';
     } else if (/\bdaily\b|\bevery\s*day\b|\beach day\b/i.test(txt)) {
       repeat = true;
+      rlabel = 'Daily';
+    } else {
+      // A bare weekday name means a one-off due date (proto).
+      const wd = txt.match(/\b(mon|tue|wed|thu|fri|sat|sun)[a-z]*day?\b/i);
+      if (wd) due = WDAY[wd[1].toLowerCase()];
     }
     const tag = inferTag(txt);
     let name = txt
@@ -63,7 +72,7 @@ function parseText(raw: string): ParsedQuest[] {
     if (!name) name = 'New quest';
     name = name.charAt(0).toUpperCase() + name.slice(1);
     if (name.length > 50) name = name.slice(0, 50);
-    made.push({ name, tag, est, repeat });
+    made.push({ name, tag, est, repeat, rlabel, due });
   });
   return made;
 }
@@ -119,7 +128,8 @@ export function CaptureSheet({ visible = true }: { visible?: boolean; param?: an
     const t = title.trim();
     if (!t) { showToast('Give your quest a name'); return; }
     const name = t.charAt(0).toUpperCase() + t.slice(1);
-    addQuest({ name, est: dur, tag, repeat: repeat !== 'once' });
+    const rlabel = repeat === 'once' ? undefined : repeat === 'weekdays' ? 'Weekdays' : 'Daily';
+    addQuest({ name, est: dur, tag, repeat: repeat !== 'once', rlabel });
     closeOverlay();
     setTab('quests');
     showToast('Quest added');
