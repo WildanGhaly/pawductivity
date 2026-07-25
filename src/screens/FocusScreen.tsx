@@ -12,6 +12,7 @@ import { useStore } from '../store/store';
 import { mmss, fmt, isDone, moodOf } from '../domain/mechanics';
 import { POMO_WORK, POMO_BREAK, SOUNDS } from '../domain/catalogs';
 import { playSoundscape, stopSoundscape, getActiveSoundscape, playCustomSoundscape } from '../audio/soundscape';
+import { scheduleFocusEnd, cancelFocusEnd, showOngoingFocus, clearOngoingFocus } from '../notifications/notifications';
 
 type Mode = 'standard' | 'pomodoro';
 type Phase = 'work' | 'break';
@@ -30,11 +31,12 @@ const TEXT_SHADOW = {
   textShadowRadius: 8,
 };
 
-export function FocusScreen({ param }: { param?: { questId?: number } }) {
+export function FocusScreen({ param }: { param?: { questId?: number; resume?: boolean } }) {
   const insets = useSafeAreaInsets();
   const s = useStore((st) => st.state)!;
   const completeFocus = useStore((st) => st.completeFocus);
   const leaveFocusAction = useStore((st) => st.leaveFocus);
+  const setActiveSession = useStore((st) => st.setActiveSession);
   const openOverlay = useStore((st) => st.openOverlay);
   const closeOverlay = useStore((st) => st.closeOverlay);
   const showToast = useStore((st) => st.showToast);
@@ -134,6 +136,51 @@ export function FocusScreen({ param }: { param?: { questId?: number } }) {
     return Math.max(0, t.base - el);
   };
 
+  // Keep an OS-scheduled end alert + an ongoing notification in sync with the running
+  // phase, so the session still finishes (and alerts) when the app is backgrounded or
+  // killed. The timestamp math above lets the on-screen timer catch up on return.
+  const scheduleForCurrentPhase = () => {
+    const t = tRef.current;
+    if (!t.running) return;
+    const endMs = Date.now() + Math.max(1, t.remaining) * 1000;
+    const isWork = t.phase === 'work';
+    const willComplete = isWork && t.workDone + t.phaseLen >= sessionTarget;
+    const endClock = new Date(endMs).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const title = willComplete ? 'Focus session complete!' : isWork ? 'Focus block done' : "Break's over";
+    const body = willComplete
+      ? `Come back to collect ${petName}'s reward.`
+      : isWork
+        ? 'Time for a short break.'
+        : `Back to focus with ${petName}.`;
+    scheduleFocusEnd(endMs, title, body);
+    showOngoingFocus(`Focusing with ${petName}`, `${isWork ? 'Focus' : 'Break'} until ${endClock}`);
+  };
+  const clearFocusNotif = () => {
+    cancelFocusEnd();
+    clearOngoingFocus();
+  };
+
+  // Persist the running session so a killed app can restore it (see the resume effect
+  // below). Cleared on pause / leave / complete / reset.
+  const persistSession = () => {
+    const t = tRef.current;
+    setActiveSession({
+      questId: bankQid,
+      bankQid,
+      questName,
+      startDone,
+      sessionTarget,
+      mode: t.mode,
+      phase: t.phase,
+      phaseLen: t.phaseLen,
+      base: t.base,
+      startedAt: t.startedAt,
+      workDone: t.workDone,
+      cycle: t.cycle,
+    });
+  };
+  const clearSession = () => setActiveSession(null);
+
   const startWorkBlock = () => {
     const t = tRef.current;
     const left = Math.max(1, sessionTarget - t.workDone);
@@ -166,6 +213,8 @@ export function FocusScreen({ param }: { param?: { questId?: number } }) {
     const t = tRef.current;
     t.running = false;
     stopInterval();
+    clearFocusNotif();
+    clearSession();
     setRunning(false);
     const r = completeFocus(bankQid, t.mode === 'pomodoro');
     if (r) {
@@ -184,6 +233,8 @@ export function FocusScreen({ param }: { param?: { questId?: number } }) {
       stopInterval();
       setRunning(false);
     }
+    clearFocusNotif();
+    clearSession();
     const work = sessionWork();
     leaveFocusAction(bankQid, startDone + work, work > 0);
     closeOverlay();
@@ -225,6 +276,9 @@ export function FocusScreen({ param }: { param?: { questId?: number } }) {
       setCaption(`${petName} is focusing with you again`);
       showToast('Back to focus');
     }
+    // still running on a fresh phase: (re)schedule its end alert + ongoing notice
+    scheduleForCurrentPhase();
+    persistSession();
   };
 
   const tick = () => {
@@ -251,6 +305,8 @@ export function FocusScreen({ param }: { param?: { questId?: number } }) {
     setRemaining(t.remaining);
     setStateLabel('Paused');
     setCaption(`Paused. ${petName} is waiting for you`);
+    clearFocusNotif();
+    clearSession();
   };
 
   const toggleTimer = () => {
@@ -270,6 +326,8 @@ export function FocusScreen({ param }: { param?: { questId?: number } }) {
         : `${petName} is focusing with you. Stay and it earns energy.`,
     );
     startInterval();
+    scheduleForCurrentPhase();
+    persistSession();
   };
 
   const resetTimer = () => {
@@ -285,6 +343,8 @@ export function FocusScreen({ param }: { param?: { questId?: number } }) {
     setRunning(false);
     setStateLabel('Tap play to start');
     setCaption(`${petName} is ready to focus with you`);
+    clearFocusNotif();
+    clearSession();
   };
 
   const setFxMode = (m: Mode) => {
@@ -311,6 +371,8 @@ export function FocusScreen({ param }: { param?: { questId?: number } }) {
     if (t.running) {
       t.base = t.remaining;
       t.startedAt = Date.now();
+      scheduleForCurrentPhase(); // push the end alert out by 5 min
+      persistSession();
     }
     setRemaining(t.remaining);
     showToast('Added 5 minutes');
@@ -325,6 +387,39 @@ export function FocusScreen({ param }: { param?: { questId?: number } }) {
     t.workDone = sessionTarget;
     complete();
   };
+
+  // Resume a session that was left running when the app was backgrounded/killed.
+  // Rebuilds the timer from the persisted snapshot; the first tick catches up via the
+  // timestamp math, completing (and rewarding) if the session already ended while away.
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+    if (!param?.resume) return;
+    const sess = useStore.getState().state?.activeSession;
+    if (!sess) return;
+    const t = tRef.current;
+    t.mode = sess.mode;
+    t.phase = sess.phase;
+    t.phaseLen = sess.phaseLen;
+    t.base = sess.base;
+    t.startedAt = sess.startedAt;
+    t.workDone = sess.workDone;
+    t.cycle = sess.cycle;
+    t.running = true;
+    const rem = curRemaining();
+    t.remaining = rem;
+    setMode(sess.mode);
+    setPhase(sess.phase);
+    setCycle(sess.cycle);
+    setRemaining(rem);
+    setRunning(true);
+    setStateLabel(sess.phase === 'break' ? 'Take a breather' : 'Focusing');
+    setCaption(`${petName} kept going while you were away`);
+    startInterval();
+    scheduleForCurrentPhase();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const ringColor = phase === 'break' ? colors.orange : colors.teal;
   const phaseLen = tRef.current.phaseLen || 1;

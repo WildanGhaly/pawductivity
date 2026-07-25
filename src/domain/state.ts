@@ -63,6 +63,7 @@ export function freshState(): AppState {
     achievements: [],
     nextId: 1,
     nextRem: 1,
+    activeSession: null,
     deviceId: newDeviceId(),
     onboarded: true,
     tab: 'home',

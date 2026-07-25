@@ -118,6 +118,24 @@ export interface Lifetime {
   minutes: number;
 }
 
+// A focus session that is running (persisted so it survives the app being killed).
+// The on-screen timer is rebuilt from this on relaunch; if enough time elapsed the
+// session completes and grants its reward.
+export interface ActiveSession {
+  questId: number | null;
+  bankQid: number | null;
+  questName: string;
+  startDone: number;
+  sessionTarget: number;
+  mode: 'standard' | 'pomodoro';
+  phase: 'work' | 'break';
+  phaseLen: number;
+  base: number; // remaining (seconds) at startedAt
+  startedAt: number; // epoch ms
+  workDone: number;
+  cycle: number;
+}
+
 export interface AppState {
   profile: Profile;
   pet: Pet;
@@ -134,6 +152,8 @@ export interface AppState {
   achievements: string[];
   nextId: number;
   nextRem: number;
+  // A running focus session, persisted so a killed/backgrounded app can resume it.
+  activeSession?: ActiveSession | null;
   // Stable per-install id. Only ever sent to the referral/sync backend, which is
   // the one networked feature; everything else stays on the device.
   deviceId: string;

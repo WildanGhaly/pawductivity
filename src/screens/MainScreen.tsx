@@ -5,6 +5,7 @@ import { colors } from '../theme/tokens';
 import { TabBar } from '../components/TabBar';
 import { Toast } from '../components/Toast';
 import { OverlayHost } from '../components/OverlayHost';
+import { clearOngoingFocus } from '../notifications/notifications';
 import { HomeTab } from './HomeTab';
 import { PetTab } from './PetTab';
 import { QuestsTab } from './QuestsTab';
@@ -25,6 +26,21 @@ export function MainScreen() {
       navigation.reset({ index: 0, routes: [{ name: 'Onboarding' }] });
     }
   }, [state, navigation]);
+
+  // A focus session was left running when the app was closed/killed: reopen the timer
+  // so it resumes (and completes + rewards if it already ended while away).
+  const resumedRef = useRef(false);
+  useEffect(() => {
+    if (resumedRef.current || !state) return;
+    resumedRef.current = true;
+    const sess = state.activeSession;
+    if (sess) {
+      openOverlay('focus', { questId: sess.questId ?? undefined, resume: true });
+    } else {
+      // no running session: clear any sticky "focus in progress" left by a prior kill
+      clearOngoingFocus();
+    }
+  }, [state, openOverlay]);
 
   return <MainInner tab={tab} setTab={setTab} openOverlay={openOverlay} hasState={!!state} />;
 }
