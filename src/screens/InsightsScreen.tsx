@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import Svg, { Circle, Path, Defs, LinearGradient, Stop } from 'react-native-svg';
+import { LinearGradient as LG } from 'expo-linear-gradient';
 import { colors, radius, shadow, catColors } from '../theme/tokens';
 import { Txt, Card, Btn } from '../components/ui';
 import { Icon } from '../components/Icon';
@@ -96,7 +97,7 @@ export function InsightsScreen() {
       {/* primary bar chart */}
       <View style={styles.shead}>
         <Txt weight={700} size={16} color={colors.tealInk}>{primary.title}</Txt>
-        <Txt weight={700} size={11} color={colors.muted}>{rangeStatLbl.toLowerCase()}</Txt>
+        <Txt weight={700} size={11} color={colors.muted}>tap a bar</Txt>
       </View>
       <Card style={{ paddingTop: 18, paddingBottom: 12, paddingHorizontal: 14 }}>
         {hasFocus ? (
@@ -255,12 +256,11 @@ function VBars({ items, best, max, tall }: { items: Bar[]; best: number; max: nu
     <View style={[styles.ibars, tall && styles.ibarsTall]}>
       {items.map((it, i) => (
         <View key={i} style={styles.ibarcol}>
-          <View
-            style={[
-              styles.ibar,
-              { height: `${Math.max(6, Math.round((it.v / max) * 100))}%` },
-              i === best && styles.ibarBest,
-            ]}
+          <LG
+            colors={i === best ? [colors.orange, colors.orange2] : [colors.teal2, colors.teal]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={[styles.ibar, { height: `${Math.max(6, Math.round((it.v / max) * 100))}%` }]}
           />
           <Txt weight={700} size={11} color={colors.muted}>{it.lbl}</Txt>
         </View>
