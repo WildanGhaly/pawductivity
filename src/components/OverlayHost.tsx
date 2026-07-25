@@ -18,6 +18,7 @@ import { CaptureSheet } from '../screens/CaptureSheet';
 import { GoalSheet } from '../screens/GoalSheet';
 import { PlanSheet } from '../screens/PlanSheet';
 import { BuySheet } from '../screens/BuySheet';
+import { FeedSheet } from '../screens/FeedSheet';
 
 // Full-screen overlays: slide up from the bottom on open (proto .slide-up, 320ms
 // ease-out), slide back down on close (proto .slide-down). Focus is the exception:
@@ -43,6 +44,7 @@ const SHEET: Partial<Record<OverlayName, React.ComponentType<{ param?: any; visi
   plan: PlanSheet,
   appearance: AppearanceScreen,
   buy: BuySheet,
+  feed: FeedSheet,
 };
 
 const H = Dimensions.get('window').height;

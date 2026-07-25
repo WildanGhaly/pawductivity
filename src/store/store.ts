@@ -17,7 +17,7 @@ export type OverlayName =
   | 'focus' | 'shop' | 'premium' | 'referral' | 'insights' | 'journey'
   | 'achievements' | 'recap' | 'sync' | 'profile' | 'appearance' | 'reward'
   // bottom sheets / dialogs
-  | 'capture' | 'goal' | 'plan' | 'buy';
+  | 'capture' | 'goal' | 'plan' | 'buy' | 'feed';
 
 export interface OverlayState { name: OverlayName; param?: any }
 

@@ -18,6 +18,7 @@ export function HomeTab({ onTab }: { onTab: (t: TabKey) => void }) {
   const s = useStore((st) => st.state)!;
   const collectIdle = useStore((st) => st.collectIdle);
   const openOverlay = useStore((st) => st.openOverlay);
+  const showToast = useStore((st) => st.showToast);
 
   const p = s.profile;
   const mood = moodOf(s.pet.health);
@@ -100,7 +101,14 @@ export function HomeTab({ onTab }: { onTab: (t: TabKey) => void }) {
             <Txt weight={800} size={13} color={colors.tealInk} style={{ minWidth: 52, textAlign: 'right' }}>{s.pet.health}/100</Txt>
           </View>
           <View style={styles.carerow}>
-            <CareBtn icon={img.apple} label="Feed" onPress={() => onTab('pet')} />
+            <CareBtn
+              icon={img.apple}
+              label="Feed"
+              onPress={() => {
+                if (s.pet.health >= 100) showToast(`${s.pet.name} is already full`);
+                else openOverlay('feed');
+              }}
+            />
             <CareBtn icon={img.wardrobe} label="Dress" onPress={() => onTab('pet')} />
             <CareBtn icon={img.shop} label="Shop" onPress={() => openOverlay('shop')} />
           </View>
