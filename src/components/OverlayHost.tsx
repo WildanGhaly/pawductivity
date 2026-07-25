@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Dimensions, BackHandler } from 'react-native';
-import { useStore, OverlayName } from '../store/store';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Easing, StyleSheet, Dimensions, BackHandler } from 'react-native';
+import { useStore, OverlayName, OverlayState } from '../store/store';
 
 import { FocusScreen } from '../screens/FocusScreen';
 import { RewardOverlay } from '../screens/RewardOverlay';
@@ -18,10 +18,11 @@ import { CaptureSheet } from '../screens/CaptureSheet';
 import { GoalSheet } from '../screens/GoalSheet';
 import { PlanSheet } from '../screens/PlanSheet';
 
-// Full-screen slide-up overlays (render inside an animated container over Main).
+// Full-screen overlays: slide up from the bottom on open (proto .slide-up, 320ms
+// ease-out), slide back down on close (proto .slide-down). Focus is the exception:
+// the proto opens it with a subtle fade (.fade-in) and still closes with slide-down.
 const FULL: Partial<Record<OverlayName, React.ComponentType<{ param?: any }>>> = {
   focus: FocusScreen,
-  reward: RewardOverlay,
   shop: ShopScreen,
   premium: PremiumScreen,
   referral: ReferralScreen,
@@ -34,56 +35,108 @@ const FULL: Partial<Record<OverlayName, React.ComponentType<{ param?: any }>>> =
   appearance: AppearanceScreen,
 };
 
-// Bottom-sheet overlays (each renders its own Modal, so mount directly).
-const SHEET: Partial<Record<OverlayName, React.ComponentType<{ param?: any }>>> = {
+// Bottom-sheet overlays (each renders its own animated BottomSheet, driven by `visible`
+// so the exit slide-down plays before it unmounts).
+const SHEET: Partial<Record<OverlayName, React.ComponentType<{ param?: any; visible?: boolean }>>> = {
   capture: CaptureSheet,
   goal: GoalSheet,
   plan: PlanSheet,
 };
 
 const H = Dimensions.get('window').height;
+const SLIDE_IN = Easing.bezier(0.2, 0.8, 0.2, 1);
+const SLIDE_OUT = Easing.bezier(0.4, 0, 0.9, 0.5);
 
 export function OverlayHost() {
   const overlays = useStore((s) => s.overlays);
   const closeOverlay = useStore((s) => s.closeOverlay);
   const translateY = useRef(new Animated.Value(H)).current;
+  const opacity = useRef(new Animated.Value(1)).current;
+  const prevDepth = useRef(0);
 
-  // The visible overlay is the top of the stack; closing pops back to its parent.
-  const overlay = overlays.length ? overlays[overlays.length - 1] : null;
-  const depth = overlays.length;
-  const isFull = overlay ? !!FULL[overlay.name] : false;
+  const [full, setFull] = useState<OverlayState | null>(null);
+  const [sheet, setSheet] = useState<OverlayState | null>(null);
+  const [sheetVisible, setSheetVisible] = useState(false);
 
+  const top = overlays.length ? overlays[overlays.length - 1] : null;
+  const topFull = top && FULL[top.name] ? top : null;
+  const topSheet = top && SHEET[top.name] ? top : null;
+  const rewardOpen = top?.name === 'reward';
+
+  // Full overlays: entrance on push, slide-down on close/pop.
   useEffect(() => {
-    if (isFull) {
-      translateY.setValue(H);
-      Animated.spring(translateY, { toValue: 0, useNativeDriver: true, friction: 9, tension: 65 }).start();
+    const depth = overlays.length;
+    const pushed = depth > prevDepth.current;
+    prevDepth.current = depth;
+
+    if (topFull && topFull !== full) {
+      if (pushed) {
+        setFull(topFull);
+        if (topFull.name === 'focus') {
+          // proto .fade-in: opacity 0->1 with a small 8px lift
+          translateY.setValue(8);
+          opacity.setValue(0);
+          Animated.parallel([
+            Animated.timing(translateY, { toValue: 0, duration: 280, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+            Animated.timing(opacity, { toValue: 1, duration: 280, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+          ]).start();
+        } else {
+          opacity.setValue(1);
+          translateY.setValue(H);
+          Animated.timing(translateY, { toValue: 0, duration: 320, easing: SLIDE_IN, useNativeDriver: true }).start();
+        }
+      } else {
+        // popped back to a parent overlay: slide the child down, reveal parent at rest
+        Animated.timing(translateY, { toValue: H, duration: 260, easing: SLIDE_OUT, useNativeDriver: true }).start(({ finished }) => {
+          if (finished) { setFull(topFull); translateY.setValue(0); opacity.setValue(1); }
+        });
+      }
+    } else if (!topFull && full) {
+      Animated.timing(translateY, { toValue: H, duration: 260, easing: SLIDE_OUT, useNativeDriver: true }).start(({ finished }) => finished && setFull(null));
     }
-  }, [overlay?.name, depth, isFull]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [topFull, overlays.length]);
+
+  // Sheet overlays: mount while open, keep mounted through the slide-down exit.
+  useEffect(() => {
+    if (topSheet && topSheet !== sheet) {
+      setSheet(topSheet);
+      setSheetVisible(true);
+    } else if (!topSheet && sheet) {
+      setSheetVisible(false);
+      const t = setTimeout(() => setSheet(null), 320);
+      return () => clearTimeout(t);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [topSheet]);
 
   // Android hardware back closes the active overlay.
   useEffect(() => {
-    if (!overlay) return;
+    if (!top) return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       closeOverlay();
       return true;
     });
     return () => sub.remove();
-  }, [overlay, closeOverlay]);
+  }, [top, closeOverlay]);
 
-  if (!overlay) return null;
-
-  const SheetComp = SHEET[overlay.name];
-  if (SheetComp) {
-    return <SheetComp key={`${overlay.name}-${depth}`} param={overlay.param} />;
-  }
-
-  const FullComp = FULL[overlay.name];
-  if (!FullComp) return null;
+  const FullComp = full ? FULL[full.name] : null;
+  const SheetComp = sheet ? SHEET[sheet.name] : null;
 
   return (
-    <Animated.View style={[styles.full, { transform: [{ translateY }] }]}>
-      <FullComp key={`${overlay.name}-${depth}`} param={overlay.param} />
-    </Animated.View>
+    <>
+      {FullComp && full && (
+        <Animated.View style={[styles.full, { opacity, transform: [{ translateY }] }]}>
+          <FullComp key={full.name} param={full.param} />
+        </Animated.View>
+      )}
+      {/* Reward mounts directly (no slide container): it fades its scrim and pops its
+          card itself, matching the proto reward popup. */}
+      {rewardOpen && <RewardOverlay key="reward" param={top?.param} />}
+      {SheetComp && sheet && (
+        <SheetComp key={sheet.name} param={sheet.param} visible={sheetVisible} />
+      )}
+    </>
   );
 }
 

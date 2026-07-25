@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, StyleSheet, Image } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, StyleSheet, Image, Animated, Easing } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius } from '../theme/tokens';
 import { Txt, Btn } from '../components/ui';
@@ -20,6 +20,35 @@ export function RewardOverlay({
   const s = useStore((st) => st.state)!;
   const closeOverlay = useStore((st) => st.closeOverlay);
 
+  // proto: scrim fades in, card pops (scale .4->1 overshoot), trophy burst spins in.
+  const scrim = useRef(new Animated.Value(0)).current;
+  const card = useRef(new Animated.Value(0)).current;
+  const burst = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(scrim, { toValue: 1, duration: 250, useNativeDriver: true }),
+      Animated.timing(card, { toValue: 1, duration: 450, easing: Easing.bezier(0.2, 1.3, 0.4, 1), useNativeDriver: true }),
+      Animated.timing(burst, { toValue: 1, duration: 1200, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+    ]).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const close = () => {
+    Animated.parallel([
+      Animated.timing(scrim, { toValue: 0, duration: 200, useNativeDriver: true }),
+      Animated.timing(card, { toValue: 0, duration: 200, useNativeDriver: true }),
+    ]).start(({ finished }) => finished && closeOverlay());
+  };
+  const cardStyle = {
+    opacity: card,
+    transform: [{ scale: card.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) }],
+  };
+  const burstStyle = {
+    transform: [
+      { rotate: burst.interpolate({ inputRange: [0, 1], outputRange: ['-20deg', '0deg'] }) },
+      { scale: burst.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) },
+    ],
+  };
+
   const coins = param?.coins ?? 0;
   const bonus = param?.bonus ?? 0;
   const mins = param?.mins ?? 0;
@@ -31,10 +60,11 @@ export function RewardOverlay({
 
   return (
     <View style={[styles.root, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}>
-      <View style={styles.card}>
-        <View style={styles.burst}>
+      <Animated.View style={[StyleSheet.absoluteFill, styles.scrim, { opacity: scrim }]} />
+      <Animated.View style={[styles.card, cardStyle]}>
+        <Animated.View style={[styles.burst, burstStyle]}>
           <Icon name="trophy" size={52} color={colors.yellow2} strokeWidth={2} />
-        </View>
+        </Animated.View>
 
         <Txt weight={800} size={23} color={colors.tealInk} style={styles.h2}>Quest complete</Txt>
         {!!questName && (
@@ -79,8 +109,8 @@ export function RewardOverlay({
             : `${petName}'s dream home is complete`}
         </Txt>
 
-        <Btn title="Continue" variant="orange" block onPress={closeOverlay} style={styles.btn} />
-      </View>
+        <Btn title="Continue" variant="orange" block onPress={close} style={styles.btn} />
+      </Animated.View>
     </View>
   );
 }
@@ -93,11 +123,11 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 70,
-    backgroundColor: 'rgba(11,37,48,0.55)',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
+  scrim: { backgroundColor: 'rgba(11,37,48,0.55)' },
   card: {
     backgroundColor: '#fff',
     borderRadius: 26,

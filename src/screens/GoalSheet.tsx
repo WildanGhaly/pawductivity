@@ -8,7 +8,7 @@ import { colors, radius } from '../theme/tokens';
 const OPTS = [30, 45, 60, 90, 120];
 
 // Daily focus goal sheet: pick a target minute count for the day.
-export function GoalSheet() {
+export function GoalSheet({ visible = true }: { visible?: boolean; param?: any }) {
   const s = useStore((st) => st.state)!;
   const closeOverlay = useStore((st) => st.closeOverlay);
   const setGoal = useStore((st) => st.setGoal);
@@ -17,7 +17,7 @@ export function GoalSheet() {
 
   return (
     <BottomSheet
-      visible
+      visible={visible}
       onClose={closeOverlay}
       title="Daily focus goal"
       subtitle="How many minutes of focus feels like a good day? Small and steady beats heroic."
