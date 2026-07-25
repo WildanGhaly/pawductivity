@@ -32,7 +32,6 @@ const FULL: Partial<Record<OverlayName, React.ComponentType<{ param?: any }>>> =
   recap: RecapScreen,
   sync: SyncScreen,
   profile: ProfileScreen,
-  appearance: AppearanceScreen,
 };
 
 // Bottom-sheet overlays (each renders its own animated BottomSheet, driven by `visible`
@@ -41,6 +40,7 @@ const SHEET: Partial<Record<OverlayName, React.ComponentType<{ param?: any; visi
   capture: CaptureSheet,
   goal: GoalSheet,
   plan: PlanSheet,
+  appearance: AppearanceScreen,
 };
 
 const H = Dimensions.get('window').height;
