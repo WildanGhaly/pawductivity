@@ -2,6 +2,7 @@ import React from 'react';
 import { View, ScrollView, StyleSheet, Pressable, Image, ImageBackground } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radius, shadow, NAV_H, moodColors } from '../theme/tokens';
 import { Txt, Card, CoinPill, Bounded } from '../components/ui';
 import { Icon } from '../components/Icon';
@@ -96,7 +97,12 @@ export function HomeTab({ onTab }: { onTab: (t: TabKey) => void }) {
           <View style={styles.health}>
             <Icon name="heart" size={16} color="#E5654B" />
             <View style={styles.healthBar}>
-              <View style={[styles.healthFill, { width: `${s.pet.health}%`, backgroundColor: s.pet.health < 40 ? '#E5654B' : colors.yellow2 }]} />
+              <LinearGradient
+                colors={s.pet.health < 40 ? ['#E5654B', '#F09A6E'] : [colors.yellow2, colors.yellow]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[styles.healthFill, { width: `${s.pet.health}%` }]}
+              />
             </View>
             <Txt weight={800} size={13} color={colors.tealInk} style={{ minWidth: 52, textAlign: 'right' }}>{s.pet.health}/100</Txt>
           </View>
@@ -116,7 +122,7 @@ export function HomeTab({ onTab }: { onTab: (t: TabKey) => void }) {
 
         {/* journey strip */}
         <Pressable style={styles.jstrip} onPress={() => openOverlay('journey')}>
-          <View style={styles.jstripIc}><Icon name={(nm?.ic as any) || 'crown'} size={16} color="#8580B0" /></View>
+          <View style={styles.jstripIc}><Icon name={nm ? ((nm.ic as any) || 'sparkle') : 'crown'} size={16} color="#8580B0" /></View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Txt weight={800} size={13} color={colors.tealInk} numberOfLines={1}>
               {nm ? `Building ${s.pet.name}'s home: ${nm.name}` : `${s.pet.name}'s dream home is complete`}
@@ -230,7 +236,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg, padding: 15, marginBottom: 16, ...shadow.card,
   },
   ceIc: { width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(255,255,255,.14)', alignItems: 'center', justifyContent: 'center' },
-  cePlus: { width: 34, height: 34, borderRadius: 12, backgroundColor: colors.orange, alignItems: 'center', justifyContent: 'center' },
+  cePlus: { width: 34, height: 34, borderRadius: 12, backgroundColor: colors.orange, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 3, borderBottomColor: colors.orange2 },
   room: { height: 250, borderRadius: 22, overflow: 'hidden', justifyContent: 'flex-end' },
   moodtag: {
     position: 'absolute', top: 12, left: 12, zIndex: 3, flexDirection: 'row', alignItems: 'center', gap: 6,

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, Pressable, Image } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radius, shadow } from '../theme/tokens';
 import { Txt } from '../components/ui';
 import { Icon, IconName } from '../components/Icon';
@@ -45,7 +46,7 @@ export function JourneyScreen() {
       {/* progress */}
       <View style={styles.jprog}>
         <View style={styles.jprogbar}>
-          <View style={[styles.jprogfill, { width: `${pct}%` }]} />
+          <LinearGradient colors={['#8580B0', '#B0A9D8']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[styles.jprogfill, { width: `${pct}%` }]} />
         </View>
         <View style={styles.jprogmeta}>
           <Txt weight={700} size={11.5} color={colors.muted}>Home {pct}% built</Txt>
@@ -148,7 +149,7 @@ const styles = StyleSheet.create({
   jheroh: { marginTop: 2, marginBottom: 5 },
   jprog: { marginTop: 16, marginBottom: 6 },
   jprogbar: { height: 9, borderRadius: 999, backgroundColor: '#EFE7D6', overflow: 'hidden' },
-  jprogfill: { height: '100%', borderRadius: 999, backgroundColor: '#B0A9D8' },
+  jprogfill: { height: '100%', borderRadius: 999 },
   jprogmeta: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 7 },
   jlist: { marginTop: 10, gap: 10 },
   jrow: {
@@ -163,7 +164,7 @@ const styles = StyleSheet.create({
     ...shadow.sm,
   },
   jrowLocked: { opacity: 0.6 },
-  jrowNext: { borderColor: '#8580B0' },
+  jrowNext: { borderColor: '#8580B0', shadowColor: '#8580B0', shadowOpacity: 0.18, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
   jic: {
     width: 40,
     height: 40,

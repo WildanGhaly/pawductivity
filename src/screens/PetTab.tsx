@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, ScrollView, StyleSheet, Pressable, Image, ImageBackground } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radius, shadow, NAV_H, moodColors } from '../theme/tokens';
 import { Txt, Card, CoinPill, Btn, Bounded } from '../components/ui';
 import { Icon } from '../components/Icon';
@@ -90,7 +91,7 @@ export function PetTab() {
               </View>
               <Icon name="chevR" size={16} color={colors.muted} />
             </View>
-            <View style={styles.jprogbar}><View style={[styles.jprogfill, { width: `${homePct(pet)}%` }]} /></View>
+            <View style={styles.jprogbar}><LinearGradient colors={['#8580B0', '#B0A9D8']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[styles.jprogfill, { width: `${homePct(pet)}%` }]} /></View>
             {nm && (
               <Btn
                 title={canAfford ? `Build ${nm.name} for ${nm.cost}` : `${nm.name} needs ${nm.cost} coins`}
@@ -239,7 +240,7 @@ const styles = StyleSheet.create({
   shead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: 12, marginHorizontal: 2 },
   spread: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   jprogbar: { height: 9, borderRadius: 999, backgroundColor: '#EFE7D6', overflow: 'hidden', marginTop: 11 },
-  jprogfill: { height: '100%', borderRadius: 999, backgroundColor: '#8580B0' },
+  jprogfill: { height: '100%', borderRadius: 999 },
   growthnote: { flexDirection: 'row', gap: 5, marginTop: 12 },
   health: { flexDirection: 'row', alignItems: 'center', gap: 9, marginTop: 10 },
   healthBar: { flex: 1, height: 13, borderRadius: 9, backgroundColor: '#EFE7D6', overflow: 'hidden' },
