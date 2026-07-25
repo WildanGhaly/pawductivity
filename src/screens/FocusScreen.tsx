@@ -9,7 +9,7 @@ import { Icon } from '../components/Icon';
 import { PetView } from '../components/PetView';
 import { BottomSheet } from '../components/BottomSheet';
 import { useStore } from '../store/store';
-import { mmss, fmt, isDone } from '../domain/mechanics';
+import { mmss, fmt, isDone, moodOf } from '../domain/mechanics';
 import { POMO_WORK, POMO_BREAK, SOUNDS } from '../domain/catalogs';
 import { playSoundscape, stopSoundscape, getActiveSoundscape } from '../audio/soundscape';
 
@@ -18,7 +18,7 @@ type Phase = 'work' | 'break';
 
 const { width: SCRW } = Dimensions.get('window');
 const DIAL = Math.min(240, Math.round(SCRW * 0.62));
-const PET = Math.min(220, Math.round(SCRW * 0.6));
+const PET = Math.min(300, Math.round(SCRW * 0.74));
 const RING_R = 112;
 const RING_C = 2 * Math.PI * RING_R; // ~703.7 for r=112 (matches proto)
 const TEXT_SHADOW = {
@@ -211,7 +211,7 @@ export function FocusScreen({ param }: { param?: { questId?: number } }) {
 
   const startInterval = () => {
     stopInterval();
-    intervalRef.current = setInterval(tick, 1000);
+    intervalRef.current = setInterval(tick, 250);
   };
 
   const pause = () => {
@@ -391,7 +391,7 @@ export function FocusScreen({ param }: { param?: { questId?: number } }) {
           </View>
           <View style={[styles.petStage, { width: PET, height: PET }]}>
             <View style={[styles.petShadow, { width: PET * 0.62, height: PET * 0.1, borderRadius: PET * 0.1 }]} />
-            <PetView species={pet.species} clothesId={pet.clothesId} size={PET} speed={running ? 1 : 0.7} />
+            <PetView species={pet.species} clothesId={pet.clothesId} size={PET} speed={moodOf(pet.health).spd} />
           </View>
         </View>
       </View>
