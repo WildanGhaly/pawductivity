@@ -20,51 +20,63 @@ Turn tasks into quests and raise a pet that grows as you get things done.
 - `Gamified focus & to-do. Finish quests, feed your pet, build your streak.` (71)
 
 ## Full description  (≤4000 chars)
+
+> HONEST version. The app does NOT yet send OS notifications (no expo-notifications),
+> so do not claim focus-completion or reminder notifications — Play flags listings that
+> describe features the app lacks ("does not reflect your app's features"). Re-add those
+> lines only after notifications are actually implemented.
+
 ```
-Pawductivity turns getting things done into caring for a companion.
+Pawductivity turns getting things done into raising a companion you care about.
 
-Write down what you need to do, run a focus session, and every minute you complete earns XP and
-coins — and keeps your pet happy. Neglect your work and your companion gets hungry. It's the
-gentle nudge that makes focusing feel worth it.
+Set your tasks, start a focus session, and every minute you focus earns coins and XP that keep
+your pet happy and help it grow. It is a gentle, game-like loop that makes concentration feel
+rewarding instead of a chore.
 
-★ A pet that reacts to your productivity
-Adopt a Dog, Cat, or Rabbit, name it, and watch its mood follow how well you're doing. Feed it,
-dress it up, and grow it as you build momentum.
+WHAT YOU CAN DO
 
-★ Focus sessions that actually survive the background
-Pick a task, start the timer, and lock in. The countdown is accurate even if you leave the app,
-lock your phone, or reboot — and you get a notification the moment your session is done.
+- Raise a virtual pet
+Adopt a cat or dog (a rabbit unlocks with Premium), give it a name, and watch its mood follow how
+you are doing. Feed it, dress it in outfits from the wardrobe, and build its forever home piece by
+piece as you focus.
 
-★ Capture tasks without the friction
-Just brain-dump what's on your mind in plain language. Pawductivity turns it into quests you can
-start with one tap.
+- Focus in sessions
+Pick a task, choose a length, and start the timer. Optional focus soundscapes help you settle in.
+Your elapsed time is tracked accurately even if you leave the app or lock your phone.
 
-★ Earn, spend, repeat
-Completing quests pays out coins. Spend them in the shop on food to restore your pet's health and
-outfits to dress it up. Level up, keep your daily streak alive, and watch your companion thrive.
+- Turn thoughts into quests
+Quick-add a single task or brain-dump a whole list in plain language, tag it (Work, School, Sport,
+Personal, Project), and set it to repeat once, daily, or on weekdays. Pick up to three to focus on
+today.
 
-★ Reminders that fire on time
-Set time-anchored reminders and get a local notification exactly when you asked — no account, no
-internet needed.
+- Earn coins and spend them
+Finishing focus sessions pays out coins. Spend them in the shop on food to keep your pet healthy
+and outfits to dress it up. Level up, keep your daily streak alive, and unlock milestones that
+build your pet's home.
 
-★ 100% on your device — private by design
-Pawductivity is local-first. Your tasks, your pet, your progress — all of it stays on your phone.
-No account. No sign-up. No servers. Nothing to leak.
+- See your progress
+Track your focus time by day, your best hours, category breakdowns, and streaks, with a shareable
+weekly recap. Collect badges as you hit new milestones.
 
-Whether you're studying, working, building a habit, or just trying to beat procrastination,
-Pawductivity gives your focus a face.
+- Private by design, works offline
+Pawductivity is local-first. Your tasks, your pet, and your progress stay on your device. No
+account and no sign-up needed to use it day to day.
 
-Premium (optional): unlock extra companions, foods, and outfits, plus detailed productivity
-stats. The core loop — tasks, focus timer, and your starter pet — is always free.
+PREMIUM (OPTIONAL SUBSCRIPTION)
+Pawductivity Premium unlocks the Rabbit companion, premium foods and outfits, and a detailed
+productivity dashboard. It is billed through Google Play as an auto-renewing subscription (monthly,
+6-month, or yearly), and you can manage or cancel anytime in Google Play. The core experience,
+tasks, the focus timer, coins, the shop, and your starter pet, is free.
+
+Whether you are studying, working, building a habit, or just beating procrastination, Pawductivity
+gives your focus a face.
 ```
-
-> Trim/expand as you like; keep the "local-first / private" and "focus timer survives
-> backgrounding" points — they're the honest differentiators.
 
 ## What's new  (release notes, ≤500 chars)
 ```
-First release of Pawductivity — gamified focus with a virtual pet that grows as you get things
-done. Tasks, focus timer, coins, shop, reminders, streaks. 100% on-device.
+First release of Pawductivity: gamified focus with a virtual pet that grows as you get things
+done. Focus timer, quests, coins, shop, streaks, badges, and a weekly recap. Works offline, your
+data stays on your device.
 ```
 
 ---
