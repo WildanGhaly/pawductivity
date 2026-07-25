@@ -28,9 +28,7 @@ type BtnSpec =
 
 export function ShopScreen({ param }: { param?: { tab?: ShopTab } }) {
   const s = useStore((st) => st.state)!;
-  const buyFood = useStore((st) => st.buyFood);
-  const buyPet = useStore((st) => st.buyPet);
-  const buyClothes = useStore((st) => st.buyClothes);
+  const openOverlay = useStore((st) => st.openOverlay);
   const equip = useStore((st) => st.equip);
 
   const [tab, setTab] = useState<ShopTab>(param?.tab || 'food');
@@ -48,7 +46,7 @@ export function ShopScreen({ param }: { param?: { tab?: ShopTab } }) {
           desc={`+${f.heal} health`}
           locked={locked}
           qty={qty > 0 ? qty : undefined}
-          button={locked ? { kind: 'prem', onPress: () => buyFood(f.id) } : { kind: 'buy', price: f.price, onPress: () => buyFood(f.id) }}
+          button={locked ? { kind: 'prem', onPress: () => openOverlay('buy', { kind: 'food', id: f.id }) } : { kind: 'buy', price: f.price, onPress: () => openOverlay('buy', { kind: 'food', id: f.id }) }}
         />
       );
     });
@@ -58,8 +56,8 @@ export function ShopScreen({ param }: { param?: { tab?: ShopTab } }) {
       const locked = sp.premium && !s.profile.premium;
       let button: BtnSpec;
       if (owned) button = { kind: 'owned', label: 'Adopted' };
-      else if (locked) button = { kind: 'prem', onPress: () => buyPet(sp.id) };
-      else button = { kind: 'buy', price: sp.price, onPress: () => buyPet(sp.id) };
+      else if (locked) button = { kind: 'prem', onPress: () => openOverlay('buy', { kind: 'pet', id: sp.id }) };
+      else button = { kind: 'buy', price: sp.price, onPress: () => openOverlay('buy', { kind: 'pet', id: sp.id }) };
       cards.push(
         <ShopCard
           key={sp.id}
@@ -78,8 +76,8 @@ export function ShopScreen({ param }: { param?: { tab?: ShopTab } }) {
       const locked = c.premium && !s.profile.premium;
       let button: BtnSpec;
       if (owned) button = on ? { kind: 'equipped', onPress: () => equip(c.id) } : { kind: 'equip', onPress: () => equip(c.id) };
-      else if (locked) button = { kind: 'prem', onPress: () => buyClothes(c.id) };
-      else button = { kind: 'buy', price: c.price, onPress: () => buyClothes(c.id) };
+      else if (locked) button = { kind: 'prem', onPress: () => openOverlay('buy', { kind: 'clothes', id: c.id }) };
+      else button = { kind: 'buy', price: c.price, onPress: () => openOverlay('buy', { kind: 'clothes', id: c.id }) };
       cards.push(
         <ShopCard
           key={c.id}
