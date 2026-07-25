@@ -68,6 +68,22 @@ function parseText(raw: string): ParsedQuest[] {
   return made;
 }
 
+// Fixed equal-column chip grid (proto .pchips.g3 / .g5 = grid-template-columns:repeat(N,1fr)).
+// Measures its width once and gives every cell an identical width, so wrapped rows stay
+// left-aligned at the same size instead of stretching (which flexGrow would do).
+function ChipGrid({ cols, children }: { cols: number; children: React.ReactNode }) {
+  const [w, setW] = useState(0);
+  const gap = 8;
+  const cw = w > 0 ? Math.floor((w - gap * (cols - 1)) / cols) : 0;
+  return (
+    <View onLayout={(e) => setW(e.nativeEvent.layout.width)} style={{ flexDirection: 'row', flexWrap: 'wrap', gap }}>
+      {React.Children.map(children, (child) => (
+        <View style={cw > 0 ? { width: cw } : { flexGrow: 1, flexBasis: `${Math.floor(100 / cols) - 2}%` }}>{child}</View>
+      ))}
+    </View>
+  );
+}
+
 export function CaptureSheet({ visible = true }: { visible?: boolean; param?: any }) {
   const closeOverlay = useStore((st) => st.closeOverlay);
   const addQuest = useStore((st) => st.addQuest);
@@ -156,33 +172,33 @@ export function CaptureSheet({ visible = true }: { visible?: boolean; param?: an
               <Icon name="clock" size={14} color={colors.teal} />
               <Txt weight={700} size={12} color={colors.teal}>How long?</Txt>
             </View>
-            <View style={styles.chipsRow}>
+            <ChipGrid cols={5}>
               {DURS.map(([l, v]) => {
                 const on = dur === v;
                 return (
-                  <Pressable key={v} style={[styles.pchip, styles.chip5, on && styles.pchipOn]} onPress={() => setDur(v)}>
+                  <Pressable key={v} style={[styles.pchip, on && styles.pchipOn]} onPress={() => setDur(v)}>
                     <Txt weight={700} size={13} color={on ? colors.orange2 : colors.tealInk}>{l}</Txt>
                   </Pressable>
                 );
               })}
-            </View>
+            </ChipGrid>
           </View>
 
           <View style={styles.pgroup}>
             <View style={styles.pglbl}>
               <Txt weight={700} size={12} color={colors.teal}>Category</Txt>
             </View>
-            <View style={styles.chipsRow}>
+            <ChipGrid cols={3}>
               {TAGS.map((t) => {
                 const on = tag === t;
                 return (
-                  <Pressable key={t} style={[styles.pchip, styles.chip3, on && styles.pchipOn]} onPress={() => setTag(t)}>
+                  <Pressable key={t} style={[styles.pchip, on && styles.pchipOn]} onPress={() => setTag(t)}>
                     <View style={[styles.catdot, { backgroundColor: catColors[t] }]} />
                     <Txt weight={700} size={13} color={on ? colors.orange2 : colors.tealInk}>{t}</Txt>
                   </Pressable>
                 );
               })}
-            </View>
+            </ChipGrid>
           </View>
 
           <View style={styles.pgroup}>
@@ -190,16 +206,16 @@ export function CaptureSheet({ visible = true }: { visible?: boolean; param?: an
               <Icon name="repeat" size={14} color={colors.teal} />
               <Txt weight={700} size={12} color={colors.teal}>Repeat</Txt>
             </View>
-            <View style={styles.chipsRow}>
+            <ChipGrid cols={3}>
               {CAP_REPS.map(([l, v]) => {
                 const on = repeat === v;
                 return (
-                  <Pressable key={v} style={[styles.pchip, styles.chip3, on && styles.pchipOn]} onPress={() => setRepeat(v)}>
+                  <Pressable key={v} style={[styles.pchip, on && styles.pchipOn]} onPress={() => setRepeat(v)}>
                     <Txt weight={700} size={13} color={on ? colors.orange2 : colors.tealInk}>{l}</Txt>
                   </Pressable>
                 );
               })}
-            </View>
+            </ChipGrid>
           </View>
 
           <View style={styles.actions}>
@@ -292,11 +308,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginLeft: 2,
   },
-  chipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
   pchip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -312,14 +323,6 @@ const styles = StyleSheet.create({
   pchipOn: {
     backgroundColor: '#FFF7EF',
     borderColor: colors.orange,
-  },
-  chip5: {
-    flexGrow: 1,
-    flexBasis: '17%',
-  },
-  chip3: {
-    flexGrow: 1,
-    flexBasis: '29%',
   },
   catdot: {
     width: 6,
