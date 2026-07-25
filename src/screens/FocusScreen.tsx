@@ -328,7 +328,7 @@ export function FocusScreen({ param }: { param?: { questId?: number } }) {
           </Pressable>
         </View>
         <Pressable style={styles.iconbtn} onPress={() => setSoundOpen(true)} accessibilityLabel="Soundscape">
-          <Icon name="sound" size={18} color={soundId ? colors.orange : colors.teal} strokeWidth={2.2} />
+          <Icon name="sound" size={18} color={colors.teal} strokeWidth={2.2} />
         </Pressable>
       </View>
 

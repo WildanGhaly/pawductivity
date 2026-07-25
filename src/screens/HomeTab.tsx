@@ -13,10 +13,10 @@ import { moodOf, bonusPct, idlePending, nextMilestone, homePct, isDone, fmt } fr
 import { TabKey } from '../components/TabBar';
 
 const COIN_SPOTS = [
-  { l: 47, b: 5, s: 30 }, { l: 37, b: 7, s: 26 }, { l: 57, b: 6, s: 27 },
-  { l: 30, b: 13, s: 22 }, { l: 64, b: 13, s: 22 }, { l: 50, b: 16, s: 24 },
-  { l: 41, b: 20, s: 20 }, { l: 59, b: 22, s: 20 }, { l: 33, b: 3, s: 23 },
-  { l: 67, b: 3, s: 23 }, { l: 49, b: 27, s: 18 }, { l: 44, b: 11, s: 26 },
+  { l: 47, b: 5, s: 30, r: 0 }, { l: 37, b: 7, s: 26, r: -10 }, { l: 57, b: 6, s: 27, r: 11 },
+  { l: 30, b: 13, s: 22, r: -16 }, { l: 64, b: 13, s: 22, r: 14 }, { l: 50, b: 16, s: 24, r: 5 },
+  { l: 41, b: 20, s: 20, r: -7 }, { l: 59, b: 22, s: 20, r: 16 }, { l: 33, b: 3, s: 23, r: 8 },
+  { l: 67, b: 3, s: 23, r: -12 }, { l: 49, b: 27, s: 18, r: 0 }, { l: 44, b: 11, s: 26, r: -5 },
 ];
 
 export function HomeTab({ onTab }: { onTab: (t: TabKey) => void }) {
@@ -84,7 +84,7 @@ export function HomeTab({ onTab }: { onTab: (t: TabKey) => void }) {
             {pending > 0 && (
               <>
                 {COIN_SPOTS.slice(0, Math.min(COIN_SPOTS.length, Math.max(1, Math.ceil(pending / 3)))).map((c, i) => (
-                  <Image key={i} source={img.coin} style={{ position: 'absolute', left: `${c.l}%`, bottom: c.b, width: c.s, height: c.s }} />
+                  <Image key={i} source={img.coin} style={{ position: 'absolute', left: `${c.l}%`, bottom: c.b, width: c.s, height: c.s, zIndex: 4, transform: [{ rotate: `${c.r}deg` }] }} />
                 ))}
                 <View style={styles.pileBadge}>
                   <Image source={img.coin} style={{ width: 15, height: 15 }} />
