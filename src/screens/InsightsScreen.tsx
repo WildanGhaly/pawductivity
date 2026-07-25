@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
-import Svg, { Circle, Path, Defs, LinearGradient, Stop } from 'react-native-svg';
+import Svg, { Circle, Path, Defs, LinearGradient, Stop, Rect, Text as SvgText } from 'react-native-svg';
 import { LinearGradient as LG } from 'expo-linear-gradient';
 import { colors, radius, shadow, catColors } from '../theme/tokens';
 import { Txt, Card, Btn } from '../components/ui';
@@ -119,7 +119,7 @@ export function InsightsScreen() {
       {/* 8-week trend */}
       <View style={styles.shead}>
         <Txt weight={700} size={16} color={colors.tealInk}>8-week trend</Txt>
-        <Txt weight={700} size={11} color={colors.muted}>trend</Txt>
+        <Txt weight={700} size={11} color={colors.muted}>tap a point</Txt>
       </View>
       <Card style={{ paddingTop: 14, paddingBottom: 10, paddingHorizontal: 14 }}>
         <AreaChart vals={ins.trend} />
@@ -159,7 +159,7 @@ export function InsightsScreen() {
         <Txt weight={700} size={11} color={colors.muted}>health</Txt>
       </View>
       <Card style={{ paddingTop: 14, paddingBottom: 10, paddingHorizontal: 14 }}>
-        <AreaChart vals={ins.petHealth.length ? ins.petHealth : [0, 0]} />
+        <AreaChart vals={ins.petHealth.length ? ins.petHealth : [0, 0]} tip={(i, v) => `Day ${i + 1} · ${v}/100`} />
       </Card>
 
       {/* best time of day */}
@@ -342,13 +342,26 @@ function HeatGrid({ vals, cols }: { vals: number[]; cols: number }) {
   );
 }
 
-function AreaChart({ vals }: { vals: number[] }) {
+function AreaChart({ vals, tip }: { vals: number[]; tip?: (i: number, v: number) => string }) {
   const w = 300, h = 94, pad = 8;
+  // Tap a point to reveal its value (proto areaChart tooltip), auto-hiding after a beat.
+  const [active, setActive] = useState<number | null>(null);
+  const tref = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showTip = (i: number) => {
+    setActive(i);
+    if (tref.current) clearTimeout(tref.current);
+    tref.current = setTimeout(() => setActive(null), 1900);
+  };
+  useEffect(() => () => { if (tref.current) clearTimeout(tref.current); }, []);
   const max = Math.max(...vals, 1);
   const step = (w - pad * 2) / (vals.length - 1);
   const pts = vals.map((v, i) => [pad + i * step, h - pad - (v / max) * (h - pad * 2 - 6)]);
   const line = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
   const area = `M${pad} ${h - pad} ` + pts.map((p) => 'L' + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ') + ` L${w - pad} ${h - pad} Z`;
+  const tipText = active !== null ? (tip ? tip(active, vals[active]) : `W${active + 1} · ${fmt(vals[active] * 60)}`) : '';
+  const tw = Math.max(30, tipText.length * 5.4 + 12);
+  const tcx = active !== null ? Math.min(w - tw / 2 - 2, Math.max(tw / 2 + 2, pts[active][0])) : 0;
+  const ty = active !== null ? Math.max(1, pts[active][1] - 22) : 0;
   return (
     <Svg viewBox={`0 0 ${w} ${h}`} width="100%" height={h}>
       <Defs>
@@ -362,6 +375,16 @@ function AreaChart({ vals }: { vals: number[] }) {
       {pts.map((p, i) => (
         <Circle key={i} cx={p[0]} cy={p[1]} r={i === pts.length - 1 ? 4 : 2.5} fill={i === pts.length - 1 ? colors.orange : colors.teal} />
       ))}
+      {/* transparent hit targets so each point is easy to tap */}
+      {pts.map((p, i) => (
+        <Circle key={'h' + i} cx={p[0]} cy={p[1]} r={12} fill="transparent" onPress={() => showTip(i)} />
+      ))}
+      {active !== null && (
+        <>
+          <Rect x={tcx - tw / 2} y={ty} width={tw} height={17} rx={5} fill={colors.tealInk} />
+          <SvgText x={tcx} y={ty + 12} fontSize={10} fontWeight="700" fill="#fff" textAnchor="middle">{tipText}</SvgText>
+        </>
+      )}
     </Svg>
   );
 }

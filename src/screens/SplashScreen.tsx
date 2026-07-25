@@ -3,7 +3,6 @@ import { View, Image, StyleSheet, Animated, Easing, Dimensions } from 'react-nat
 import { LinearGradient } from 'expo-linear-gradient';
 import { Txt } from '../components/ui';
 import { img } from '../assets/registry';
-import { font } from '../theme/tokens';
 
 const SPLASH_LINES = [
   'Small sessions beat big intentions.',
@@ -29,9 +28,11 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
   const pop = useRef(new Animated.Value(0)).current;
   const pulse = useRef(new Animated.Value(0)).current;
   const load = useRef(new Animated.Value(0)).current;
+  const quoteAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.spring(pop, { toValue: 1, friction: 5, tension: 90, useNativeDriver: true }).start();
+    Animated.timing(quoteAnim, { toValue: 1, duration: 800, delay: 300, easing: Easing.out(Easing.ease), useNativeDriver: true }).start();
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 1, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
@@ -66,13 +67,17 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
       <Txt weight={600} size={13.5} color="#BFE3F3" style={{ marginTop: 2, zIndex: 2 }}>
         Get things done. Grow a friend.
       </Txt>
-      <Txt
-        size={13}
-        color="#8FC0CC"
-        style={{ position: 'absolute', bottom: 104, left: 30, right: 30, textAlign: 'center', fontFamily: font.regular }}
+      <Animated.View
+        style={{
+          position: 'absolute', bottom: 104, left: 30, right: 30, zIndex: 2,
+          opacity: quoteAnim,
+          transform: [{ translateY: quoteAnim.interpolate({ inputRange: [0, 1], outputRange: [7, 0] }) }],
+        }}
       >
-        {quote}
-      </Txt>
+        <Txt weight={600} size={13.5} color="#8FC0CC" style={{ textAlign: 'center', lineHeight: 21 }}>
+          {quote}
+        </Txt>
+      </Animated.View>
       <View style={styles.loader}>
         <Animated.View style={[styles.loaderBar, { transform: [{ translateX: barTranslate }] }]} />
       </View>

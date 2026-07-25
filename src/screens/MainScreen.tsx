@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, StyleSheet, Animated, Easing } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../theme/tokens';
 import { TabBar } from '../components/TabBar';
@@ -26,19 +26,33 @@ export function MainScreen() {
     }
   }, [state, navigation]);
 
-  if (!state) return <View style={styles.root} />;
+  return <MainInner tab={tab} setTab={setTab} openOverlay={openOverlay} hasState={!!state} />;
+}
+
+// Each tab fades + slides in when it becomes active (proto .fade-in on tab switch).
+function MainInner({ tab, setTab, openOverlay, hasState }: { tab: any; setTab: (t: any) => void; openOverlay: (n: any) => void; hasState: boolean }) {
+  const anim = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    anim.setValue(0);
+    Animated.timing(anim, { toValue: 1, duration: 280, easing: Easing.out(Easing.ease), useNativeDriver: true }).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
+  if (!hasState) return <View style={styles.root} />;
 
   return (
     <View style={styles.root}>
-      {tab === 'home' ? (
-        <HomeTab onTab={setTab} />
-      ) : tab === 'pet' ? (
-        <PetTab />
-      ) : tab === 'quests' ? (
-        <QuestsTab onTab={setTab} />
-      ) : (
-        <CalendarTab />
-      )}
+      <Animated.View style={{ flex: 1, opacity: anim, transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }] }}>
+        {tab === 'home' ? (
+          <HomeTab onTab={setTab} />
+        ) : tab === 'pet' ? (
+          <PetTab />
+        ) : tab === 'quests' ? (
+          <QuestsTab onTab={setTab} />
+        ) : (
+          <CalendarTab />
+        )}
+      </Animated.View>
       <TabBar active={tab} onTab={setTab} onCapture={() => openOverlay('capture')} />
       <OverlayHost />
       <Toast />
