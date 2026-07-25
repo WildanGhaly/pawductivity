@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import Svg, { Circle, Path, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { LinearGradient as LG } from 'expo-linear-gradient';
@@ -199,7 +199,7 @@ export function InsightsScreen() {
       </View>
       <Card style={{ paddingTop: 18, paddingBottom: 12, paddingHorizontal: 14 }}>
         {distItems.length ? (
-          <VBars items={distItems} best={-1} max={Math.max(...distItems.map((x) => x.v), 1)} />
+          <VBars items={distItems} best={-1} max={Math.max(...distItems.map((x) => x.v), 1)} unit="count" />
         ) : (
           <Txt size={12.5} color={colors.muted} style={{ textAlign: 'center', paddingVertical: 14 }}>No sessions yet.</Txt>
         )}
@@ -283,11 +283,31 @@ function rangeLabel(range: Range): string {
   return `${now.getFullYear()}`;
 }
 
-function VBars({ items, best, max, tall }: { items: Bar[]; best: number; max: number; tall?: boolean }) {
+function VBars({ items, best, max, tall, unit = 'min' }: { items: Bar[]; best: number; max: number; tall?: boolean; unit?: 'min' | 'count' }) {
+  // Tap a bar to reveal its value (proto chartTip), auto-hiding after a beat.
+  const [tip, setTip] = useState<number | null>(null);
+  const tref = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showTip = (i: number) => {
+    setTip(i);
+    if (tref.current) clearTimeout(tref.current);
+    tref.current = setTimeout(() => setTip(null), 1900);
+  };
+  useEffect(() => () => { if (tref.current) clearTimeout(tref.current); }, []);
+  const tipText = (it: Bar) =>
+    unit === 'count'
+      ? `${it.lbl} · ${it.v} ${it.v === 1 ? 'session' : 'sessions'}`
+      : `${it.lbl} · ${it.v > 0 ? it.v + ' min' : 'no focus'}`;
   return (
     <View style={[styles.ibars, tall && styles.ibarsTall]}>
       {items.map((it, i) => (
-        <View key={i} style={styles.ibarcol}>
+        <Pressable key={i} style={styles.ibarcol} onPress={() => showTip(i)}>
+          {tip === i && (
+            <View style={styles.chartTipWrap} pointerEvents="none">
+              <View style={styles.chartTip}>
+                <Txt weight={700} size={11} color="#fff">{tipText(it)}</Txt>
+              </View>
+            </View>
+          )}
           <LG
             colors={i === best ? [colors.orange, colors.orange2] : [colors.teal2, colors.teal]}
             start={{ x: 0, y: 0 }}
@@ -295,7 +315,7 @@ function VBars({ items, best, max, tall }: { items: Bar[]; best: number; max: nu
             style={[styles.ibar, { height: `${Math.max(6, Math.round((it.v / max) * 100))}%` }]}
           />
           <Txt weight={700} size={11} color={colors.muted}>{it.lbl}</Txt>
-        </View>
+        </Pressable>
       ))}
     </View>
   );
@@ -375,6 +395,8 @@ function AtCard({ icon, v, l }: { icon: string; v: string; l: string }) {
 
 const styles = StyleSheet.create({
   emptyChart: { alignItems: 'center', justifyContent: 'center', paddingVertical: 26 },
+  chartTipWrap: { position: 'absolute', top: -6, left: -50, right: -50, alignItems: 'center', zIndex: 10 },
+  chartTip: { backgroundColor: colors.tealInk, paddingVertical: 5, paddingHorizontal: 9, borderRadius: 9, ...shadow.sm },
   rangebar: { flexDirection: 'row', gap: 6, backgroundColor: '#EFE7D6', padding: 4, borderRadius: 14, marginBottom: 8 },
   rangeBtn: { flex: 1, paddingVertical: 8, paddingHorizontal: 4, borderRadius: 10, alignItems: 'center' },
   rangeBtnOn: { backgroundColor: '#fff', ...shadow.sm },
