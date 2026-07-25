@@ -4,14 +4,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle } from 'react-native-svg';
 import { colors, radius, shadow } from '../theme/tokens';
-import { Txt } from '../components/ui';
+import { Txt, Btn } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { PetView } from '../components/PetView';
 import { BottomSheet } from '../components/BottomSheet';
 import { useStore } from '../store/store';
 import { mmss, fmt, isDone, moodOf } from '../domain/mechanics';
 import { POMO_WORK, POMO_BREAK, SOUNDS } from '../domain/catalogs';
-import { playSoundscape, stopSoundscape, getActiveSoundscape } from '../audio/soundscape';
+import { playSoundscape, stopSoundscape, getActiveSoundscape, playCustomSoundscape } from '../audio/soundscape';
 
 type Mode = 'standard' | 'pomodoro';
 type Phase = 'work' | 'break';
@@ -42,15 +42,39 @@ export function FocusScreen({ param }: { param?: { questId?: number } }) {
   // Soundscape: loops a bundled ambient asset for the whole session.
   const [soundOpen, setSoundOpen] = useState(false);
   const [soundId, setSoundId] = useState(() => getActiveSoundscape());
-  const pickSound = (id: number, free: boolean, name: string) => {
-    if (!free && !s.profile.premium) {
-      showToast(`${name} is a Premium soundscape`);
+  // Proto pickSound: re-selects the sound in place. It does NOT close the sheet and
+  // shows no success toast; the only toast is the Premium lock. Done closes the sheet.
+  const pickSound = (id: number, free: boolean) => {
+    if (id !== 0 && !free && !s.profile.premium) {
+      showToast('This sound is a Premium feature');
       return;
     }
     setSoundId(id);
     playSoundscape(id);
-    setSoundOpen(false);
-    showToast(id === 0 ? 'Sound off' : `${name} on`);
+  };
+
+  // Proto uploadSound: Premium-only. Picks an audio file and loops it as the soundscape.
+  const uploadSound = async () => {
+    if (!s.profile.premium) {
+      showToast('Custom sounds are a Premium feature');
+      return;
+    }
+    try {
+      // Lazily required so a build without the native module degrades gracefully.
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const DocumentPicker = require('expo-document-picker');
+      const res = await DocumentPicker.getDocumentAsync({ type: 'audio/*', copyToCacheDirectory: true });
+      const uri = res?.assets?.[0]?.uri ?? (res?.type === 'success' ? res.uri : undefined);
+      if (!uri) return; // cancelled
+      if (playCustomSoundscape(uri)) {
+        setSoundId(-1);
+        showToast('Playing your sound');
+      } else {
+        showToast('Could not play that file');
+      }
+    } catch {
+      showToast('Could not open the file picker');
+    }
   };
   // Always release audio when the Focus screen goes away.
   useEffect(() => () => stopSoundscape(), []);
@@ -425,40 +449,37 @@ export function FocusScreen({ param }: { param?: { questId?: number } }) {
         </RoundCtl>
       </View>
 
-      {/* soundscape picker */}
+      {/* soundscape picker (proto openSound: 'Focus sound', flat rows, Done closes) */}
       <BottomSheet
         visible={soundOpen}
         onClose={() => setSoundOpen(false)}
-        title="Soundscape"
-        subtitle="A steady background loop, stored on your device so it works offline."
+        title="Focus sound"
+        subtitle={`Gentle ambient audio, generated on your device. Rain is free${s.profile.premium ? '' : '; more sounds and your own uploads are Premium'}.`}
+        align="left"
       >
         {SOUNDS.map(([name, id, free]) => {
           const locked = !free && !s.profile.premium;
           const on = soundId === id;
           return (
-            <Pressable
-              key={id}
-              onPress={() => pickSound(id, free, name)}
-              style={[styles.soundRow, on && styles.soundRowOn]}
-            >
-              <View style={[styles.soundIc, on && { backgroundColor: colors.teal }]}>
-                <Icon
-                  name={id === 0 ? 'pause' : locked ? 'lock' : 'sound'}
-                  size={17}
-                  color={on ? colors.white : colors.teal}
-                />
+            <Pressable key={id} onPress={() => pickSound(id, free)} style={[styles.soundRow, on && styles.soundRowOn]}>
+              <View style={styles.soundName}>
+                <Txt weight={700} size={14.5} color={on ? colors.teal : colors.tealInk}>{name}</Txt>
+                {locked && <Icon name="crown" size={12} color={colors.yellow} />}
               </View>
-              <Txt weight={700} size={14.5} color={colors.tealInk} style={{ flex: 1 }}>
-                {name}
-              </Txt>
-              {locked ? (
-                <Txt weight={800} size={11} color={colors.orange2}>Premium</Txt>
-              ) : on ? (
-                <Icon name="check" size={18} color={colors.teal} />
-              ) : null}
+              {on ? <Icon name="check" size={17} color={colors.teal} /> : null}
             </Pressable>
           );
         })}
+        {/* Upload your own (Premium) */}
+        <Pressable onPress={uploadSound} style={[styles.soundRow, soundId === -1 && styles.soundRowOn]}>
+          <View style={styles.soundName}>
+            <Icon name="plus" size={14} color={soundId === -1 ? colors.teal : colors.tealInk} strokeWidth={2.5} />
+            <Txt weight={700} size={14.5} color={soundId === -1 ? colors.teal : colors.tealInk}>Upload your own</Txt>
+            {!s.profile.premium && <Icon name="crown" size={12} color={colors.yellow} />}
+          </View>
+          {soundId === -1 ? <Icon name="check" size={17} color={colors.teal} /> : null}
+        </Pressable>
+        <Btn title="Done" block onPress={() => setSoundOpen(false)} style={{ marginTop: 8 }} />
       </BottomSheet>
     </LinearGradient>
   );
@@ -496,10 +517,7 @@ const styles = StyleSheet.create({
     borderRadius: 14, borderWidth: 1.5, borderColor: colors.line2, backgroundColor: '#fff', marginBottom: 8,
   },
   soundRowOn: { borderColor: colors.teal, backgroundColor: '#F1F7F9' },
-  soundIc: {
-    width: 34, height: 34, borderRadius: 11, backgroundColor: colors.cream,
-    alignItems: 'center', justifyContent: 'center',
-  },
+  soundName: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
   root: { flex: 1, justifyContent: 'flex-start' },
   center: { textAlign: 'center' },
   top: {

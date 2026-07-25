@@ -15,12 +15,14 @@ export function BottomSheet({
   title,
   subtitle,
   children,
+  align = 'center',
 }: {
   visible: boolean;
   onClose: () => void;
   title?: string;
   subtitle?: string;
   children: ReactNode;
+  align?: 'center' | 'left';
 }) {
   const insets = useSafeAreaInsets();
   const anim = useRef(new Animated.Value(0)).current; // 0 hidden, 1 shown
@@ -53,12 +55,12 @@ export function BottomSheet({
         >
           <View style={styles.grip} />
           {title ? (
-            <Txt weight={700} size={19} color={colors.tealInk} style={{ textAlign: 'center', marginBottom: 4 }}>
+            <Txt weight={700} size={19} color={colors.tealInk} style={{ textAlign: align, marginBottom: 4 }}>
               {title}
             </Txt>
           ) : null}
           {subtitle ? (
-            <Txt size={13.5} color={colors.muted} style={{ textAlign: 'center', marginBottom: 16, lineHeight: 20 }}>
+            <Txt size={13.5} color={colors.muted} style={{ textAlign: align, marginBottom: 16, lineHeight: 20 }}>
               {subtitle}
             </Txt>
           ) : null}

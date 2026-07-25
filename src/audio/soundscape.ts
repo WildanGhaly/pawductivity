@@ -47,3 +47,22 @@ export function playSoundscape(id: number, volume = 0.6): void {
     activeId = 0;
   }
 }
+
+// Plays a user-uploaded audio file (Premium "Upload your own"). activeId becomes -1.
+// Returns false if playback could not start (unsupported file / module absent).
+export function playCustomSoundscape(uri: string, volume = 0.6): boolean {
+  stopSoundscape();
+  try {
+    player = createPlayer({ uri });
+    player.loop = true;
+    player.volume = volume;
+    player.play();
+    activeId = -1;
+    return true;
+  } catch (e) {
+    console.warn('[soundscape] custom playback unavailable:', e);
+    player = null;
+    activeId = 0;
+    return false;
+  }
+}
