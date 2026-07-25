@@ -19,6 +19,7 @@ export function PlanSheet({ visible = true }: { visible?: boolean; param?: any }
   const clear = () => {
     // No clearPlan action exists; toggle off every currently selected quest.
     s.plan.slice().forEach((id) => togglePlan(id));
+    closeOverlay(); // proto's Clear also closes the dialog
   };
 
   return (
@@ -27,6 +28,7 @@ export function PlanSheet({ visible = true }: { visible?: boolean; param?: any }
       onClose={closeOverlay}
       title="Plan today"
       subtitle="Pick up to 3 to focus on today. We'll line them up smallest first, so starting is easy."
+      align="left"
     >
       {active.length === 0 && (
         <View style={styles.empty}>

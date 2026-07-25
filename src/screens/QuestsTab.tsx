@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.cream, borderWidth: 1,
     borderColor: colors.line2, paddingVertical: 4, paddingHorizontal: 9, borderRadius: radius.pill,
   },
-  shead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: 12, marginHorizontal: 2 },
+  shead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 18, marginBottom: 10, marginHorizontal: 2 },
   planCard: { padding: 14 },
   planrow: {
     flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11, paddingHorizontal: 12,

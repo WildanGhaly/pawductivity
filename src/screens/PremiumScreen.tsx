@@ -124,7 +124,7 @@ export function PremiumScreen() {
           Pawductivity Premium
         </Txt>
         <Txt weight={400} size={13.5} color={colors.sky} style={{ marginTop: 6, textAlign: 'center', lineHeight: 20 }}>
-          Unlock every companion, outfit and deep insights. Premium items still cost coins, which you earn by focusing.
+          Unlock every companion, outfit and deep insights.{'\n'}Premium items still cost coins, which you earn by focusing.
         </Txt>
         {premium && (
           <View style={styles.activePill}>

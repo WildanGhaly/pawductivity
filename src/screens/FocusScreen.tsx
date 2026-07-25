@@ -16,6 +16,9 @@ import { playSoundscape, stopSoundscape, getActiveSoundscape, playCustomSoundsca
 type Mode = 'standard' | 'pomodoro';
 type Phase = 'work' | 'break';
 
+// Remembers the last-used timer mode across Focus sessions (proto persists it).
+let lastMode: Mode = 'standard';
+
 const { width: SCRW } = Dimensions.get('window');
 const DIAL = Math.min(240, Math.round(SCRW * 0.62));
 const PET = Math.min(300, Math.round(SCRW * 0.74));
@@ -107,7 +110,7 @@ export function FocusScreen({ param }: { param?: { questId?: number } }) {
   });
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const [mode, setMode] = useState<Mode>('standard');
+  const [mode, setMode] = useState<Mode>(lastMode);
   const [phase, setPhase] = useState<Phase>('work');
   const [cycle, setCycle] = useState(1);
   const [remaining, setRemaining] = useState(sessionTarget);
@@ -287,6 +290,7 @@ export function FocusScreen({ param }: { param?: { questId?: number } }) {
   const setFxMode = (m: Mode) => {
     const t = tRef.current;
     if (m === t.mode) return;
+    lastMode = m; // remember across sessions
     if (t.running) {
       t.running = false;
       stopInterval();
