@@ -3,7 +3,7 @@ import { View, Pressable, Image, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, NAV_H, shadow } from '../theme/tokens';
 import { img } from '../assets/registry';
-import { Txt } from './ui';
+import { Txt, Bounded } from './ui';
 import { Icon } from './Icon';
 
 export type TabKey = 'home' | 'quests' | 'pet' | 'cal';
@@ -28,22 +28,24 @@ export function TabBar({
   const left = TABS.slice(0, 2);
   const right = TABS.slice(2);
   return (
-    <View style={[styles.bar, { height: NAV_H + insets.bottom, paddingBottom: insets.bottom }]}>
-      {left.map((t) => (
-        <TabButton key={t.key} tab={t} active={active === t.key} onPress={() => onTab(t.key)} />
-      ))}
-      <View style={styles.fabSlot}>
-        <Pressable
-          onPress={onCapture}
-          accessibilityLabel="Add a quest"
-          style={({ pressed }) => [styles.fab, { transform: [{ translateY: pressed ? -14 : -18 }] }]}
-        >
-          <Icon name="plus" size={28} color="#fff" strokeWidth={3} />
-        </Pressable>
-      </View>
-      {right.map((t) => (
-        <TabButton key={t.key} tab={t} active={active === t.key} onPress={() => onTab(t.key)} />
-      ))}
+    <View style={[styles.bar, { paddingBottom: insets.bottom }]}>
+      <Bounded style={[styles.barRow, { height: NAV_H }]}>
+        {left.map((t) => (
+          <TabButton key={t.key} tab={t} active={active === t.key} onPress={() => onTab(t.key)} />
+        ))}
+        <View style={styles.fabSlot}>
+          <Pressable
+            onPress={onCapture}
+            accessibilityLabel="Add a quest"
+            style={({ pressed }) => [styles.fab, { transform: [{ translateY: pressed ? -14 : -18 }] }]}
+          >
+            <Icon name="plus" size={28} color="#fff" strokeWidth={3} />
+          </Pressable>
+        </View>
+        {right.map((t) => (
+          <TabButton key={t.key} tab={t} active={active === t.key} onPress={() => onTab(t.key)} />
+        ))}
+      </Bounded>
     </View>
   );
 }
@@ -77,11 +79,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: colors.line,
-    flexDirection: 'row',
     zIndex: 30,
     ...shadow.sm,
     shadowOffset: { width: 0, height: -6 },
   },
+  barRow: { flexDirection: 'row', alignItems: 'center' },
   tabBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4 },
   activePill: {
     position: 'absolute',

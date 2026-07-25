@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { View, ScrollView, StyleSheet, Pressable, Image, TextInput } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius, shadow, NAV_H } from '../theme/tokens';
-import { Txt, Card, CoinPill, Btn } from '../components/ui';
+import { Txt, Card, CoinPill, Btn, Bounded } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { BottomSheet } from '../components/BottomSheet';
 import { img, avatars } from '../assets/registry';
@@ -178,6 +178,7 @@ export function CalendarTab() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.cream }}>
       <ScrollView contentContainerStyle={{ paddingBottom: NAV_H + insets.bottom + 20 }} showsVerticalScrollIndicator={false}>
+        <Bounded>
         {/* top bar */}
         <View style={[styles.topbar, { paddingTop: Math.max(20, insets.top + 12) }]}>
           <Pressable onPress={() => openOverlay('profile')}>
@@ -296,6 +297,7 @@ export function CalendarTab() {
             onOpenDay={(d) => setDayOpen(d)}
           />
         </View>
+        </Bounded>
       </ScrollView>
 
       {/* day detail sheet */}

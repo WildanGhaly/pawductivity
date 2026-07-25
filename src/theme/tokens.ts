@@ -54,6 +54,12 @@ export const radius = {
 
 export const NAV_H = 74;
 
+// Max width of the main content column. On phones the window is narrower than this so
+// it has no effect; on tablets, Chromebooks and other large screens the content is
+// capped and centered here (with the screen background filling the sides) instead of
+// stretching edge to edge. Keep just above a large phone width.
+export const MAX_CONTENT = 600;
+
 // react-native shadow presets approximating the CSS box-shadows
 export const shadow = {
   card: {

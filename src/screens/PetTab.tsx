@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet, Pressable, Image, ImageBackground } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius, shadow, NAV_H, moodColors } from '../theme/tokens';
-import { Txt, Card, CoinPill, Btn } from '../components/ui';
+import { Txt, Card, CoinPill, Btn, Bounded } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { PetView } from '../components/PetView';
 import { BottomSheet } from '../components/BottomSheet';
@@ -47,6 +47,7 @@ export function PetTab() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.cream }}>
       <ScrollView contentContainerStyle={{ paddingBottom: NAV_H + insets.bottom + 20 }} showsVerticalScrollIndicator={false}>
+        <Bounded>
         {/* top bar */}
         <View style={[styles.topbar, { paddingTop: Math.max(20, insets.top + 12) }]}>
           <Pressable onPress={() => openOverlay('profile')}>
@@ -197,6 +198,7 @@ export function PetTab() {
             )}
           </View>
         </View>
+        </Bounded>
       </ScrollView>
 
       {/* feed sheet */}

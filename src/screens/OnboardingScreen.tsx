@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, Image, Pressable, TextInput, ImageBackground } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius, font } from '../theme/tokens';
-import { Txt, Btn } from '../components/ui';
+import { Txt, Btn, Bounded } from '../components/ui';
 import { PetView } from '../components/PetView';
 import { img } from '../assets/registry';
 import { useStore } from '../store/store';
@@ -24,6 +24,7 @@ export function OnboardingScreen({ onComplete }: { onComplete: () => void }) {
 
   return (
     <View style={[styles.ob, { paddingTop: insets.top + 26, paddingBottom: insets.bottom + 22 }]}>
+      <Bounded style={{ flex: 1 }}>
       <View style={styles.dots}>
         {[0, 1, 2].map((i) => (
           <View key={i} style={[styles.dot, i <= step && styles.dotOn]} />
@@ -92,6 +93,7 @@ export function OnboardingScreen({ onComplete }: { onComplete: () => void }) {
           <Btn title="Start" block onPress={start} />
         </>
       )}
+      </Bounded>
     </View>
   );
 }

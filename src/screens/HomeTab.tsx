@@ -3,7 +3,7 @@ import { View, ScrollView, StyleSheet, Pressable, Image, ImageBackground } from 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 import { colors, radius, shadow, NAV_H, moodColors } from '../theme/tokens';
-import { Txt, Card, CoinPill } from '../components/ui';
+import { Txt, Card, CoinPill, Bounded } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { PetView } from '../components/PetView';
 import { QuestRow } from '../components/QuestRow';
@@ -46,6 +46,7 @@ export function HomeTab({ onTab }: { onTab: (t: TabKey) => void }) {
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={{ paddingBottom: NAV_H + insets.bottom + 20 }} showsVerticalScrollIndicator={false}>
+      <Bounded>
       {/* top bar */}
       <View style={[styles.topbar, { paddingTop: Math.max(20, insets.top + 12) }]}>
         <Pressable onPress={() => openOverlay('profile')} style={styles.avatar}>
@@ -204,6 +205,7 @@ export function HomeTab({ onTab }: { onTab: (t: TabKey) => void }) {
           </Card>
         )}
       </View>
+      </Bounded>
     </ScrollView>
   );
 }
