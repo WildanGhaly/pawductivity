@@ -7,7 +7,7 @@ import { Txt, Card, CoinPill, Bounded } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { PetView } from '../components/PetView';
 import { QuestRow } from '../components/QuestRow';
-import { img, avatars } from '../assets/registry';
+import { img, avatars, avatarSrc } from '../assets/registry';
 import { useStore } from '../store/store';
 import { moodOf, bonusPct, idlePending, nextMilestone, homePct, isDone, fmt } from '../domain/mechanics';
 import { TabKey } from '../components/TabBar';
@@ -50,7 +50,7 @@ export function HomeTab({ onTab }: { onTab: (t: TabKey) => void }) {
       {/* top bar */}
       <View style={[styles.topbar, { paddingTop: Math.max(20, insets.top + 12) }]}>
         <Pressable onPress={() => openOverlay('profile')} style={styles.avatar}>
-          <Image source={avatars[p.avatar] || img.catThumb} style={styles.avatarImg} />
+          <Image source={avatarSrc(p.avatar, p.avatarCustom)} style={styles.avatarImg} />
         </Pressable>
         <View style={{ flex: 1 }}>
           <Txt weight={600} size={12} color={colors.muted}>Welcome back</Txt>

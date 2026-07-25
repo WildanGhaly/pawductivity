@@ -6,7 +6,8 @@ export type ReminderRep = 'once' | 'daily' | 'weekdays' | 'weekly' | 'monthly';
 
 export interface Profile {
   name: string;
-  avatar: number; // 0..6
+  avatar: number; // 0..6, or -1 for a custom uploaded photo (avatarCustom)
+  avatarCustom?: string; // data URI of the user's own photo when avatar === -1
   level: number;
   xp: number;
   needed: number;

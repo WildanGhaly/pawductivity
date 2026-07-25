@@ -6,7 +6,7 @@ import { Txt, Card, CoinPill, Btn, Bounded } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { PetView } from '../components/PetView';
 import { BottomSheet } from '../components/BottomSheet';
-import { img, avatars, foodImg, clothesImg } from '../assets/registry';
+import { img, avatars, avatarSrc, foodImg, clothesImg } from '../assets/registry';
 import { useStore } from '../store/store';
 import { FOODS, CLOTHES } from '../domain/catalogs';
 import {
@@ -51,7 +51,7 @@ export function PetTab() {
         {/* top bar */}
         <View style={[styles.topbar, { paddingTop: Math.max(20, insets.top + 12) }]}>
           <Pressable onPress={() => openOverlay('profile')}>
-            <Image source={avatars[s.profile.avatar] || img.catThumb} style={styles.avatarImg} />
+            <Image source={avatarSrc(s.profile.avatar, s.profile.avatarCustom)} style={styles.avatarImg} />
           </Pressable>
           <View style={{ flex: 1 }}>
             <Txt weight={600} size={12} color={colors.muted}>Your companion</Txt>

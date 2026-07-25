@@ -6,7 +6,7 @@ import { colors, radius, shadow, NAV_H } from '../theme/tokens';
 import { Txt, Card, CoinPill, Bounded } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { QuestRow } from '../components/QuestRow';
-import { img, avatars } from '../assets/registry';
+import { img, avatars, avatarSrc } from '../assets/registry';
 import { useStore } from '../store/store';
 import { isDone, fmt } from '../domain/mechanics';
 import { Quest } from '../domain/types';
@@ -37,7 +37,7 @@ export function QuestsTab({ onTab }: { onTab: (t: 'home' | 'quests' | 'pet' | 'c
       {/* top bar */}
       <View style={[styles.topbar, { paddingTop: Math.max(20, insets.top + 12) }]}>
         <Pressable onPress={() => openOverlay('profile')}>
-          <Image source={avatars[p.avatar] || img.catThumb} style={styles.avatarImg} />
+          <Image source={avatarSrc(p.avatar, p.avatarCustom)} style={styles.avatarImg} />
         </Pressable>
         <View style={{ flex: 1 }}>
           <Txt weight={600} size={12} color={colors.muted}>{active.length} to go · {done.length} done today</Txt>
