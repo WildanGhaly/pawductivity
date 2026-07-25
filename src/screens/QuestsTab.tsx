@@ -57,55 +57,6 @@ export function QuestsTab({ onTab }: { onTab: (t: 'home' | 'quests' | 'pet' | 'c
           <View style={styles.cePlus}><Icon name="plus" size={20} color="#fff" /></View>
         </Pressable>
 
-        {/* daily goal card */}
-        <Card style={styles.goalcard} onPress={() => openOverlay('goal')}>
-          <View style={styles.goalRingWrap}>
-            <Svg width={88} height={88}>
-              <Circle cx={44} cy={44} r={ringR} fill="none" stroke="#EFE7D6" strokeWidth={8} />
-              <Circle cx={44} cy={44} r={ringR} fill="none" stroke={colors.teal} strokeWidth={8} strokeLinecap="round"
-                strokeDasharray={`${ringC}`} strokeDashoffset={ringC * (1 - goalPct / 100)} transform="rotate(-90 44 44)" />
-            </Svg>
-            <View style={styles.goalCtr}>
-              <Txt weight={800} size={20} color={colors.tealInk}>{s.today.min}</Txt>
-              <Txt weight={700} size={10.5} color={colors.muted}>/ {s.today.goalMin}m</Txt>
-            </View>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Txt weight={800} size={15} color={colors.tealInk}>Today's focus goal</Txt>
-            <Txt weight={600} size={12.5} color={colors.muted} style={{ marginTop: 2 }}>
-              {s.today.min >= s.today.goalMin ? 'Reached, great work today' : `${s.today.goalMin - s.today.min} min to go`}
-            </Txt>
-            <View style={styles.goalChips}>
-              <GChip icon="flame" text={`${s.streak.current} day streak`} />
-              <GChip icon="checkCircle" text={`${s.today.sessions} today`} />
-            </View>
-          </View>
-        </Card>
-
-        {/* today's plan */}
-        <View style={styles.shead}>
-          <Txt weight={700} size={16} color={colors.tealInk}>Today's plan</Txt>
-          <Txt weight={700} size={12.5} color={colors.orange} onPress={() => openOverlay('plan')}>Plan</Txt>
-        </View>
-        <Card style={styles.planCard} onPress={() => openOverlay('plan')}>
-          {planned.length ? (
-            planned.map((q, i) => (
-              <View key={q.id} style={[styles.planrow, i === planned.length - 1 && { marginBottom: 0 }]}>
-                <View style={styles.planck}><Icon name="check" size={14} color="#fff" /></View>
-                <Txt weight={700} size={13.5} color={colors.tealInk} numberOfLines={1} style={{ flex: 1 }}>{q.name}</Txt>
-                <View style={styles.planTime}>
-                  <Icon name="clock" size={12} color="#9A968A" />
-                  <Txt weight={600} size={12} color={colors.muted}>{fmt(q.est)}</Txt>
-                </View>
-              </View>
-            ))
-          ) : (
-            <Txt weight={600} size={12.5} color={colors.muted} style={{ lineHeight: 18 }}>
-              Pick up to 3 to focus on today. We'll line them up smallest first, so starting is easy.
-            </Txt>
-          )}
-        </Card>
-
         {/* in progress */}
         <View style={styles.shead}>
           <Txt weight={700} size={16} color={colors.tealInk}>In progress</Txt>

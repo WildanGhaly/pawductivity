@@ -166,7 +166,7 @@ export function HomeTab({ onTab }: { onTab: (t: TabKey) => void }) {
           <Txt weight={700} size={16} color={colors.tealInk}>Your week</Txt>
           <Txt weight={700} size={12.5} color={colors.orange} onPress={() => openOverlay('insights')}>{p.premium ? 'Full dashboard' : 'See more'}</Txt>
         </View>
-        <Card style={{ padding: 16 }}>
+        <Card style={{ padding: 16 }} onPress={() => openOverlay('insights')}>
           <View style={styles.spread}>
             <View>
               <Txt weight={700} size={12} color={colors.muted}>Focus this week</Txt>

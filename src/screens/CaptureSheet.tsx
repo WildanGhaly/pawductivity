@@ -117,7 +117,7 @@ export function CaptureSheet({ visible = true }: { visible?: boolean; param?: an
   };
 
   return (
-    <BottomSheet visible={visible} onClose={closeOverlay} title="Add a quest">
+    <BottomSheet visible={visible} onClose={closeOverlay}>
       {/* mode toggle */}
       <View style={styles.capmode} onLayout={(e) => setBarW(e.nativeEvent.layout.width)}>
         {pillW > 0 ? (

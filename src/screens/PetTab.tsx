@@ -88,7 +88,7 @@ export function PetTab() {
             <Txt weight={700} size={16} color={colors.tealInk}>{pet.name}'s home</Txt>
             <Txt weight={700} size={12.5} color={colors.orange} onPress={() => openOverlay('journey')}>Journey</Txt>
           </View>
-          <Card style={{ padding: 16 }}>
+          <Card style={{ padding: 16 }} onPress={() => openOverlay('journey')}>
             <View style={styles.spread}>
               <View style={{ minWidth: 0, flex: 1 }}>
                 <Txt weight={800} size={15.5} color={colors.tealInk} numberOfLines={1}>{stageName(stg)} · Stage {stg} of 5</Txt>
