@@ -2,9 +2,9 @@ import React from 'react';
 import { View, StyleSheet, Pressable, ImageBackground } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radius, shadow } from '../theme/tokens';
-import { Txt } from '../components/ui';
+import { Txt, Btn } from '../components/ui';
 import { Icon } from '../components/Icon';
-import { OverlayScreen } from '../components/OverlayScreen';
+import { BottomSheet } from '../components/BottomSheet';
 import { img } from '../assets/registry';
 import { useStore } from '../store/store';
 import { ACCENTS } from '../domain/catalogs';
@@ -14,11 +14,12 @@ const ROOMS = [
   { name: 'Meadow', bg: img.room2 },
 ];
 
-export function AppearanceScreen() {
+export function AppearanceScreen({ visible = true }: { visible?: boolean; param?: any }) {
   const s = useStore((st) => st.state)!;
   const setAccent = useStore((st) => st.setAccent);
   const setRoom = useStore((st) => st.setRoom);
   const showToast = useStore((st) => st.showToast);
+  const closeOverlay = useStore((st) => st.closeOverlay);
 
   const pickAccent = (i: number) => {
     if (ACCENTS[i].premium && !s.profile.premium) {
@@ -29,11 +30,7 @@ export function AppearanceScreen() {
   };
 
   return (
-    <OverlayScreen title="Appearance">
-      <Txt weight={600} size={13.5} color={colors.muted} style={{ marginBottom: 16, lineHeight: 20 }}>
-        Make Pawductivity feel like yours.
-      </Txt>
-
+    <BottomSheet visible={visible} onClose={closeOverlay} title="Appearance" subtitle="Make Pawductivity feel like yours.">
       <View style={styles.pglbl}>
         <Txt weight={700} size={12} color={colors.teal}>Accent color</Txt>
       </View>
@@ -92,7 +89,9 @@ export function AppearanceScreen() {
           );
         })}
       </View>
-    </OverlayScreen>
+
+      <Btn title="Done" block onPress={closeOverlay} style={{ marginTop: 18 }} />
+    </BottomSheet>
   );
 }
 
