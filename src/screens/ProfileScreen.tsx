@@ -334,9 +334,11 @@ const styles = StyleSheet.create({
   shead: { marginTop: 18, marginBottom: 10, marginHorizontal: 2 },
 
   avpicker: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  avwrap: { width: '22%', flexGrow: 1, aspectRatio: 1 },
+  // Fixed 22% width (4 per row) so every avatar is the same size - no flexGrow, which
+  // made the last, shorter row stretch larger than the first (proto: repeat(4,1fr)).
+  avwrap: { width: '22%', aspectRatio: 1 },
   av: { width: '100%', height: '100%', borderRadius: 999, borderWidth: 3, borderColor: 'transparent', backgroundColor: '#DDEDE9' },
-  avSel: { borderColor: colors.orange },
+  avSel: { borderColor: colors.orange, transform: [{ scale: 1.04 }] },
 
   group: { borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: colors.line, ...shadow.sm },
   setrow: {

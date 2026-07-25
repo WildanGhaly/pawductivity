@@ -141,7 +141,7 @@ export function SyncScreen() {
           </View>
 
           <Btn
-            title={syncing ? 'Syncing...' : 'Back up now'}
+            title={syncing ? 'Syncing...' : 'Sync now'}
             block
             disabled={syncing}
             onPress={runSync}

@@ -63,7 +63,7 @@ export function PlanSheet({ visible = true }: { visible?: boolean; param?: any }
 
       <View style={styles.actions}>
         <Btn title="Clear" variant="ghost" block onPress={clear} style={{ flex: 1 }} />
-        <Btn title="Done" variant="teal" block onPress={closeOverlay} style={{ flex: 1 }} />
+        <Btn title="Done" variant="orange" block onPress={closeOverlay} style={{ flex: 1 }} />
       </View>
     </BottomSheet>
   );
