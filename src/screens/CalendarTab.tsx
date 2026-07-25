@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { View, ScrollView, StyleSheet, Pressable, Image, TextInput } from 'react-native';
+import React, { useMemo, useState, useRef } from 'react';
+import { View, ScrollView, StyleSheet, Pressable, Image, TextInput, Animated, Easing, PanResponder } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius, shadow, NAV_H } from '../theme/tokens';
 import { Txt, Card, CoinPill, Btn, Bounded } from '../components/ui';
@@ -136,19 +136,50 @@ export function CalendarTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.completedDays]);
 
+  // Month-change transition: the grid fades in from the direction of travel
+  // (proto .calbody .calin.l/.r). dir -1 = came from the left, +1 = from the right.
+  const calAnim = useRef(new Animated.Value(1)).current;
+  const calDir = useRef(0);
+  const playCalIn = (dir: number) => {
+    calDir.current = dir;
+    calAnim.setValue(0);
+    Animated.timing(calAnim, { toValue: 1, duration: 280, easing: Easing.out(Easing.ease), useNativeDriver: true }).start();
+  };
+
   const shift = (delta: number) => {
     const nd = new Date(cal.y, cal.m + delta, 1);
     setCal({ y: nd.getFullYear(), m: nd.getMonth() });
+    playCalIn(delta);
   };
   const goToday = () => {
     setCal({ y: now.getFullYear(), m: now.getMonth() });
     setPick(false);
+    playCalIn(0);
   };
   const setMonth = (mi: number) => {
     setCal((c) => ({ ...c, m: mi }));
     setPick(false);
+    playCalIn(0);
   };
-  const setYear = (delta: number) => setCal((c) => ({ ...c, y: c.y + delta }));
+  const setYear = (delta: number) => { setCal((c) => ({ ...c, y: c.y + delta })); playCalIn(0); };
+
+  // Horizontal swipe changes month (proto bindSwipe). Refs keep the once-created
+  // PanResponder pointing at the latest handlers, and it only claims clearly
+  // horizontal gestures so vertical scrolling still passes through to the ScrollView.
+  const shiftRef = useRef(shift);
+  shiftRef.current = shift;
+  const pickRef = useRef(pick);
+  pickRef.current = pick;
+  const pan = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_e, g) => !pickRef.current && Math.abs(g.dx) > 20 && Math.abs(g.dx) > Math.abs(g.dy) * 1.7,
+      onPanResponderRelease: (_e, g) => {
+        if (pickRef.current) return;
+        if (g.dx <= -40) shiftRef.current(1);
+        else if (g.dx >= 40) shiftRef.current(-1);
+      },
+    }),
+  ).current;
 
   // ---- build the month grid ----
   const first = new Date(cal.y, cal.m, 1).getDay();
@@ -258,6 +289,10 @@ export function CalendarTab() {
               </Pressable>
             </View>
 
+            <Animated.View
+              {...pan.panHandlers}
+              style={{ opacity: calAnim, transform: [{ translateX: calAnim.interpolate({ inputRange: [0, 1], outputRange: [calDir.current * 14, 0] }) }] }}
+            >
             {pick ? (
               <View>
                 <View style={styles.ystep}>
@@ -321,10 +356,11 @@ export function CalendarTab() {
                     <View style={[styles.legendDot, { backgroundColor: colors.orange }]} />
                     <Txt weight={600} size={11} color={colors.muted}>Reminder</Txt>
                   </View>
-                  <Txt weight={600} size={11} color={colors.muted}>Change month above</Txt>
+                  <Txt weight={600} size={11} color={colors.muted}>Swipe or use the arrows</Txt>
                 </View>
               </View>
             )}
+            </Animated.View>
           </View>
 
           {/* reminders list */}
