@@ -4,6 +4,7 @@ import { colors, radius, shadow } from '../theme/tokens';
 import { Txt, Card, Btn } from '../components/ui';
 import { Icon, IconName } from '../components/Icon';
 import { OverlayScreen } from '../components/OverlayScreen';
+import { BottomSheet } from '../components/BottomSheet';
 import { useStore } from '../store/store';
 
 // Human friendly "time ago" for the last sync timestamp. Ported from the prototype relTime().
@@ -56,12 +57,15 @@ export function SyncScreen() {
 
   const kind = KIND[status.k];
 
-  const signIn = () => {
+  const [confirm, setConfirm] = useState<'in' | 'out' | null>(null);
+  const doSignIn = () => {
+    setConfirm(null);
     updateCloud({ signedIn: true, email: c.email || 'you@gmail.com' });
     showToast('Signed in. Backing up.');
     runSync();
   };
-  const signOut = () => {
+  const doSignOut = () => {
+    setConfirm(null);
     updateCloud({ signedIn: false, email: null, status: 'idle' });
     showToast('Signed out. Your data is still here.');
   };
@@ -97,7 +101,7 @@ export function SyncScreen() {
             <Txt weight={800} size={14} color={colors.tealInk}>{c.email || 'you@gmail.com'}</Txt>
             <Txt weight={600} size={11.5} color={colors.muted} style={{ marginTop: 2 }}>This device: {c.device}</Txt>
           </View>
-          <Btn title="Sign out" variant="ghost" sm onPress={signOut} />
+          <Btn title="Sign out" variant="ghost" sm onPress={() => setConfirm('out')} />
         </Card>
       ) : (
         <Card style={{ padding: 18 }}>
@@ -108,7 +112,7 @@ export function SyncScreen() {
           <Btn
             title="Sign in with Google"
             block
-            onPress={signIn}
+            onPress={() => setConfirm('in')}
             style={{ marginTop: 14 }}
             left={<Icon name="shield" size={16} color={colors.white} strokeWidth={2} />}
           />
@@ -158,6 +162,38 @@ export function SyncScreen() {
       <Txt weight={500} size={11.5} color={colors.muted} style={styles.note}>
         Sync is offline-first: everything works without a connection. Backing up sends only your progress and a random device id to the Pawductivity server, and if the server holds a newer backup it is restored instead.
       </Txt>
+
+      <BottomSheet
+        visible={confirm !== null}
+        onClose={() => setConfirm(null)}
+        title={confirm === 'out' ? 'Sign out?' : 'Sign in with Google'}
+        subtitle={
+          confirm === 'out'
+            ? 'Your data stays on this device even after you sign out.'
+            : 'We only store your quests, pet and stats. Signing in is optional and you can sign out any time.'
+        }
+      >
+        {confirm === 'out' && c.pending > 0 && (
+          <View style={styles.warn}>
+            <Txt weight={600} size={12.5} color={colors.orange2} style={{ lineHeight: 18 }}>
+              {c.pending} change{c.pending === 1 ? '' : 's'} are not backed up yet. Sync before signing out so nothing is lost.
+            </Txt>
+          </View>
+        )}
+        <View style={styles.confirmRow}>
+          {confirm === 'out' && c.pending > 0 ? (
+            <>
+              <Btn title="Sign out anyway" variant="ghost" block style={{ flex: 1 }} onPress={doSignOut} />
+              <Btn title="Sync first" block style={{ flex: 1 }} onPress={() => { setConfirm(null); runSync(); }} />
+            </>
+          ) : (
+            <>
+              <Btn title={confirm === 'out' ? 'Cancel' : 'Not now'} variant="ghost" block style={{ flex: 1 }} onPress={() => setConfirm(null)} />
+              <Btn title={confirm === 'out' ? 'Sign out' : 'Continue'} block style={{ flex: 1 }} onPress={confirm === 'out' ? doSignOut : doSignIn} />
+            </>
+          )}
+        </View>
+      </BottomSheet>
     </OverlayScreen>
   );
 }
@@ -284,4 +320,9 @@ const styles = StyleSheet.create({
     marginTop: 10,
     lineHeight: 17,
   },
+  warn: {
+    backgroundColor: '#FFF4E7', borderWidth: 1, borderColor: '#F6DFC4',
+    borderRadius: 12, padding: 12, marginBottom: 14,
+  },
+  confirmRow: { flexDirection: 'row', gap: 10, marginTop: 4 },
 });
