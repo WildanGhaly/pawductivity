@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, StyleSheet, Pressable, Image, Share } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -52,6 +52,16 @@ export function RecapScreen() {
   const bestDay = hasData && bestIdx >= 0 ? DAY_FULL[bestIdx] : '-';
   const delta = Math.round(((total - ins.lastWeekTotal) / Math.max(1, ins.lastWeekTotal)) * 100);
   const v = recapVerdict(delta, petName, hasData);
+
+  // Tap a weekly bar to reveal its value (proto chartTip), auto-hiding after a beat.
+  const [rcTip, setRcTip] = useState<number | null>(null);
+  const rcRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showRcTip = (i: number) => {
+    setRcTip(i);
+    if (rcRef.current) clearTimeout(rcRef.current);
+    rcRef.current = setTimeout(() => setRcTip(null), 1900);
+  };
+  useEffect(() => () => { if (rcRef.current) clearTimeout(rcRef.current); }, []);
   const topCat = ins.categories[0]; // may be undefined for a fresh user
   const avg = ins.avgLen;
 
@@ -114,12 +124,19 @@ export function RecapScreen() {
         </View>
         <View style={styles.rcbars}>
           {ins.weekly.map((m, i) => (
-            <View key={i} style={styles.rcbarcol}>
-              <View style={styles.rctrack}>
+            <Pressable key={i} style={styles.rcbarcol} onPress={() => showRcTip(i)}>
+              {rcTip === i && (
+                <View style={styles.rcTipWrap} pointerEvents="none">
+                  <View style={styles.rcTip}>
+                    <Txt weight={700} size={11} color="#fff">{`${DAY_FULL[i]} · ${m > 0 ? m + ' min' : 'no focus'}`}</Txt>
+                  </View>
+                </View>
+              )}
+              <View style={[styles.rctrack, rcTip === i && styles.rctrackActive]}>
                 <View style={[styles.rcbar, hasData && i === bestIdx && styles.rcbarBest, { height: `${Math.max(6, Math.round((m / max) * 100))}%` }]} />
               </View>
               <Txt weight={700} size={10} color="#9FCBDD">{DOW2[i]}</Txt>
-            </View>
+            </Pressable>
           ))}
         </View>
         <Txt weight={600} size={11} color="#9FCBDD" style={styles.recapfoot}>Made with Pawductivity</Txt>
@@ -225,14 +242,16 @@ function CmpRow({
     <View style={[styles.cmprow, style]}>
       <Txt weight={700} size={12} color={colors.muted} style={styles.cmpl}>{label}</Txt>
       <View style={styles.cmpbar}>
-        <View
-          style={[
-            styles.cmpfill,
-            { width: `${width}%` },
-            now && { backgroundColor: colors.teal2 },
-            fillColor && { backgroundColor: fillColor },
-          ]}
-        />
+        {now ? (
+          <LinearGradient
+            colors={[colors.teal2, colors.teal]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={[styles.cmpfill, { width: `${width}%` }]}
+          />
+        ) : (
+          <View style={[styles.cmpfill, { width: `${width}%` }, fillColor && { backgroundColor: fillColor }]} />
+        )}
       </View>
       <Txt weight={800} size={12} color={colors.tealInk} style={styles.cmpv}>{value}</Txt>
     </View>
@@ -260,7 +279,10 @@ const styles = StyleSheet.create({
   statCol: { alignItems: 'center' },
   rcbars: { flexDirection: 'row', gap: 7, alignSelf: 'stretch', marginTop: 16 },
   rcbarcol: { flex: 1, alignItems: 'center', gap: 7 },
+  rcTipWrap: { position: 'absolute', top: -8, left: -50, right: -50, alignItems: 'center', zIndex: 10 },
+  rcTip: { backgroundColor: colors.tealInk, paddingVertical: 5, paddingHorizontal: 9, borderRadius: 9, ...shadow.sm },
   rctrack: { width: '100%', height: 54, borderRadius: 8, backgroundColor: 'rgba(255,255,255,.14)', justifyContent: 'flex-end', overflow: 'hidden' },
+  rctrackActive: { backgroundColor: 'rgba(255,255,255,.26)' },
   rcbar: { width: '100%', borderRadius: 8, backgroundColor: 'rgba(255,255,255,.55)' },
   rcbarBest: { backgroundColor: colors.yellow },
   recapfoot: { marginTop: 14, textAlign: 'center' },
