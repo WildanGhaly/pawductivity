@@ -5,6 +5,7 @@ import { colors, radius, shadow, NAV_H, moodColors } from '../theme/tokens';
 import { Txt, Card, CoinPill, Btn, Bounded } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { PetView } from '../components/PetView';
+import { CoinPile } from '../components/CoinPile';
 import { BottomSheet } from '../components/BottomSheet';
 import { img, avatars, avatarSrc, foodImg, clothesImg } from '../assets/registry';
 import { useStore } from '../store/store';
@@ -72,12 +73,7 @@ export function PetTab() {
               <View style={styles.petStageBox}>
                 <PetView species={pet.species} clothesId={pet.clothesId} size={220} speed={mood.spd} />
               </View>
-              {pending > 0 && (
-                <View style={styles.pileBadge}>
-                  <Image source={img.coin} style={{ width: 15, height: 15 }} />
-                  <Txt weight={800} size={11.5} color="#fff">{pending} · tap to collect</Txt>
-                </View>
-              )}
+              <CoinPile pending={pending} />
             </ImageBackground>
           </Pressable>
         </View>
@@ -273,7 +269,6 @@ const styles = StyleSheet.create({
   mooddot: { width: 8, height: 8, borderRadius: 4 },
   petShadow: { position: 'absolute', bottom: 20, alignSelf: 'center', width: 120, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,.14)', zIndex: 1 },
   petStageBox: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 230, alignItems: 'center', justifyContent: 'flex-end', zIndex: 2 },
-  pileBadge: { position: 'absolute', top: 12, alignSelf: 'center', zIndex: 5, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(12,76,96,.92)', paddingVertical: 5, paddingHorizontal: 11, borderRadius: radius.pill },
   shead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: 12, marginHorizontal: 2 },
   spread: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   jprogbar: { height: 9, borderRadius: 999, backgroundColor: '#EFE7D6', overflow: 'hidden', marginTop: 11 },
