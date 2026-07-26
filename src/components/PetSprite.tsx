@@ -72,9 +72,9 @@ const rot = (move: Animated.Value, a: number, b: number) => move.interpolate({ i
 function Fox({ blink, move, clothesId }: PetProps) {
   return (
     <G>
-      {/* bushy tail — wags */}
-      <AG rotation={rot(move, -15, 15)} originX={30} originY={66}>
-        <Path d="M28 74 Q6 70 10 50 Q18 58 30 62 Z" fill="#D9743A" />
+      {/* bushy tail — wags; base tucked deep under the body so it never separates */}
+      <AG rotation={rot(move, -8, 8)} originX={34} originY={70}>
+        <Path d="M40 78 Q6 72 10 50 Q18 58 40 60 Z" fill="#D9743A" />
         <Path d="M12 52 Q7 60 14 66 Q19 62 22 60 Z" fill="#F7EDE3" />
       </AG>
       {/* shadow */}
@@ -89,7 +89,7 @@ function Fox({ blink, move, clothesId }: PetProps) {
       <Path d="M50 74 Q62 74 62 88 Q58 96 50 96 Q42 96 38 88 Q38 74 50 74 Z" fill="#F7EDE3" />
       <Vest clothesId={clothesId} cx={50} cy={80} w={22} />
       {/* head — tilts gently opposite the tail */}
-      <AG rotation={rot(move, 3, -3)} originX={50} originY={58}>
+      <AG rotation={rot(move, 2, -2)} originX={50} originY={60}>
         {/* ears */}
         <Path d="M32 44 L28 20 L48 36 Z" fill="#E8894A" />
         <Path d="M68 44 L72 20 L52 36 Z" fill="#E8894A" />
@@ -117,20 +117,21 @@ function Penguin({ blink, move, clothesId }: PetProps) {
       {/* feet */}
       <Path d="M38 98 Q34 108 44 106 Q46 100 44 98 Z" fill="#F2A03D" />
       <Path d="M62 98 Q66 108 56 106 Q54 100 56 98 Z" fill="#F2A03D" />
-      {/* body */}
+      {/* flippers — drawn BEHIND the body with the base tucked under it, so they flap
+          from behind the penguin and never separate. */}
+      <AG rotation={rot(move, -7, 7)} originX={34} originY={50}>
+        <Path d="M36 42 Q11 50 15 74 Q26 72 39 54 Z" fill="#262B36" />
+      </AG>
+      <AG rotation={rot(move, 7, -7)} originX={66} originY={50}>
+        <Path d="M64 42 Q89 50 85 74 Q74 72 61 54 Z" fill="#262B36" />
+      </AG>
+      {/* body (covers the flipper bases) */}
       <Path d="M50 22 Q78 24 76 70 Q74 100 50 100 Q26 100 24 70 Q22 24 50 22 Z" fill="#2E3440" />
       {/* belly */}
       <Path d="M50 40 Q66 42 65 72 Q62 92 50 92 Q38 92 35 72 Q34 42 50 40 Z" fill="#F7F5EE" />
       <Vest clothesId={clothesId} cx={50} cy={70} w={22} />
-      {/* flippers — flap in opposition */}
-      <AG rotation={rot(move, -13, 13)} originX={28} originY={54}>
-        <Path d="M26 52 Q16 62 24 78 Q30 70 30 58 Z" fill="#262B36" />
-      </AG>
-      <AG rotation={rot(move, 13, -13)} originX={72} originY={54}>
-        <Path d="M74 52 Q84 62 76 78 Q70 70 70 58 Z" fill="#262B36" />
-      </AG>
       {/* face — tilts a touch */}
-      <AG rotation={rot(move, 1.6, -1.6)} originX={50} originY={54}>
+      <AG rotation={rot(move, 1, -1)} originX={50} originY={54}>
         {/* white face patch */}
         <Path d="M50 28 Q68 30 66 48 Q58 60 50 60 Q42 60 34 48 Q32 30 50 28 Z" fill="#F7F5EE" />
         <Eyes blink={blink} positions={[[42, 42], [58, 42]]} r={3.6} />
@@ -156,8 +157,8 @@ function Axolotl({ blink, move, clothesId }: PetProps) {
   return (
     <G>
       <Ellipse cx="50" cy="104" rx="24" ry="5" fill="rgba(0,0,0,0.12)" />
-      {/* tail — sways */}
-      <AG rotation={rot(move, -8, 8)} originX={50} originY={82}>
+      {/* tail — sways (base under the body) */}
+      <AG rotation={rot(move, -5, 5)} originX={50} originY={84}>
         <Path d="M50 78 Q70 78 80 96 Q64 100 50 94 Z" fill="#F4A9C7" />
         <Path d="M50 80 Q66 82 74 94 Q62 96 52 92 Z" fill="#FBD3E1" />
       </AG>
@@ -168,11 +169,11 @@ function Axolotl({ blink, move, clothesId }: PetProps) {
       <Path d="M50 60 Q70 62 68 84 Q64 96 50 96 Q36 96 32 84 Q30 62 50 60 Z" fill="#F4A9C7" />
       <Path d="M50 72 Q60 72 59 86 Q55 92 50 92 Q45 92 41 86 Q40 72 50 72 Z" fill="#FBD3E1" />
       <Vest clothesId={clothesId} cx={50} cy={80} w={20} />
-      {/* frilly gills (signature) — wave in opposition */}
-      <AG rotation={rot(move, -9, 9)} originX={30} originY={50}>{frill(30, -1)}</AG>
-      <AG rotation={rot(move, 9, -9)} originX={70} originY={50}>{frill(70, 1)}</AG>
+      {/* frilly gills (signature) — wave in opposition; bases tucked under the head */}
+      <AG rotation={rot(move, -5, 5)} originX={32} originY={50}>{frill(32, -1)}</AG>
+      <AG rotation={rot(move, 5, -5)} originX={68} originY={50}>{frill(68, 1)}</AG>
       {/* head — tilts gently */}
-      <AG rotation={rot(move, -2.4, 2.4)} originX={50} originY={60}>
+      <AG rotation={rot(move, -1.5, 1.5)} originX={50} originY={60}>
         <Ellipse cx="50" cy="46" rx="26" ry="22" fill="#F4A9C7" />
         <Eyes blink={blink} positions={[[40, 44], [60, 44]]} r={2.8} />
         {/* smile */}
@@ -185,7 +186,7 @@ function Axolotl({ blink, move, clothesId }: PetProps) {
   );
 }
 
-export function PetSprite({
+function PetSpriteBase({
   species,
   clothesId = 0,
   size = 200,
@@ -240,8 +241,8 @@ export function PetSprite({
     };
   }, [animated, bob, move, blink, speed]);
 
-  const translateY = bob.interpolate({ inputRange: [0, 1], outputRange: [4, -4] });
-  const scaleY = bob.interpolate({ inputRange: [0, 1], outputRange: [0.975, 1.02] });
+  const translateY = bob.interpolate({ inputRange: [0, 1], outputRange: [3, -3] });
+  const scaleY = bob.interpolate({ inputRange: [0, 1], outputRange: [0.985, 1.015] });
 
   return (
     <Animated.View
@@ -255,3 +256,7 @@ export function PetSprite({
     </Animated.View>
   );
 }
+
+// Memoized so a parent that re-renders often (e.g. the Focus timer ticking ~4x/sec)
+// never re-renders the sprite, keeping the JS-thread part animations smooth/seamless.
+export const PetSprite = React.memo(PetSpriteBase);
