@@ -21,7 +21,7 @@ export function PetView({
 }) {
   // New companions are hand-drawn animated SVG sprites, not Lottie.
   if (isSpriteSpecies(species)) {
-    return <PetSprite species={species} clothesId={clothesId} size={size} />;
+    return <PetSprite species={species} clothesId={clothesId} size={size} speed={speed} />;
   }
   const key = clothesKey({ clothesId } as any);
   const source = lottiePet[species]?.[key] || lottiePet[species]?.default;

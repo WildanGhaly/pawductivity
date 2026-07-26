@@ -47,7 +47,7 @@ export function MainScreen() {
 
 // Each tab fades + slides in when it becomes active (proto .fade-in on tab switch).
 function MainInner({ tab, setTab, openOverlay, hasState }: { tab: any; setTab: (t: any) => void; openOverlay: (n: any) => void; hasState: boolean }) {
-  const anim = useRef(new Animated.Value(1)).current;
+  const anim = useRef(new Animated.Value(0)).current; // start hidden so the first frame doesn't flash at full opacity
   useEffect(() => {
     anim.setValue(0);
     Animated.timing(anim, { toValue: 1, duration: 280, easing: Easing.out(Easing.ease), useNativeDriver: true }).start();

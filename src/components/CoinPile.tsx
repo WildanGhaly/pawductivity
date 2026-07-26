@@ -58,7 +58,7 @@ export function CoinPile({ pending }: { pending: number }) {
   if (pending <= 0) return null;
   const n = Math.min(COIN_SPOTS.length, Math.max(1, Math.ceil(pending / 3)));
   return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+    <View pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 4 }]}>
       {COIN_SPOTS.slice(0, n).map((spot, i) => (
         <PileCoin key={i} spot={spot} index={i} />
       ))}

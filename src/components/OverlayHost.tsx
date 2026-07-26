@@ -59,6 +59,10 @@ export function OverlayHost() {
   const prevDepth = useRef(0);
 
   const [full, setFull] = useState<OverlayState | null>(null);
+  // The outgoing full overlay during a nested pop: it slides down on top while the
+  // revealed parent sits settled beneath, instead of snapping in after the animation.
+  const [closing, setClosing] = useState<OverlayState | null>(null);
+  const closeY = useRef(new Animated.Value(H)).current;
   const [sheet, setSheet] = useState<OverlayState | null>(null);
   const [sheetVisible, setSheetVisible] = useState(false);
 
@@ -90,10 +94,20 @@ export function OverlayHost() {
           Animated.timing(translateY, { toValue: 0, duration: 320, easing: SLIDE_IN, useNativeDriver: true }).start();
         }
       } else {
-        // popped back to a parent overlay: slide the child down, reveal parent at rest
-        Animated.timing(translateY, { toValue: H, duration: 260, easing: SLIDE_OUT, useNativeDriver: true }).start(({ finished }) => {
-          if (finished) { setFull(topFull); translateY.setValue(0); opacity.setValue(1); }
-        });
+        // Popped back to a parent overlay: reveal the parent at rest immediately, and
+        // slide the OUTGOING child down on a layer above it (so the parent is visible
+        // beneath the whole slide-down, not the bare Main screen).
+        const outgoing = full;
+        setFull(topFull);
+        translateY.setValue(0);
+        opacity.setValue(1);
+        if (outgoing) {
+          setClosing(outgoing);
+          closeY.setValue(0);
+          Animated.timing(closeY, { toValue: H, duration: 260, easing: SLIDE_OUT, useNativeDriver: true }).start(({ finished }) => {
+            if (finished) setClosing(null);
+          });
+        }
       }
     } else if (!topFull && full) {
       Animated.timing(translateY, { toValue: H, duration: 260, easing: SLIDE_OUT, useNativeDriver: true }).start(({ finished }) => finished && setFull(null));
@@ -125,6 +139,7 @@ export function OverlayHost() {
   }, [top, closeOverlay]);
 
   const FullComp = full ? FULL[full.name] : null;
+  const ClosingComp = closing ? FULL[closing.name] : null;
   const SheetComp = sheet ? SHEET[sheet.name] : null;
 
   return (
@@ -132,6 +147,12 @@ export function OverlayHost() {
       {FullComp && full && (
         <Animated.View style={[styles.full, { opacity, transform: [{ translateY }] }]}>
           <FullComp key={full.name} param={full.param} />
+        </Animated.View>
+      )}
+      {/* Outgoing overlay sliding down above the revealed parent during a nested pop. */}
+      {ClosingComp && closing && (
+        <Animated.View style={[styles.full, styles.closing, { transform: [{ translateY: closeY }] }]}>
+          <ClosingComp key={closing.name} param={closing.param} />
         </Animated.View>
       )}
       {/* Reward mounts directly (no slide container): it fades its scrim and pops its
@@ -146,4 +167,5 @@ export function OverlayHost() {
 
 const styles = StyleSheet.create({
   full: { position: 'absolute', inset: 0, zIndex: 50 } as any,
+  closing: { zIndex: 51 } as any,
 });
