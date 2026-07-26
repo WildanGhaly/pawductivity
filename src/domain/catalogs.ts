@@ -3,7 +3,7 @@
 
 export interface FoodItem { id: number; name: string; price: number; heal: number; premium: boolean; }
 export interface ClothesItem { id: number; name: string; price: number; premium: boolean; }
-export interface SpeciesItem { id: number; key: 'dog' | 'cat' | 'rabbit'; name: string; price: number; premium: boolean; }
+export interface SpeciesItem { id: number; key: import('./types').Species; name: string; price: number; premium: boolean; }
 
 export const FOODS: FoodItem[] = [
   { id: 1, name: 'Apple', price: 5, heal: 10, premium: false },
@@ -25,6 +25,9 @@ export const SPECIES: SpeciesItem[] = [
   { id: 1, key: 'dog', name: 'Dog', price: 500, premium: false },
   { id: 2, key: 'cat', name: 'Cat', price: 800, premium: false },
   { id: 3, key: 'rabbit', name: 'Rabbit', price: 1200, premium: true },
+  { id: 4, key: 'fox', name: 'Fox', price: 1600, premium: false },
+  { id: 5, key: 'penguin', name: 'Penguin', price: 2400, premium: false },
+  { id: 6, key: 'axolotl', name: 'Axolotl', price: 3600, premium: false },
 ];
 
 export interface Milestone {

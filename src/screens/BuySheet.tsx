@@ -3,9 +3,11 @@ import { View, Image, StyleSheet } from 'react-native';
 import { colors, radius } from '../theme/tokens';
 import { Txt, Btn } from '../components/ui';
 import { BottomSheet } from '../components/BottomSheet';
+import { SpeciesThumb } from '../components/SpeciesThumb';
 import { FOODS, CLOTHES, SPECIES } from '../domain/catalogs';
 import { img, foodImg, clothesImg, speciesThumb } from '../assets/registry';
 import { useStore } from '../store/store';
+import { Species } from '../domain/types';
 
 // Purchase-confirmation dialog (proto buyDialog): item art + name, Price and Your
 // balance rows, Cancel / Buy now. Premium-locked items show the "Go Premium" upsell;
@@ -32,6 +34,7 @@ export function BuySheet({
   let price = 0;
   let art: any = img.coin;
   let premium = false;
+  let petKey: Species | null = null;
   if (kind === 'food') {
     const f = FOODS.find((x) => x.id === id);
     if (f) { name = f.name; price = f.price; art = foodImg[f.id]; premium = !!f.premium; }
@@ -40,7 +43,7 @@ export function BuySheet({
     if (c) { name = c.name; price = c.price; art = clothesImg[c.id]; premium = !!c.premium; }
   } else {
     const p = SPECIES.find((x) => x.id === id);
-    if (p) { name = p.name; price = p.price; art = speciesThumb[p.key]; premium = !!p.premium; }
+    if (p) { name = p.name; price = p.price; art = speciesThumb[p.key]; premium = !!p.premium; petKey = p.key; }
   }
 
   const locked = premium && !s.profile.premium;
@@ -56,7 +59,11 @@ export function BuySheet({
   return (
     <BottomSheet visible={visible} onClose={closeOverlay} title={locked ? 'Premium item' : `Buy ${name}?`}>
       <View style={styles.art}>
-        <Image source={art} style={{ width: 96, height: 96 }} resizeMode="contain" />
+        {petKey ? (
+          <SpeciesThumb species={petKey} size={92} />
+        ) : (
+          <Image source={art} style={{ width: 96, height: 96 }} resizeMode="contain" />
+        )}
       </View>
 
       {locked ? (

@@ -7,6 +7,7 @@ import { OverlayScreen } from '../components/OverlayScreen';
 import { useStore } from '../store/store';
 import { FOODS, CLOTHES, SPECIES } from '../domain/catalogs';
 import { img, foodImg, clothesImg, speciesThumb } from '../assets/registry';
+import { SpeciesThumb } from '../components/SpeciesThumb';
 
 type ShopTab = 'food' | 'pets' | 'clothes';
 
@@ -61,7 +62,7 @@ export function ShopScreen({ param }: { param?: { tab?: ShopTab } }) {
       cards.push(
         <ShopCard
           key={sp.id}
-          art={speciesThumb[sp.key]}
+          artNode={<SpeciesThumb species={sp.key} size={72} />}
           name={sp.name}
           desc={sp.premium ? 'Premium' : 'Companion'}
           locked={locked}
@@ -114,13 +115,15 @@ export function ShopScreen({ param }: { param?: { tab?: ShopTab } }) {
 
 function ShopCard({
   art,
+  artNode,
   name,
   desc,
   locked,
   qty,
   button,
 }: {
-  art: any;
+  art?: any;
+  artNode?: React.ReactNode;
   name: string;
   desc: string;
   locked?: boolean;
@@ -140,7 +143,11 @@ function ShopCard({
           <Txt weight={800} size={11} color={colors.teal}>×{qty}</Txt>
         </View>
       )}
-      <Image source={art} style={styles.art} resizeMode="contain" />
+      {artNode ? (
+        <View style={[styles.art, { alignItems: 'center', justifyContent: 'center' }]}>{artNode}</View>
+      ) : (
+        <Image source={art} style={styles.art} resizeMode="contain" />
+      )}
       <Txt weight={700} size={13.5} color={colors.tealInk}>{name}</Txt>
       <Txt weight={600} size={11} color={colors.muted} style={styles.cd}>{desc}</Txt>
       <BuyButton spec={button} />
