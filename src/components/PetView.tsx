@@ -4,6 +4,7 @@ import LottieView from 'lottie-react-native';
 import { lottiePet, speciesThumb } from '../assets/registry';
 import { Species } from '../domain/types';
 import { clothesKey } from '../domain/mechanics';
+import { PetSprite, isSpriteSpecies } from './PetSprite';
 
 // Native: render the Lottie companion animation (mood-based speed), keyed by
 // species + worn clothes. Web uses PetView.web.tsx (thumbnail). See SPEC D7.
@@ -18,6 +19,10 @@ export function PetView({
   size?: number;
   speed?: number;
 }) {
+  // New companions are hand-drawn animated SVG sprites, not Lottie.
+  if (isSpriteSpecies(species)) {
+    return <PetSprite species={species} clothesId={clothesId} size={size} />;
+  }
   const key = clothesKey({ clothesId } as any);
   const source = lottiePet[species]?.[key] || lottiePet[species]?.default;
   if (!source) {

@@ -1,6 +1,6 @@
 // App state types, mirroring the prototype freshState() shape.
 
-export type Species = 'dog' | 'cat' | 'rabbit';
+export type Species = 'dog' | 'cat' | 'rabbit' | 'fox' | 'penguin' | 'axolotl';
 export type QuestTag = 'Work' | 'School' | 'Sport' | 'Personal' | 'Project';
 export type ReminderRep = 'once' | 'daily' | 'weekdays' | 'weekly' | 'monthly';
 
