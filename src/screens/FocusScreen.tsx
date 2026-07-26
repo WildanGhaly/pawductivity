@@ -354,6 +354,8 @@ export function FocusScreen({ param }: { param?: { questId?: number; resume?: bo
     if (t.running) {
       t.running = false;
       stopInterval();
+      clearFocusNotif();
+      clearSession();
       setRunning(false);
     }
     t.mode = m;

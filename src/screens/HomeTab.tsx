@@ -66,8 +66,8 @@ export function HomeTab({ onTab }: { onTab: (t: TabKey) => void }) {
           <View style={styles.cePlus}><Icon name="plus" size={20} color="#fff" /></View>
         </Pressable>
 
-        {/* pet room */}
-        <Pressable onPress={pending > 0 ? collectIdle : undefined}>
+        {/* pet room (elevated card: shadow on the un-clipped wrapper, border on the room) */}
+        <Pressable onPress={pending > 0 ? collectIdle : undefined} style={{ borderRadius: 22, ...shadow.card }}>
           <ImageBackground source={s.settings.room === 1 ? img.room2 : img.room1} style={styles.room} imageStyle={{ borderRadius: 22 }}>
             <View style={styles.moodtag}>
               <View style={[styles.mooddot, { backgroundColor: moodColors[mood.k] }]} />
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
   },
   ceIc: { width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(255,255,255,.14)', alignItems: 'center', justifyContent: 'center' },
   cePlus: { width: 34, height: 34, borderRadius: 12, backgroundColor: colors.orange, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 3, borderBottomColor: colors.orange2 },
-  room: { height: 250, borderRadius: 22, overflow: 'hidden', justifyContent: 'flex-end' },
+  room: { height: 250, borderRadius: 22, overflow: 'hidden', justifyContent: 'flex-end', borderWidth: 1, borderColor: colors.line },
   moodtag: {
     position: 'absolute', top: 12, left: 12, zIndex: 3, flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: 'rgba(255,255,255,.92)', paddingVertical: 5, paddingHorizontal: 11, borderRadius: radius.pill,

@@ -170,21 +170,25 @@ export function PetSprite({
   clothesId = 0,
   size = 200,
   animated = true,
+  speed = 1,
 }: {
   species: SpriteSpecies;
   clothesId?: number;
   size?: number;
   animated?: boolean;
+  speed?: number;
 }) {
   const bob = useRef(new Animated.Value(0)).current;
   const blink = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (!animated) return;
+    // Mood-reactive idle: a happier pet (higher speed) breathes a little faster.
+    const dur = Math.round(1350 / Math.max(0.4, speed));
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(bob, { toValue: 1, duration: 1350, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(bob, { toValue: 0, duration: 1350, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(bob, { toValue: 1, duration: dur, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(bob, { toValue: 0, duration: dur, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
       ]),
     );
     loop.start();
@@ -206,7 +210,7 @@ export function PetSprite({
       loop.stop();
       clearTimeout(timer);
     };
-  }, [animated, bob, blink]);
+  }, [animated, bob, blink, speed]);
 
   const translateY = bob.interpolate({ inputRange: [0, 1], outputRange: [2.5, -2.5] });
   const scaleY = bob.interpolate({ inputRange: [0, 1], outputRange: [0.99, 1.01] });

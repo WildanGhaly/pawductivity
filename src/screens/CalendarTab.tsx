@@ -246,6 +246,12 @@ export function CalendarTab() {
     const t = `${String(h).padStart(2, '0')}:${String(remM).padStart(2, '0')}`;
     addReminder({ name: n, time: t, rep: remRep, y: remY, mo: remMo, day: remDay });
     setAddOpen(false);
+    // Move the calendar to the reminder's month so the new reminder is visible right away.
+    if (remY !== cal.y || remMo !== cal.m) {
+      setCal({ y: remY, m: remMo });
+      setPick(false);
+      playCalIn(0);
+    }
     const when = new Date(remY, remMo, remDay).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     showToast(remRep === 'once' ? `Reminder set for ${when}` : `Reminder set, starting ${when}`);
     // First reminder: ask about notifications (proto askNotif), a beat after the sheet closes.

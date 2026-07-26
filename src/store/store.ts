@@ -188,7 +188,9 @@ export const useStore = create<StoreShape>((set, get) => {
 
     resetData: async () => {
       await persistence.wipe();
-      set({ state: null });
+      // Reset is triggered from inside the Profile overlay; clear the nav stack + toast
+      // too, so re-onboarding doesn't start with a stale overlay/toast on screen.
+      set({ state: null, overlays: [], toast: null });
     },
 
     setTab: (tab) => set((store) => (store.state ? { state: { ...store.state, tab } } : store)),
@@ -282,7 +284,7 @@ export const useStore = create<StoreShape>((set, get) => {
       const s = get().state; if (!s) return 0;
       const id = s.nextId;
       mutate((d) => {
-        d.quests.unshift({ id, name: q.name, tag: q.tag, est: q.est, done: 0, repeat: q.repeat, rlabel: q.rlabel, due: q.due, focus: true });
+        d.quests.push({ id, name: q.name, tag: q.tag, est: q.est, done: 0, repeat: q.repeat, rlabel: q.rlabel, due: q.due, focus: true });
         d.nextId += 1;
       });
       return id;
@@ -290,8 +292,9 @@ export const useStore = create<StoreShape>((set, get) => {
 
     addQuests: (list) => {
       mutate((d) => {
+        // push (not unshift) so a brain-dump batch keeps the typed order (A,B,C), matching proto.
         list.forEach((q) => {
-          d.quests.unshift({ id: d.nextId, name: q.name, tag: q.tag, est: q.est, done: 0, repeat: q.repeat, rlabel: q.rlabel, due: q.due, focus: true });
+          d.quests.push({ id: d.nextId, name: q.name, tag: q.tag, est: q.est, done: 0, repeat: q.repeat, rlabel: q.rlabel, due: q.due, focus: true });
           d.nextId += 1;
         });
       });

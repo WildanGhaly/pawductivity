@@ -174,7 +174,9 @@ function reminderTriggers(m: any, r: ReminderLike, hh: number, mm: number): any[
       // expo weekday: 1=Sunday .. 7=Saturday, so Mon-Fri = 2..6.
       return [2, 3, 4, 5, 6].map((weekday) => ({ type: T.WEEKLY, weekday, hour: hh, minute: mm, channelId: ch }));
     case 'monthly':
-      return [{ type: T.MONTHLY, day: r.day ?? 1, hour: hh, minute: mm, channelId: ch }];
+      // expo's MONTHLY trigger takes a fixed day and can't express "last valid day", so a
+      // day of 29-31 would silently skip short months. Clamp to 28 so it always fires.
+      return [{ type: T.MONTHLY, day: Math.min(28, r.day ?? 1), hour: hh, minute: mm, channelId: ch }];
     default: {
       // one-off: fire on the anchored date; skip if it is already in the past.
       const d = new Date(r.y ?? now.getFullYear(), r.mo ?? now.getMonth(), r.day ?? now.getDate(), hh, mm, 0, 0);
